@@ -96,8 +96,33 @@ function App() {
   };
 
   useEffect(() => {
-    // Make the fullscreen background click-through by default
+    // Make the fullscreen background click-through by default on mount
     (window as any).electronAPI?.setIgnoreMouseEvents(true, { forward: true });
+  }, []);
+
+  // ── KEY FIX: whenever the widget collapses, always release mouse capture ──
+  useEffect(() => {
+    if (!isExpanded) {
+      // Small delay to let the collapse animation finish, then always release
+      const t = setTimeout(() => {
+        (window as any).electronAPI?.setIgnoreMouseEvents(true, { forward: true });
+      }, 350);
+      return () => clearTimeout(t);
+    }
+  }, [isExpanded]);
+
+  // ── Safety net: if cursor is far from any widget, auto-release ─────────────
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      // If no widget element is under the cursor, release capture
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const isOverWidget = el?.closest('[data-widget]') != null;
+      if (!isOverWidget) {
+        (window as any).electronAPI?.setIgnoreMouseEvents(true, { forward: true });
+      }
+    };
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+    return () => window.removeEventListener('mousemove', onMouseMove);
   }, []);
 
   const handleMouseEnter = () => {
@@ -235,6 +260,7 @@ function App() {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           onClick={() => setIsPowerOn(true)} 
+          data-widget
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
           className="p-4 rounded-full bg-black/80 border border-cyan-500/50 hover:bg-cyan-500/20 transition-colors shadow-[0_0_20px_rgba(0,243,255,0.3)] pointer-events-auto"
@@ -255,6 +281,9 @@ function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            data-widget
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
             className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] pointer-events-auto"
           >
             <motion.div
@@ -369,6 +398,7 @@ function App() {
       <motion.div 
         drag 
         dragMomentum={false}
+        data-widget
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className="pointer-events-auto relative flex items-center justify-center cursor-grab active:cursor-grabbing"
