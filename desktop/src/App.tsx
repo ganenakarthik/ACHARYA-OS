@@ -383,119 +383,176 @@ function App() {
               animate={{ opacity: 1, x: -170, scale: 1 }}
               exit={{ opacity: 0, x: 50, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 200, damping: 25 }}
-              className="absolute w-[350px] bg-black/85 backdrop-blur-2xl border border-cyan-500/50 rounded-2xl p-4 shadow-[0_0_50px_rgba(0,243,255,0.25)] cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[82vh] flex flex-col overflow-hidden"
+              className="absolute w-[360px] bg-black/90 backdrop-blur-2xl border border-cyan-500/40 rounded-2xl shadow-[0_0_60px_rgba(0,243,255,0.2),inset_0_1px_0_rgba(255,255,255,0.04)] cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[84vh] flex flex-col overflow-hidden"
               style={{ right: '50%' }}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
-              onPointerDown={(e) => e.stopPropagation()} // Prevent dragging from panels
+              onPointerDown={(e) => e.stopPropagation()}
             >
-              <div className="overflow-y-auto custom-scrollbar flex flex-col gap-3.5 pr-1">
-              {/* Evolving Identity Twin Card */}
-              <div className="bg-purple-900/20 border border-purple-500/40 rounded-xl p-4 relative overflow-hidden">
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-purple-400 font-bold tracking-widest text-[10px] uppercase flex items-center gap-2">
-                    <User size={14} className="text-purple-400" /> Evolving Identity Twin
-                  </h2>
-                  <span className="bg-purple-500/30 text-purple-300 text-[9px] px-2 py-0.5 rounded-full border border-purple-400/40 font-bold">
-                    Momentum {identityTwin?.momentum || 7}/10
-                  </span>
+              {/* Scanlines overlay */}
+              <div className="scanlines absolute inset-0 rounded-2xl z-0 pointer-events-none" />
+
+              {/* Panel header bar */}
+              <div className="relative z-10 flex items-center justify-between px-4 py-2.5 border-b border-white/5 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 status-blink shadow-[0_0_8px_#00f3ff]" />
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-400/80">ACHARYA · Identity OS</span>
                 </div>
-                <div className="space-y-1.5">
-                  <div className="text-xs text-white/90 font-semibold leading-tight">
-                    Target: <span className="text-purple-300 font-bold">{identityTwin?.ideal_self || "Visionary Technical Founder & AI Architect"}</span>
+                <span className="text-[8px] text-white/20 font-mono">v2.6 · LIVE</span>
+              </div>
+
+              <div className="overflow-y-auto custom-scrollbar flex flex-col gap-3 p-3 pt-2 relative z-10">
+
+              {/* ── Identity Twin Card ── */}
+              <div className="bg-gradient-to-br from-purple-950/40 to-black/60 border border-purple-500/35 rounded-xl p-4 relative overflow-hidden shadow-[0_0_25px_rgba(168,85,247,0.12)]">
+                {/* Subtle corner glow */}
+                <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/10 rounded-full blur-2xl" />
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-purple-400 font-black tracking-widest text-[9px] uppercase flex items-center gap-1.5">
+                    <User size={12} className="text-purple-400" /> Identity Twin
+                  </h2>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[8px] text-purple-300/70 font-bold">MOMENTUM</span>
+                    <span className="bg-purple-500/25 text-purple-200 text-[10px] px-2 py-0.5 rounded-md border border-purple-400/30 font-black tabular-nums">
+                      {identityTwin?.momentum || 7}<span className="text-purple-400/50">/10</span>
+                    </span>
                   </div>
-                  <div className="flex items-center justify-between text-[10px] text-white/60">
-                    <span>Identity Gap</span>
-                    <span className="text-purple-400 font-bold">{identityTwin?.identity_gap || "42% Remaining"}</span>
+                </div>
+                {/* Ideal self */}
+                <p className="neon-shimmer text-[13px] font-black leading-tight mb-3">
+                  {identityTwin?.ideal_self || "Visionary Technical Founder"}
+                </p>
+                {/* Momentum bar */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[8px] text-white/40 font-bold uppercase tracking-wider">
+                    <span>Progress to Ideal Self</span>
+                    <span className="text-purple-300">{100 - (identityTwin?.momentum || 7) * 10}% Gap</span>
                   </div>
-                  <div className="w-full bg-black/60 rounded-full h-1 overflow-hidden">
-                    <div className="bg-gradient-to-r from-purple-500 to-cyan-400 h-1 rounded-full w-[65%]" />
+                  <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="momentum-bar bg-gradient-to-r from-purple-500 via-fuchsia-400 to-cyan-400 h-full rounded-full shadow-[0_0_8px_rgba(168,85,247,0.6)]"
+                      style={{ width: `${(identityTwin?.momentum || 7) * 10}%` }}
+                    />
+                  </div>
+                  <div className="flex gap-1 mt-1">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <div key={i} className={`flex-1 h-0.5 rounded-full transition-all ${
+                        i < (identityTwin?.momentum || 7) ? 'bg-purple-400/70' : 'bg-white/10'
+                      }`} />
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* Directive Card */}
-              <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 overflow-hidden relative">
-                {isSpeaking && <motion.div layoutId="speaking-glow-left" className="absolute inset-0 bg-cyan-400/20 animate-pulse" />}
-                <h2 className="text-green-400 font-bold tracking-widest text-[10px] uppercase mb-3 flex items-center gap-2 relative z-10">
-                  <Target size={14} /> Active Directive
-                </h2>
+              {/* ── Active Directive Card ── */}
+              <div className="bg-gradient-to-br from-cyan-950/30 to-black/60 border border-cyan-500/30 rounded-xl p-4 overflow-hidden relative shadow-[0_0_20px_rgba(0,243,255,0.08)]">
+                {isSpeaking && <motion.div layoutId="speaking-glow-left" className="absolute inset-0 bg-cyan-400/15 animate-pulse rounded-xl" />}
+                <div className="absolute bottom-0 right-0 w-24 h-16 bg-cyan-500/5 rounded-full blur-2xl" />
+                <div className="flex items-center gap-2 mb-2.5 relative z-10">
+                  <div className={`w-1.5 h-1.5 rounded-full ${mission ? 'bg-green-400 shadow-[0_0_8px_#22c55e]' : 'bg-white/20'} ${isSpeaking ? 'animate-ping' : 'animate-pulse'}`} />
+                  <h2 className="text-green-400 font-black tracking-widest text-[9px] uppercase">Active Directive</h2>
+                  {mission && (
+                    <span className="ml-auto text-[8px] text-green-400/70 font-bold bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/20">
+                      {mission.explainability?.confidence || '—'}
+                    </span>
+                  )}
+                </div>
                 {mission ? (
-                  <div className="space-y-3 relative z-10">
-                    <div>
-                      <motion.h3 
-                        initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} key={mission?.mission}
-                        className="text-white text-sm font-medium leading-snug"
-                      >
-                        {mission?.mission || "Analyzing optimal path..."}
-                      </motion.h3>
-                      <motion.p 
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-                        className="text-white/50 text-xs mt-1"
-                      >
-                        {mission?.explainability?.why || "Calculating reasoning..."}
-                      </motion.p>
-                    </div>
-                    <div className="flex items-center justify-between text-[10px] uppercase tracking-wider font-semibold">
-                      <span className="text-white/40">Confidence</span>
-                      <span className="text-green-400">{mission?.explainability?.confidence || "0%"}</span>
-                    </div>
-                    <div className="w-full bg-black/50 rounded-full h-1 overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }} animate={{ width: '98%' }} transition={{ duration: 1 }}
-                        className="bg-green-400 h-1 rounded-full shadow-[0_0_10px_#22c55e]" 
+                  <div className="space-y-2.5 relative z-10">
+                    <motion.p
+                      initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} key={mission.mission}
+                      className="text-white/90 text-[12px] font-semibold leading-snug"
+                    >
+                      {mission.mission}
+                    </motion.p>
+                    {mission.explainability?.why && (
+                      <p className="text-white/40 text-[10px] leading-snug border-l-2 border-cyan-500/30 pl-2">
+                        {mission.explainability.why}
+                      </p>
+                    )}
+                    <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }} animate={{ width: '97%' }} transition={{ duration: 1.2, ease: 'easeOut' }}
+                        className="bg-gradient-to-r from-green-400 to-cyan-400 h-full rounded-full shadow-[0_0_8px_rgba(34,197,94,0.5)]"
                       />
                     </div>
                   </div>
                 ) : (
-                  <p className="text-white/30 text-xs text-center py-2 italic relative z-10">Awaiting directive...</p>
+                  <div className="flex items-center gap-2 py-3 relative z-10">
+                    <div className="w-2 h-2 rounded-full bg-white/20 animate-pulse" />
+                    <p className="text-white/25 text-[11px] italic">Awaiting directive — speak or type a command</p>
+                  </div>
                 )}
               </div>
 
-              {/* Interactive Action Plan Card */}
+              {/* ── Action Roadmap ── */}
               {mission?.plan_phases && mission.plan_phases.length > 0 && (
-                <div className="bg-emerald-950/30 border border-emerald-500/40 rounded-xl p-4 space-y-3 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+                <div className="bg-gradient-to-br from-emerald-950/30 to-black/60 border border-emerald-500/35 rounded-xl p-4 space-y-3 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-emerald-400 font-bold tracking-widest text-[10px] uppercase flex items-center gap-2">
-                      <Target size={14} className="text-emerald-400" /> Action Roadmap & Plan
+                    <h2 className="text-emerald-400 font-black tracking-widest text-[9px] uppercase flex items-center gap-1.5">
+                      <Target size={12} className="text-emerald-400" /> Action Roadmap
                     </h2>
-                    <span className="bg-emerald-500/20 text-emerald-300 text-[9px] px-2 py-0.5 rounded-full border border-emerald-400/30 font-bold">
-                      5 Phases Active
+                    <span className="bg-emerald-500/15 text-emerald-300 text-[8px] px-2 py-0.5 rounded border border-emerald-400/25 font-black">
+                      {mission.plan_phases.length} Phases
                     </span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {mission.plan_phases.map((item, idx) => (
-                      <div key={idx} className="bg-black/60 p-2.5 rounded-lg border border-emerald-500/30 flex items-start gap-2.5 group hover:border-emerald-400 transition-colors">
-                        <input type="checkbox" className="mt-0.5 accent-emerald-400 cursor-pointer" defaultChecked={idx === 0} />
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.07 }}
+                        className="bg-black/50 px-3 py-2.5 rounded-lg border border-emerald-500/20 hover:border-emerald-400/60 transition-all group flex items-start gap-2.5"
+                      >
+                        <div className={`mt-0.5 w-3.5 h-3.5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                          idx === 0 ? 'bg-emerald-500/30 border-emerald-400' : 'border-white/20 group-hover:border-emerald-500/50'
+                        }`}>
+                          {idx === 0 && <div className="w-1.5 h-1.5 rounded-sm bg-emerald-400" />}
+                        </div>
                         <div>
-                          <div className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider">
-                            {item.phase}: {item.title}
+                          <div className="text-[9px] font-black text-emerald-300/80 uppercase tracking-widest">
+                            {item.phase}
                           </div>
-                          <div className="text-xs text-white/90 leading-snug mt-0.5 font-medium">
+                          <div className="text-[11px] text-white/80 leading-snug font-medium">
                             {item.task}
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 </div>
               )}
 
-
-
-              {/* Memory Sync */}
-              <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-3 flex flex-col items-center">
-                 <h2 className="text-blue-400 font-bold tracking-widest text-[10px] uppercase mb-1.5 w-full text-left flex items-center gap-2">
-                    <Brain size={14} /> Neural Link
-                  </h2>
-                  <svg viewBox="0 0 100 30" className="w-full h-8 opacity-80 mt-1">
-                    <path d="M10,15 Q25,5 40,15 T70,15 T90,8" fill="none" stroke="#60a5fa" strokeWidth="1" className="opacity-50" />
-                    <circle cx="10" cy="15" r="2" fill="#60a5fa" className="animate-pulse" />
-                    <circle cx="40" cy="15" r="3" fill="#3b82f6" className={isSpeaking ? 'animate-[ping_0.5s_infinite]' : 'animate-pulse'} />
-                    <circle cx="70" cy="15" r="2" fill="#93c5fd" />
-                    <circle cx="90" cy="8" r="2" fill="#60a5fa" className="animate-pulse" />
-                  </svg>
+              {/* ── Neural Link ── */}
+              <div className="bg-black/40 border border-blue-500/25 rounded-xl p-3">
+                <h2 className="text-blue-400/80 font-black tracking-widest text-[9px] uppercase mb-2 flex items-center gap-1.5">
+                  <Brain size={12} /> Neural Link
+                </h2>
+                <svg viewBox="0 0 100 28" className="w-full h-7">
+                  <defs>
+                    <linearGradient id="nlGrad" x1="0" x2="1" y1="0" y2="0">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
+                      <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.8" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M5,14 Q20,4 35,14 T65,14 T90,7" fill="none" stroke="url(#nlGrad)" strokeWidth="1.5" strokeLinecap="round" />
+                  {[5,35,65,90].map((cx, i) => (
+                    <circle key={i} cx={cx} cy={i===3?7:14} r={i===1?3:2}
+                      fill={i===1?'#3b82f6':'#60a5fa'}
+                      className={i===1 && isSpeaking ? 'animate-[ping_0.4s_infinite]' : 'animate-pulse'}
+                    />
+                  ))}
+                </svg>
               </div>
+
+              </div>
+
+              {/* Panel footer status bar */}
+              <div className="relative z-10 flex items-center justify-between px-4 py-2 border-t border-white/5 shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1 h-1 rounded-full bg-green-400 shadow-[0_0_5px_#22c55e] animate-pulse" />
+                  <span className="text-[8px] text-white/25 font-mono">WS CONNECTED</span>
+                </div>
+                <span className="text-[8px] text-white/20 font-mono">{identityTwin?.actions_completed || 3} ACTIONS DONE</span>
               </div>
             </motion.div>
           )}
