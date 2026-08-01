@@ -44,7 +44,48 @@ function App() {
     MEMORY: true,
     INTERNET: false
   });
+
+  // Onboarding state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardGoal, setOnboardGoal] = useState("");
+  const [onboardDomain, setOnboardDomain] = useState("");
+  const [onboardFocus, setOnboardFocus] = useState("");
+  const [onboardLoading, setOnboardLoading] = useState(false);
+
   const wsRef = useRef<WebSocket | null>(null);
+
+  // Check if user is already onboarded on startup
+  useEffect(() => {
+    fetch('http://127.0.0.1:8000/onboard/status')
+      .then(r => r.json())
+      .then(data => {
+        if (!data.onboarded) {
+          setTimeout(() => setShowOnboarding(true), 800);
+        }
+      })
+      .catch(() => {
+        // Backend not ready yet, show onboarding after delay
+        setTimeout(() => setShowOnboarding(true), 1500);
+      });
+  }, []);
+
+  const handleOnboardSubmit = async () => {
+    if (!onboardGoal.trim()) return;
+    setOnboardLoading(true);
+    try {
+      await fetch('http://127.0.0.1:8000/onboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ goal: onboardGoal, domain: onboardDomain, focus: onboardFocus })
+      });
+    } catch (e) {
+      console.error('Onboard save failed', e);
+    }
+    setOnboardLoading(false);
+    setShowOnboarding(false);
+    setIsExpanded(true);
+    setLogs(prev => [...prev, `[ACHARYA] Target locked: ${onboardGoal}`].slice(-4));
+  };
 
   useEffect(() => {
     // Make the fullscreen background click-through by default
@@ -198,6 +239,124 @@ function App() {
 
   return (
     <div className="w-screen h-screen bg-transparent overflow-hidden pointer-events-none flex items-center justify-center">
+
+      {/* ONBOARDING MODAL */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] pointer-events-auto"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -20 }}
+              transition={{ type: "spring", stiffness: 200, damping: 22 }}
+              className="w-[500px] bg-[#050c18] border border-cyan-500/50 rounded-2xl p-8 shadow-[0_0_80px_rgba(0,243,255,0.25)] flex flex-col gap-6"
+            >
+              {/* Header */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/30 to-purple-600/30 border border-cyan-500/50 flex items-center justify-center shadow-[0_0_20px_rgba(0,243,255,0.3)]">
+                    <Brain size={20} className="text-cyan-400" />
+                  </div>
+                  <div>
+                    <h1 className="text-white font-black text-lg tracking-wide">Welcome to ACHARYA</h1>
+                    <p className="text-cyan-400/70 text-[11px] uppercase tracking-widest font-bold">Your AI Operating Mentor</p>
+                  </div>
+                </div>
+                <p className="text-white/50 text-sm leading-relaxed mt-1">
+                  Before we begin, tell me about yourself. I'll use this to personalize every recommendation, plan, and mentor resource — from day one.
+                </p>
+              </div>
+
+              {/* Divider */}
+              <div className="w-full h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
+
+              {/* Form */}
+              <div className="flex flex-col gap-4">
+                {/* Goal */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-cyan-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                    <Target size={11} /> What is your #1 Goal or Ideal Self?
+                  </label>
+                  <input
+                    type="text"
+                    value={onboardGoal}
+                    onChange={e => setOnboardGoal(e.target.value)}
+                    placeholder="e.g. Become a Startup Founder, Win a Hackathon, Master AI..."
+                    className="w-full bg-white/5 border border-cyan-500/30 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-cyan-500/70 focus:ring-1 focus:ring-cyan-500/30 transition-all"
+                  />
+                </div>
+
+                {/* Domain */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-purple-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                    <Compass size={11} /> Domain / Field
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['Startup', 'AI / ML', 'Coding', 'Hackathon', 'Product', 'Exam Prep'].map(d => (
+                      <button
+                        key={d}
+                        onClick={() => setOnboardDomain(d)}
+                        className={`py-2 rounded-lg text-[11px] font-bold border transition-all ${
+                          onboardDomain === d
+                            ? 'bg-purple-500/30 border-purple-400/80 text-purple-200 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+                            : 'bg-white/5 border-white/10 text-white/50 hover:border-white/30 hover:text-white/80'
+                        }`}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Focus Area */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-emerald-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                    <Activity size={11} /> Current Focus / What are you building?
+                  </label>
+                  <input
+                    type="text"
+                    value={onboardFocus}
+                    onChange={e => setOnboardFocus(e.target.value)}
+                    placeholder="e.g. Building an MVP, Preparing for placement, Learning React..."
+                    className="w-full bg-white/5 border border-emerald-500/30 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-emerald-500/70 focus:ring-1 focus:ring-emerald-500/30 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Submit */}
+              <div className="flex items-center justify-between gap-3 mt-1">
+                <button
+                  onClick={() => setShowOnboarding(false)}
+                  className="text-white/30 text-xs hover:text-white/60 transition-colors"
+                >
+                  Skip for now
+                </button>
+                <button
+                  onClick={handleOnboardSubmit}
+                  disabled={!onboardGoal.trim() || onboardLoading}
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                    onboardGoal.trim()
+                      ? 'bg-gradient-to-r from-cyan-500/80 to-purple-600/80 border border-cyan-400/60 text-white shadow-[0_0_25px_rgba(0,243,255,0.3)] hover:shadow-[0_0_35px_rgba(0,243,255,0.5)] hover:scale-105'
+                      : 'bg-white/10 border border-white/10 text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  {onboardLoading ? (
+                    <>Initializing...</>
+                  ) : (
+                    <><Send size={14} /> Lock Target & Begin</>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Draggable Widget Container */}
       <motion.div 
         drag 
@@ -205,6 +364,7 @@ function App() {
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className="pointer-events-auto relative flex items-center justify-center cursor-grab active:cursor-grabbing"
+
       >
         
         {/* LEFT PANEL */}

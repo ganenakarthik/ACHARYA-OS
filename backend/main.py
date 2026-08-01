@@ -117,6 +117,59 @@ def get_privacy():
 def toggle_privacy(flag: str, value: bool):
     return orchestrator.privacy.update_flag(flag, value)
 
+@app.post("/onboard")
+async def save_onboarding(payload: dict):
+    """
+    Saves user's pre-onboarding preferences and immediately updates the identity state and curator.
+    Payload: { "goal": str, "domain": str, "focus": str }
+    """
+    goal = payload.get("goal", "").strip()
+    domain = payload.get("domain", "").strip()
+    focus = payload.get("focus", "").strip()
+
+    if not goal:
+        return {"status": "error", "message": "Goal is required"}
+
+    # Update the identity agent's state immediately
+    orchestrator.identity.state["ideal_self"] = goal
+    orchestrator.identity.state["goals"] = [goal]
+    orchestrator.identity.state["domain"] = domain
+    orchestrator.identity.state["focus"] = focus
+    orchestrator.identity.state["onboarded"] = True
+    orchestrator.identity._save_state()
+
+    # Broadcast immediate update to all connected UIs
+    await manager.broadcast({
+        "type": "mission_update",
+        "data": {
+            "mission": f"Understood, Sir. I have locked your target: '{goal}'. I will now curate everything around {domain} and {focus}. Let's begin.",
+            "identity_twin": {
+                "ideal_self": goal,
+                "momentum": orchestrator.identity.state.get("momentum", 7),
+                "identity_gap": f"{orchestrator.identity.state.get('identity_gap_percent', 42)}% Remaining to Ideal Self",
+                "actions_completed": orchestrator.identity.state.get("actions_completed", 3),
+                "mentor_mood": orchestrator.identity.state.get("mentor_mood", "Focused & Supportive")
+            },
+            "explainability": {
+                "why": f"Onboarding complete — tuning all systems for {domain} / {focus}.",
+                "confidence": "100%"
+            }
+        }
+    })
+
+    return {"status": "ok", "message": f"Onboarding saved: {goal}"}
+
+
+@app.get("/onboard/status")
+def get_onboard_status():
+    """Returns whether the user has been onboarded."""
+    onboarded = orchestrator.identity.state.get("onboarded", False)
+    return {
+        "onboarded": onboarded,
+        "ideal_self": orchestrator.identity.state.get("ideal_self", ""),
+        "domain": orchestrator.identity.state.get("domain", ""),
+        "focus": orchestrator.identity.state.get("focus", "")
+    }
 
 
 @app.get("/")
