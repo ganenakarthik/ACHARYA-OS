@@ -142,6 +142,47 @@
   animation: siri-wave-4 10.5s ease-in-out infinite;
 }
 
+/* ── Siri Gaseous Glow Core ── */
+.siri-gaseous-container {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: #020510;
+  overflow: hidden;
+  pointer-events: none;
+}
+.siri-blob {
+  position: absolute;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  filter: blur(20px);
+  opacity: 0.9;
+}
+.siri-blob-1 {
+  top: 12%; left: 12%;
+  width: 65%; height: 65%;
+  background: radial-gradient(circle, rgba(0, 243, 255, 0.85) 0%, transparent 68%);
+  animation: blob-orbit-1 6.5s ease-in-out infinite;
+}
+.siri-blob-2 {
+  top: 18%; left: 22%;
+  width: 60%; height: 60%;
+  background: radial-gradient(circle, rgba(244, 63, 94, 0.85) 0%, transparent 68%);
+  animation: blob-orbit-2 9.5s ease-in-out infinite;
+}
+.siri-blob-3 {
+  top: 22%; left: 12%;
+  width: 58%; height: 58%;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.85) 0%, transparent 68%);
+  animation: blob-orbit-3 12.5s ease-in-out infinite;
+}
+.siri-blob-4 {
+  top: 8%; left: 25%;
+  width: 62%; height: 62%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.75) 0%, transparent 68%);
+  animation: blob-orbit-1 15s ease-in-out infinite alternate;
+}
+
 /* ── Animated momentum bar fill ──────────────────────────────────────────── */
 @keyframes fillBar {
   from { width: 0%; }

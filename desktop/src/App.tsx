@@ -956,21 +956,29 @@ function App() {
               {/* Center holographic glass core */}
               <div className={`absolute inset-5.5 rounded-full flex items-center justify-center overflow-hidden transition-all duration-700 bg-gradient-to-br from-[#040914] to-[#010205] border border-cyan-500/35 shadow-[inset_0_0_35px_rgba(0,243,255,0.45),0_0_20px_rgba(0,243,255,0.15)]`}>
                  
+                 {/* ── Siri Gaseous Glow Core (soft blending neon clouds) ── */}
+                 <div className="siri-gaseous-container">
+                    <div className="siri-blob siri-blob-1" />
+                    <div className="siri-blob siri-blob-2" />
+                    <div className="siri-blob siri-blob-3" />
+                    <div className="siri-blob siri-blob-4" />
+                 </div>
+
                  {/* ── Siri Style Wave Layers (Overlapping neon fluid threads) ── */}
-                 <div className="absolute inset-2 pointer-events-none z-0">
+                 <div className="absolute inset-2 pointer-events-none z-10 opacity-80">
                     {/* Siri wave 1: Cyan thread */}
-                    <div className="siri-wave-layer-1 absolute inset-0 border-t-2 border-l border-cyan-400/80 shadow-[0_0_12px_rgba(6,182,212,0.25)]" />
+                    <div className="siri-wave-layer-1 absolute inset-0 border-t border-l border-cyan-400/80 shadow-[0_0_12px_rgba(6,182,212,0.25)]" />
                     {/* Siri wave 2: Fuchsia/Pink thread */}
-                    <div className="siri-wave-layer-2 absolute inset-1.5 border-b-2 border-r border-fuchsia-500/80 shadow-[0_0_12px_rgba(244,63,94,0.25)]" />
+                    <div className="siri-wave-layer-2 absolute inset-1.5 border-b border-r border-fuchsia-500/80 shadow-[0_0_12px_rgba(244,63,94,0.25)]" />
                     {/* Siri wave 3: Purple thread */}
-                    <div className="siri-wave-layer-3 absolute inset-0.5 border-t border-r-2 border-purple-500/85 shadow-[0_0_12px_rgba(168,85,247,0.25)]" />
+                    <div className="siri-wave-layer-3 absolute inset-0.5 border-t border-r border-purple-500/85 shadow-[0_0_12px_rgba(168,85,247,0.25)]" />
                     {/* Siri wave 4: Emerald thread */}
-                    <div className="siri-wave-layer-4 absolute inset-2.5 border-b border-l-2 border-emerald-400/75 shadow-[0_0_12px_rgba(16,185,129,0.25)]" />
+                    <div className="siri-wave-layer-4 absolute inset-2.5 border-b border-l border-emerald-400/75 shadow-[0_0_12px_rgba(16,185,129,0.25)]" />
                  </div>
 
                  {/* ── Dynamic Holographic Waveform (layer overlay when active) ── */}
                  {(isSpeaking || isListening) && (
-                   <svg viewBox="0 0 100 40" className="absolute inset-x-0 bottom-4 w-full h-9 opacity-80 pointer-events-none z-10">
+                   <svg viewBox="0 0 100 40" className="absolute inset-x-0 bottom-4 w-full h-9 opacity-80 pointer-events-none z-20">
                      <path
                        d={isSpeaking 
                          ? "M 0,20 Q 15,-10 30,20 T 60,38 T 80,4 T 100,20" 
@@ -985,12 +993,12 @@ function App() {
                  )}
 
                  {/* ── Glassy Light Reflection Overlay (Adds that 3D Marble Glass look) ── */}
-                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_25%,rgba(255,255,255,0.18)_0%,transparent_50%)] pointer-events-none z-20" />
-                 <div className="absolute inset-0 border border-white/10 rounded-full pointer-events-none z-25" />
-                 <ellipse cx="50" cy="18" rx="22" ry="7" fill="rgba(255, 255, 255, 0.12)" className="absolute top-1.5 left-[15%] pointer-events-none z-20" />
+                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_25%,rgba(255,255,255,0.18)_0%,transparent_50%)] pointer-events-none z-30" />
+                 <div className="absolute inset-0 border border-white/10 rounded-full pointer-events-none z-35" />
+                 <ellipse cx="50" cy="18" rx="22" ry="7" fill="rgba(255, 255, 255, 0.12)" className="absolute top-1.5 left-[15%] pointer-events-none z-30" />
 
                  {/* ACHARYA label inside orb */}
-                 <div className="absolute flex flex-col items-center gap-0.5 select-none z-30">
+                 <div className="absolute flex flex-col items-center gap-0.5 select-none z-40">
                    {isFocusActive ? (
                      <>
                        <span className="text-[15px] font-black text-cyan-200 tracking-wider tabular-nums drop-shadow-[0_0_6px_rgba(0,243,255,0.8)]">
