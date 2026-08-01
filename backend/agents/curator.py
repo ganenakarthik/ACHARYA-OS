@@ -85,7 +85,7 @@ class CuratorAgent:
         # If user is onboarded with a domain, use personalized bank first
         detected = self._detect_domain(identity_state)
         if detected in DOMAIN_RESOURCES:
-            resources = list(DOMAIN_RESOURCES[detected])
+            resources = [dict(r) for r in DOMAIN_RESOURCES[detected]]
             # Add domain/focus context to resource titles
             if domain or focus:
                 tag = domain or focus
@@ -117,4 +117,4 @@ Only return the JSON array, nothing else."""
             return self._fallback_curation(aspirations, momentum)
 
     def _fallback_curation(self, aspirations: str, momentum: int) -> list:
-        return DOMAIN_RESOURCES["startup"]
+        return [dict(r) for r in DOMAIN_RESOURCES["startup"]]
