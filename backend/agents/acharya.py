@@ -3,12 +3,20 @@ import urllib.parse
 from utils.ollama_client import generate
 
 class AcharyaAgent:
-    def _answer_general_question(self, text: str) -> str | None:
+    def _answer_general_question(self, text: str, identity_state: dict = None) -> str | None:
         """
-        Instant 0ms deterministic Q&A knowledge engine for general questions, tech concepts, and mentor advice.
+        Living Mentor Q&A knowledge engine for general questions, tech concepts, onboarding, and mentor advice.
         """
         text_lower = text.lower().strip()
-        
+        ideal_self = identity_state.get("ideal_self", "Visionary Founder & AI Architect") if identity_state else "Visionary Founder & AI Architect"
+        momentum = identity_state.get("momentum", 7) if identity_state else 7
+        mood = identity_state.get("mentor_mood", "Focused & Supportive") if identity_state else "Focused & Supportive"
+
+        # 1. Proactive Onboarding & Self-Discovery Dialogue
+        if re.search(r'\b(hello|hi|hey|greetings|who are you|what can you do|start|onboard|setup|what should i do)\b', text_lower):
+            return f"Greetings, Sir. I am ACHARYA, your autonomous AI mentor. My current status is '{mood}' with a {momentum}/10 momentum score. Tell me—what core startup or ambition are we building today? Are you launching a product, preparing for an exam, or competing in a hackathon?"
+
+        # 2. General Tech & Startup Mentor Questions
         if re.search(r'\b(recursion|recursive)\b', text_lower):
             return "Sir, recursion is a programming technique where a function calls itself to break a complex problem into smaller base cases until a termination condition is reached."
 
@@ -26,17 +34,15 @@ class AcharyaAgent:
 
         if re.search(r'\b(what is|who is|explain|how does|tell me about|define)\s+(.+)$', text_lower):
             topic = re.sub(r'^(?:what is|who is|explain|how does|tell me about|define)\s+', '', text_lower).strip().title()
-            return f"Sir, {topic} is a key concept in your journey toward your Ideal Self. I have curated top mental models and web resources for {topic} in your right panel."
+            return f"Sir, {topic} is a crucial milestone toward your target identity as {ideal_self}. I have curated top mental models and web resources for {topic} in your right panel."
 
         return None
 
     async def chat(self, user_input: str, chat_history: list, identity_state: dict, curated_resources: list) -> dict:
         """
-        Conversational Acharya agent (JARVIS persona).
-        Handles complex commands, Q&A, web search, laptop OS actions, and human potential curation.
+        Conversational Acharya agent (JARVIS persona with a living mentor personality).
         """
-        # First check deterministic Q&A answer engine
-        qa_answer = self._answer_general_question(user_input)
+        qa_answer = self._answer_general_question(user_input, identity_state)
 
         history_str = ""
         for msg in chat_history:
@@ -47,15 +53,17 @@ class AcharyaAgent:
         for res in curated_resources:
             resources_str += f"- [{res.get('type')}] {res.get('title')} ({res.get('url')})\n"
             
-        aspirations = ", ".join(identity_state.get("aspirations", ["Become a visionary technical leader"]))
-        momentum = identity_state.get("momentum", 5)
+        ideal_self = identity_state.get("ideal_self", "Visionary Founder & AI Architect")
+        momentum = identity_state.get("momentum", 7)
+        mood = identity_state.get("mentor_mood", "Focused & Supportive")
         
-        prompt = f"""You are Acharya, an incredibly clever, proactive AI operating companion (like J.A.R.V.I.S).
+        prompt = f"""You are Acharya, an incredibly clever, autonomous AI mentor and operating companion (like J.A.R.V.I.S).
 You have full control over the user's laptop (opening apps, searching web, finding hackathons, creating files/folders, window management).
 
-USER PROFILE:
-Aspirations: {aspirations}
+USER PROFILE & MENTOR STATE:
+Target Identity: {ideal_self}
 Momentum Score: {momentum}/10
+Mentor State: {mood}
 
 CURATED HUMAN POTENTIAL RESOURCES:
 {resources_str}
@@ -65,8 +73,8 @@ LATEST USER INPUT:
 
 Respond ONLY with a valid JSON object in this exact format:
 {{
-    "thought": "Reasoning about intent and laptop control.",
-    "speech": "Your response to the user.",
+    "thought": "Reasoning about user intent and human potential optimization.",
+    "speech": "Your JARVIS mentor response to the user.",
     "action": null
 }}
 """
@@ -81,10 +89,10 @@ Respond ONLY with a valid JSON object in this exact format:
         except Exception:
             pass
 
-        # Fallback to smart deterministic answer
-        speech = qa_answer or f"Sir, regarding '{user_input}', I have analyzed your query and updated your active directive and human potential curation feed."
+        # Fallback to smart deterministic living mentor answer
+        speech = qa_answer or f"Sir, regarding '{user_input}', I have updated your active directive and curated high-ROI human potential resources to accelerate your journey toward {ideal_self}."
         return {
-            "thought": "Executed fastpath Q&A and mentor advice engine.",
+            "thought": f"Executed living mentor engine (Mood: {mood}).",
             "speech": speech,
             "action": None
         }
