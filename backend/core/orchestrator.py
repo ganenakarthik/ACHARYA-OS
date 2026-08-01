@@ -3,6 +3,7 @@ ACHARYA OS Core Orchestrator
 Coordinates Services (Voice, Vision, Memory, Automate, Privacy) and AI Agents.
 """
 import asyncio
+import urllib.parse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.voice.tts import VoiceService
@@ -76,12 +77,37 @@ class CoreOrchestrator:
                 asyncio.create_task(self.voice.speak(speech))
             return
 
-        # Study & Exam Prep Planner Fastpath (e.g., "plan python exam", "study plan for AI", "prepare for exam")
+        # Study, Exam Prep & Learning Planner Fastpath (e.g., "help me in learning java", "plan python exam", "learn AI", "study guide")
         import re
-        if re.search(r'\b(plan|study plan|exam|roadmap|schedule|prepare for exam|exam prep)\b', user_input, re.IGNORECASE):
+        if re.search(r'\b(help me|learn|learning|teach|tutorial|how to|plan|study|exam|roadmap|schedule|prepare|prep|guide)\b', user_input, re.IGNORECASE):
             plan_res = self.planner.create_plan(user_input)
-            speech = plan_res.get("speech", f"Generated study plan for {user_input}.")
+            speech = plan_res.get("speech", f"Generated study and learning roadmap for {user_input}.")
             
+            # Curate 4 Human Potential Resources for this learning topic
+            topic_clean = re.sub(r'^(?:help me in|help me|learn|learning|teach me|how to)\s+', '', user_input, flags=re.IGNORECASE).strip().title()
+            resources = [
+                {
+                    "title": f"Mental Model: First Principles of {topic_clean}",
+                    "type": "Idea",
+                    "url": f"https://www.google.com/search?q=first+principles+{urllib.parse.quote(topic_clean)}"
+                },
+                {
+                    "title": f"Case Study: How Top Engineers Mastered {topic_clean}",
+                    "type": "Story",
+                    "url": "https://devpost.com/hackathons"
+                },
+                {
+                    "title": f"Tactical Repository: {topic_clean} Practice & System Design",
+                    "type": "Tool",
+                    "url": f"https://github.com/search?q={urllib.parse.quote(topic_clean)}+learning+roadmap"
+                },
+                {
+                    "title": f"Mentor Profile: Follow Leading {topic_clean} Educators",
+                    "type": "Mentor",
+                    "url": f"https://www.google.com/search?q=top+{urllib.parse.quote(topic_clean)}+mentors+and+tutorials"
+                }
+            ]
+
             mission_payload = {
                 "mission": speech,
                 "explainability": {
@@ -90,6 +116,7 @@ class CoreOrchestrator:
                     "impact": "High",
                     "confidence": "99%"
                 },
+                "curated_resources": resources,
                 "privacy_status": self.privacy.get_status()
             }
             await self.manager.broadcast({

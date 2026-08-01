@@ -5,14 +5,15 @@ No AI/LLM dependency required - runs 100% offline & deterministically.
 """
 import os
 import re
+import subprocess
 
 class PlannerService:
     def create_plan(self, query: str, user_identity: dict = None) -> dict:
         """
         Generates a rich 5-phase Exam Preparation & Study Roadmap using Pure Python.
-        Saves the file to Desktop and opens it.
+        Saves the file to Desktop and opens it asynchronously.
         """
-        clean_topic = re.sub(r'^(?:plan|create plan|study plan|prepare for|planner|schedule)\s+', '', query, flags=re.IGNORECASE).strip()
+        clean_topic = re.sub(r'^(?:help me in|help me|learn|learning|teach me|how to|plan|create plan|study plan|prepare for|planner|schedule)\s+', '', query, flags=re.IGNORECASE).strip()
         if not clean_topic:
             clean_topic = "Exam Preparation & Daily Mastery"
 
@@ -33,12 +34,12 @@ class PlannerService:
 ---
 
 ## 📌 Phase 1: Core Fundamentals & Concept Mapping (Days 1 - 2)
-- [ ] **Review Primary Syllabus**: Identify core definitions, theorems, and primary frameworks.
+- [ ] **Review Primary Syllabus**: Identify core definitions, theorems, and primary frameworks for {topic_display}.
 - [ ] **Active Recall Sheet**: Create 15-20 core question prompts without looking at notes.
 - [ ] **Terminology Audit**: Ensure 100% fluency with essential technical jargon.
 
 ## ⚡ Phase 2: Targeted Practice & Problem Solving (Days 3 - 4)
-- [ ] **High-ROI Practice Questions**: Solve 10-15 standard exam/interview-style problems.
+- [ ] **High-ROI Practice Questions**: Solve 10-15 standard exam/interview-style problems in {topic_display}.
 - [ ] **Feynman Technique**: Explain key concepts out loud in simple terms without notes.
 - [ ] **Error Log Analysis**: Document every mistake made during practice and write the correct solution.
 
@@ -64,9 +65,9 @@ class PlannerService:
         except Exception as e:
             print(f"[PlannerService] Error writing plan file: {e}")
 
-        # Open the generated plan file automatically on Windows
+        # Non-blocking async file opening on Windows
         try:
-            os.system(f'start "" "{file_path}"')
+            subprocess.Popen(f'start "" "{file_path}"', shell=True)
         except Exception:
             pass
 
