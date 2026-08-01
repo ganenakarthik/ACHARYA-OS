@@ -66,6 +66,13 @@ function App() {
     catch { return Array(7).fill(false); }
   });
 
+  // Pomodoro Focus Timer State
+  const [focusTimeRemaining, setFocusTimeRemaining] = useState(25 * 60);
+  const [isFocusActive, setIsFocusActive] = useState(false);
+
+  // Input Ref
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const wsRef = useRef<WebSocket | null>(null);
 
   // Check if user is already onboarded on startup
@@ -132,7 +139,57 @@ function App() {
     });
   }, []);
 
+  // Pomodoro Focus Timer Ticker
+  useEffect(() => {
+    if (!isFocusActive) return;
+    const interval = setInterval(() => {
+      setFocusTimeRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setIsFocusActive(false);
+          // Play speech alerts
+          if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance("Focus session complete. Take a break, Sir.");
+            window.speechSynthesis.speak(utterance);
+          }
+          return 25 * 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isFocusActive]);
+
   const handleQuickAction = (action: string) => {
+    // 1. Intercept "Note" click: pre-fill command bar and focus it
+    if (action.includes("Take a quick note")) {
+      setInputText("take note: ");
+      // Small timeout to guarantee DOM update before focus
+      setTimeout(() => inputRef.current?.focus(), 50);
+      setLogs(prev => [...prev, `[NOTE] Ready to type daily note...`].slice(-4));
+      return;
+    }
+
+    // 2. Intercept "Focus" click: toggle Pomodoro Timer
+    if (action.includes("focus session")) {
+      setIsFocusActive(prev => {
+        const next = !prev;
+        if (next) {
+          setFocusTimeRemaining(25 * 60);
+          setLogs(prevLogs => [...prevLogs, `[FOCUS] Pomodoro started: 25 mins`].slice(-4));
+          // Send to backend so it speaks confirmation
+          if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: "signal", data: { type: "text_command", details: action } }));
+          }
+        } else {
+          setLogs(prevLogs => [...prevLogs, `[FOCUS] Pomodoro cancelled`].slice(-4));
+        }
+        return next;
+      });
+      return;
+    }
+
     const short = action.split(' ').slice(0, 4).join(' ');
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: "signal", data: { type: "text_command", details: action } }));
@@ -647,26 +704,74 @@ function App() {
                 <p className="text-[8px] text-white/20 italic text-center">ACHARYA marks your streak automatically</p>
               </div>
 
-              {/* ── Neural Link ── */}
-              <div className="bg-black/40 border border-blue-500/25 rounded-xl p-3">
-                <h2 className="text-blue-400/80 font-black tracking-widest text-[9px] uppercase mb-2 flex items-center gap-1.5">
-                  <Brain size={12} /> Neural Link
-                </h2>
-                <svg viewBox="0 0 100 28" className="w-full h-7">
-                  <defs>
-                    <linearGradient id="nlGrad" x1="0" x2="1" y1="0" y2="0">
-                      <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
-                      <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.8" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M5,14 Q20,4 35,14 T65,14 T90,7" fill="none" stroke="url(#nlGrad)" strokeWidth="1.5" strokeLinecap="round" />
-                  {[5,35,65,90].map((cx, i) => (
-                    <circle key={i} cx={cx} cy={i===3?7:14} r={i===1?3:2}
-                      fill={i===1?'#3b82f6':'#60a5fa'}
-                      className={i===1 && isSpeaking ? 'animate-[ping_0.4s_infinite]' : 'animate-pulse'}
+              {/* ── Cognitive Twin Sync (Holographic Digital Twin Core) ── */}
+              <div className="bg-gradient-to-br from-cyan-950/20 to-black/60 border border-cyan-500/25 rounded-xl p-3 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-500/5 rounded-full blur-xl pointer-events-none" />
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-cyan-400 font-black tracking-widest text-[9px] uppercase flex items-center gap-1.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                    </span>
+                    Cognitive Twin Sync
+                  </h2>
+                  <span className="text-[8px] font-mono text-cyan-300 font-bold tracking-wider uppercase bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded">
+                    Syncing.. {identityTwin?.momentum ? (40 + identityTwin.momentum * 5.5).toFixed(1) : "78.4"}%
+                  </span>
+                </div>
+                
+                {/* Holographic Synapse wave & Node Mesh */}
+                <div className="flex items-center gap-3 py-1">
+                  <svg viewBox="0 0 100 32" className="w-24 h-9 flex-shrink-0">
+                    <defs>
+                      <linearGradient id="waveGrad" x1="0" x2="1" y1="0" y2="0">
+                        <stop offset="0%" stopColor="#a855f7" stopOpacity="0.8" />
+                        <stop offset="50%" stopColor="#06b6d4" stopOpacity="0.9" />
+                        <stop offset="100%" stopColor="#22c55e" stopOpacity="0.8" />
+                      </linearGradient>
+                    </defs>
+                    {/* Background grid gridlines */}
+                    <line x1="0" y1="8" x2="100" y2="8" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
+                    <line x1="0" y1="16" x2="100" y2="16" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
+                    <line x1="0" y1="24" x2="100" y2="24" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
+                    {/* Sine & Cosine Wave sync overlay */}
+                    <path 
+                      d="M 0,16 Q 12,2 25,16 T 50,16 T 75,16 T 100,16" 
+                      fill="none" 
+                      stroke="url(#waveGrad)" 
+                      strokeWidth="1.5" 
+                      className={`transition-all duration-300 ${isSpeaking ? 'animate-[pulse_0.4s_infinite]' : ''}`} 
                     />
-                  ))}
-                </svg>
+                    <path 
+                      d="M 0,16 Q 12,30 25,16 T 50,16 T 75,16 T 100,16" 
+                      fill="none" 
+                      stroke="rgba(6, 182, 212, 0.2)" 
+                      strokeWidth="1" 
+                      strokeDasharray="2 2"
+                    />
+                    {/* Node particles */}
+                    <circle cx="25" cy="16" r="2.5" fill="#a855f7" className="animate-ping" />
+                    <circle cx="25" cy="16" r="1.5" fill="#a855f7" />
+                    <circle cx="50" cy="16" r="2.5" fill="#06b6d4" className="animate-pulse" />
+                    <circle cx="75" cy="16" r="1.5" fill="#22c55e" />
+                  </svg>
+                  
+                  {/* Digital Twin State Parameters */}
+                  <div className="flex-1 font-mono text-[8px] text-white/40 space-y-1 border-l border-white/5 pl-3.5">
+                    <div className="flex justify-between">
+                      <span>COGNITIVE FLOW:</span>
+                      <span className="text-cyan-300 font-bold">{isFocusActive ? "HYPER-FOCUS" : "ACTIVE"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>NEURAL TEMP:</span>
+                      <span className="text-purple-300 font-bold">{isSpeaking ? "41.2°C" : "36.8°C"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>TWIN STATE:</span>
+                      <span className="text-green-300 font-bold">STABLE</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               </div>
@@ -765,9 +870,21 @@ function App() {
              }`}>
                <div className={`w-full h-full bg-[radial-gradient(circle_at_center,rgba(0,243,255,0.25)_0%,transparent_65%)] ${isSpeaking ? 'animate-[pulse_0.25s_infinite]' : 'animate-[pulse_2s_infinite]'}`} />
                {/* ACHARYA label inside orb */}
-               <div className="absolute flex flex-col items-center gap-0.5">
-                 <div className={`rounded-full shadow-[0_0_30px_#00f3ff] ${isExpanded ? 'w-6 h-6' : 'w-3 h-3'} ${isSpeaking ? 'bg-cyan-200 animate-[ping_0.3s_infinite]' : 'bg-cyan-300 animate-pulse'}`} />
-                 {isExpanded && <span className="text-[9px] font-black tracking-[0.25em] text-cyan-300/80 uppercase mt-1">ACHARYA</span>}
+               <div className="absolute flex flex-col items-center gap-0.5 select-none">
+                 {isFocusActive ? (
+                   <>
+                     <span className="text-sm font-black text-cyan-400 glow-pulse tracking-wider tabular-nums">
+                       {Math.floor(focusTimeRemaining / 60).toString().padStart(2, '0')}:
+                       {(focusTimeRemaining % 60).toString().padStart(2, '0')}
+                     </span>
+                     <span className="text-[7px] font-black text-cyan-300/60 uppercase tracking-widest">FOCUSING</span>
+                   </>
+                 ) : (
+                   <>
+                     <div className={`rounded-full shadow-[0_0_30px_#00f3ff] ${isExpanded ? 'w-6 h-6' : 'w-3 h-3'} ${isSpeaking ? 'bg-cyan-200 animate-[ping_0.3s_infinite]' : 'bg-cyan-300 animate-pulse'}`} />
+                     {isExpanded && <span className="text-[9px] font-black tracking-[0.25em] text-cyan-300/80 uppercase mt-1">ACHARYA</span>}
+                   </>
+                 )}
                </div>
              </div>
           </motion.div>
@@ -816,6 +933,7 @@ function App() {
 
                 <div className="flex-1 relative">
                   <input 
+                    ref={inputRef}
                     type="text"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}

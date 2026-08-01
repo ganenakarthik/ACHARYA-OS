@@ -55,6 +55,22 @@ class AutomateService:
             res = self.execute_action(action)
             return {"action": action, "result": res}
 
+        # Boost, Snooze, and Focus Actions
+        if "boost" in text_lower or "motivational push" in text_lower:
+            action = {"type": "motivational_boost"}
+            res = self.execute_action(action)
+            return {"action": action, "result": res}
+
+        if "snooze" in text_lower:
+            action = {"type": "snooze_alerts"}
+            res = self.execute_action(action)
+            return {"action": action, "result": res}
+
+        if "focus session" in text_lower or "start focus" in text_lower:
+            action = {"type": "start_focus"}
+            res = self.execute_action(action)
+            return {"action": action, "result": res}
+
         # 3. Scroll Down / Scroll Up
         if "scroll down" in text_lower or "page down" in text_lower:
             action = {"type": "scroll_down"}
@@ -178,6 +194,23 @@ class AutomateService:
                     webbrowser.open("https://paulgraham.com/articles.html")
                     return "Curated Top Mentor: Paul Graham's Growth Essays."
                 return f"Curated category: {target}"
+
+            elif action_type == "motivational_boost":
+                import random
+                quotes = [
+                    "Sir, the gap between who you are and who you could be is closing. Every single action counts.",
+                    "Focus is a superpower. Cut out all the noise and build something that actually matters.",
+                    "Discipline is simply choosing between what you want now and what you want most.",
+                    "Do not fear failure, Sir; only fear being in the exact same place next year.",
+                    "The best way to predict the future is to build it. Let's make progress now."
+                ]
+                return random.choice(quotes)
+
+            elif action_type == "snooze_alerts":
+                return "Muting microphone and screen scan for 15 minutes. Focus mode active, Sir."
+
+            elif action_type == "start_focus":
+                return "Starting a 25-minute focus session. Put away distractions, Sir. Let's get to work."
 
             elif action_type == "scroll_down":
                 user32 = ctypes.windll.user32

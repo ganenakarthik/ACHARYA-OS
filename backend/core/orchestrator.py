@@ -47,7 +47,39 @@ class CoreOrchestrator:
             action_desc = fastpath_res["result"]
             print(f"[CoreOrchestrator Fastpath] {action_desc}")
             
-            speech = f"Opening {user_input.replace('open ', '').replace('launch ', '').capitalize()} for you now."
+            action_type = fastpath_res["action"]["type"]
+            if action_type in ["open_app", "open_url"]:
+                speech = f"Opening {user_input.replace('open ', '').replace('launch ', '').replace('start ', '').replace('run ', '').capitalize()} for you now."
+            else:
+                speech = action_desc
+
+            # Handle Snooze Mode natively in orchestrator
+            if action_type == "snooze_alerts":
+                self.privacy.update_flag("MIC", False)
+                self.privacy.update_flag("SCREEN", False)
+                # Broadcast privacy update to UI so settings checkboxes update instantly
+                await self.manager.broadcast({"type": "privacy_update", "data": self.privacy.get_status()})
+
+                # Background task to restore privacy settings automatically after 15 minutes
+                async def auto_restore_snooze():
+                    await asyncio.sleep(900)
+                    self.privacy.update_flag("MIC", True)
+                    self.privacy.update_flag("SCREEN", True)
+                    await self.manager.broadcast({"type": "privacy_update", "data": self.privacy.get_status()})
+                    await self.manager.broadcast({
+                        "type": "mission_update",
+                        "data": {
+                            "mission": "Alerts restored, Sir. I am back online.",
+                            "explainability": {
+                                "why": "Snooze timer expired.",
+                                "evidence": "Snooze auto-restore",
+                                "impact": "Low",
+                                "confidence": "100%"
+                            }
+                        }
+                    })
+                asyncio.create_task(auto_restore_snooze())
+
             mission_payload = {
                 "mission": speech,
                 "explainability": {
@@ -62,6 +94,7 @@ class CoreOrchestrator:
                 "type": "mission_update",
                 "data": mission_payload
             })
+            # Only speak if MIC wasn't turned off by this command
             if self.privacy.flags["MIC"]:
                 asyncio.create_task(self.voice.speak(speech))
             return
