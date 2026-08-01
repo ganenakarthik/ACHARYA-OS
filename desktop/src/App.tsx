@@ -72,6 +72,39 @@ const playSound = (type: 'click' | 'expand' | 'success' | 'alert' | 'beep') => {
   } catch (e) {}
 };
 
+// ── Sci-Fi Matrix Text Decrypt Animation Component ─────────────────────────
+const DECRYPT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()_+{}|:<>?";
+function DecryptText({ text }: { text: string }) {
+  const [displayText, setDisplayText] = useState(text);
+
+  useEffect(() => {
+    let iteration = 0;
+    const interval = setInterval(() => {
+      setDisplayText(prev =>
+        text
+          .split("")
+          .map((char, index) => {
+            if (char === " ") return " ";
+            if (index < iteration) {
+              return text[index];
+            }
+            return DECRYPT_CHARS[Math.floor(Math.random() * DECRYPT_CHARS.length)];
+          })
+          .join("")
+      );
+
+      if (iteration >= text.length) {
+        clearInterval(interval);
+      }
+      iteration += 1 / 3;
+    }, 20);
+
+    return () => clearInterval(interval);
+  }, [text]);
+
+  return <>{displayText}</>;
+}
+
 function App() {
   const [mission, setMission] = useState<Mission | null>(null);
   const [isPowerOn, setIsPowerOn] = useState(true);
@@ -613,7 +646,7 @@ function App() {
                 </div>
                 {/* Ideal self */}
                 <p className="neon-shimmer text-[13px] font-black leading-tight mb-3">
-                  {identityTwin?.ideal_self || "Visionary Technical Founder"}
+                  <DecryptText text={identityTwin?.ideal_self || "Visionary Technical Founder"} />
                 </p>
                 {/* Momentum bar */}
                 <div className="space-y-1">
@@ -656,7 +689,7 @@ function App() {
                       initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} key={mission.mission}
                       className="text-white/90 text-[12px] font-semibold leading-snug"
                     >
-                      {mission.mission}
+                      <DecryptText text={mission.mission} />
                     </motion.p>
                     {mission.explainability?.why && (
                       <p className="text-white/40 text-[10px] leading-snug border-l-2 border-cyan-500/30 pl-2">
