@@ -71,6 +71,19 @@ function App() {
             }
             setLogs(prev => [...prev, `[MISSION] ${data.data?.mission || 'Update received'}`].slice(-4));
             
+            // Speak response using Browser Web Speech API TTS
+            if ('speechSynthesis' in window && data.data?.mission) {
+              try {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(data.data.mission);
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                window.speechSynthesis.speak(utterance);
+              } catch (e) {
+                console.error("Browser TTS error:", e);
+              }
+            }
+
             // Trigger speaking animation
             setIsSpeaking(true);
             setTimeout(() => setIsSpeaking(false), 4000);
@@ -254,28 +267,53 @@ function App() {
                 )}
               </div>
 
-              {/* Human Potential Curated Feed Card */}
+              {/* Wise Supporting Mentor & Human Potential Curation Card */}
               {mission?.curated_resources && mission.curated_resources.length > 0 && (
-                <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4">
-                  <h2 className="text-amber-400 font-bold tracking-widest text-[10px] uppercase mb-2 flex items-center gap-2">
-                    <Compass size={14} className="text-amber-400" /> Human Potential Curation
-                  </h2>
+                <div className="bg-amber-950/30 border border-amber-500/40 rounded-xl p-4 shadow-[0_0_20px_rgba(245,158,11,0.15)] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-amber-400 font-bold tracking-widest text-[10px] uppercase flex items-center gap-2">
+                      <Compass size={14} className="text-amber-400" /> Supporting Mentor Guidance
+                    </h2>
+                    <span className="bg-amber-500/20 text-amber-300 text-[9px] px-2 py-0.5 rounded-full border border-amber-400/30 font-bold">
+                      Human Potential Engine
+                    </span>
+                  </div>
+
+                  <div className="text-[11px] text-amber-200/90 bg-black/50 p-2.5 rounded-lg border border-amber-500/20 italic leading-snug">
+                    "Sir, I have curated these 4 high-ROI resources to transform passive scrolling into purposeful growth toward your Ideal Self."
+                  </div>
+
                   <div className="space-y-2">
-                    {mission.curated_resources.map((res, i) => (
-                      <a
-                        key={i}
-                        href={res.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block p-2 bg-black/50 border border-amber-500/30 hover:border-amber-400 rounded-lg transition-all"
-                      >
-                        <div className="flex items-center justify-between text-[9px] uppercase tracking-wider text-amber-300 font-bold mb-1">
-                          <span>{res.type}</span>
-                          <span className="text-white/40">View Resource &rarr;</span>
-                        </div>
-                        <p className="text-white/90 text-xs font-medium leading-tight">{res.title}</p>
-                      </a>
-                    ))}
+                    {mission.curated_resources.map((res, i) => {
+                      const badgeColor = 
+                        res.type === 'Idea' ? 'border-purple-500/40 text-purple-300 bg-purple-950/40' :
+                        res.type === 'Story' ? 'border-amber-500/40 text-amber-300 bg-amber-950/40' :
+                        res.type === 'Tool' ? 'border-emerald-500/40 text-emerald-300 bg-emerald-950/40' :
+                        'border-cyan-500/40 text-cyan-300 bg-cyan-950/40';
+
+                      const icon = 
+                        res.type === 'Idea' ? '💡' :
+                        res.type === 'Story' ? '📖' :
+                        res.type === 'Tool' ? '🛠️' : '👤';
+
+                      return (
+                        <a
+                          key={i}
+                          href={res.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block p-2.5 bg-black/60 border border-amber-500/30 hover:border-amber-400 rounded-lg transition-all shadow-sm group"
+                        >
+                          <div className="flex items-center justify-between text-[9px] uppercase tracking-wider font-bold mb-1">
+                            <span className={`px-2 py-0.5 rounded border ${badgeColor}`}>
+                              {icon} {res.type}
+                            </span>
+                            <span className="text-white/40 group-hover:text-amber-300 transition-colors">Open Resource &rarr;</span>
+                          </div>
+                          <p className="text-white/90 text-xs font-medium leading-tight mt-1">{res.title}</p>
+                        </a>
+                      );
+                    })}
                   </div>
                 </div>
               )}
