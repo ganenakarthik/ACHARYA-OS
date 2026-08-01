@@ -13,8 +13,11 @@
 }
 
 .glass-panel-premium {
-  background: linear-gradient(135deg, rgba(8, 12, 22, 0.88) 0%, rgba(4, 6, 10, 0.94) 100%);
-  backdrop-filter: blur(35px) saturate(140%);
+  background: linear-gradient(135deg, rgba(8, 12, 22, 0.93) 0%, rgba(4, 6, 10, 0.97) 100%);
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  transform: translateZ(0); /* Triggers GPU layer to keep text 100% sharp in Electron */
+  backface-visibility: hidden;
   box-shadow: 
     0 24px 65px -15px rgba(0, 0, 0, 0.95),
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
