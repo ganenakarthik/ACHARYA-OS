@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Power, Target, Activity, Mic, Brain, Send, Minimize2, Shield, Compass, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import RightPanelTabs from './RightPanelTabs';
+
 
 interface Explainability {
   why: string;
@@ -619,129 +621,26 @@ function App() {
               animate={{ opacity: 1, x: 170, scale: 1 }}
               exit={{ opacity: 0, x: -50, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 200, damping: 25 }}
-              className="absolute w-[350px] bg-black/85 backdrop-blur-2xl border border-cyan-500/50 rounded-2xl p-4 shadow-[0_0_50px_rgba(0,243,255,0.25)] cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[82vh] flex flex-col overflow-hidden"
+              className="absolute w-[350px] bg-black/85 backdrop-blur-2xl border border-cyan-500/50 rounded-2xl shadow-[0_0_50px_rgba(0,243,255,0.25)] cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[82vh] flex flex-col overflow-hidden"
               style={{ left: '50%' }}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <div className="overflow-y-auto custom-scrollbar flex flex-col gap-3.5 pr-1">
-              {/* Wise Supporting Mentor & Human Potential Curation Card */}
-              {mission?.curated_resources && mission.curated_resources.length > 0 && (
-                <div className="bg-amber-950/30 border border-amber-500/40 rounded-xl p-4 shadow-[0_0_20px_rgba(245,158,11,0.15)] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-amber-400 font-bold tracking-widest text-[10px] uppercase flex items-center gap-2">
-                      <Compass size={14} className="text-amber-400" /> Supporting Mentor Guidance
-                    </h2>
-                    <span className="bg-amber-500/20 text-amber-300 text-[9px] px-2 py-0.5 rounded-full border border-amber-400/30 font-bold">
-                      Human Potential Engine
-                    </span>
-                  </div>
-
-                  <div className="text-[11px] text-amber-200/90 bg-black/50 p-2.5 rounded-lg border border-amber-500/20 italic leading-snug">
-                    "Sir, I have curated these 4 high-ROI resources to transform passive scrolling into purposeful growth toward your Ideal Self."
-                  </div>
-
-                  <div className="space-y-2">
-                    {mission.curated_resources.map((res, i) => {
-                      const badgeColor = 
-                        res.type === 'Idea' ? 'border-purple-500/40 text-purple-300 bg-purple-950/40' :
-                        res.type === 'Story' ? 'border-amber-500/40 text-amber-300 bg-amber-950/40' :
-                        res.type === 'Tool' ? 'border-emerald-500/40 text-emerald-300 bg-emerald-950/40' :
-                        'border-cyan-500/40 text-cyan-300 bg-cyan-950/40';
-
-                      const icon = 
-                        res.type === 'Idea' ? '💡' :
-                        res.type === 'Story' ? '📖' :
-                        res.type === 'Tool' ? '🛠️' : '👤';
-
-                      return (
-                        <a
-                          key={i}
-                          href={res.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block p-2.5 bg-black/60 border border-amber-500/30 hover:border-amber-400 rounded-lg transition-all shadow-sm group"
-                        >
-                          <div className="flex items-center justify-between text-[9px] uppercase tracking-wider font-bold mb-1">
-                            <span className={`px-2 py-0.5 rounded border ${badgeColor}`}>
-                              {icon} {res.type}
-                            </span>
-                            <span className="text-white/40 group-hover:text-amber-300 transition-colors">Open Resource &rarr;</span>
-                          </div>
-                          <p className="text-white/90 text-xs font-medium leading-tight mt-1">{res.title}</p>
-                        </a>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              {/* Context */}
-              <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 overflow-hidden relative">
-                 {isSpeaking && <motion.div layoutId="speaking-glow-right" className="absolute inset-0 bg-cyan-400/10 animate-pulse" />}
-                <h2 className="text-cyan-400 font-bold tracking-widest text-[10px] uppercase mb-3 flex items-center gap-2 relative z-10">
-                  <Activity size={14} /> Screen Context
-                </h2>
-                <div className="space-y-3 relative z-10">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_15px_#00f3ff] ${isSpeaking ? 'animate-[ping_0.3s_infinite]' : 'animate-pulse'}`} />
-                    <p className="text-white/90 text-[10px] uppercase tracking-wider">Vision Analyzer</p>
-                  </div>
-                  <div className="bg-black/60 rounded-lg p-2.5 font-mono text-[10px] text-cyan-300 border border-cyan-500/30 h-24 overflow-y-auto custom-scrollbar">
-                    &gt; {visualContext || "Scanning visual data stream..."}
-                  </div>
-                </div>
-              </div>
-
-              {/* Privacy Panel */}
-              <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4">
-                <h2 className="text-cyan-400 font-bold tracking-widest text-[10px] uppercase mb-3 flex items-center gap-2">
-                  <Shield size={14} className="text-green-400" /> Privacy & Security Controls
-                </h2>
-                <div className="grid grid-cols-2 gap-1.5 font-mono text-[9px]">
-                  {Object.entries(privacy).map(([flag, val]) => (
-                    <button
-                      key={flag}
-                      onClick={() => {
-                        const newVal = !val;
-                        setPrivacy(prev => ({ ...prev, [flag]: newVal }));
-                        if (wsRef.current?.readyState === WebSocket.OPEN) {
-                          wsRef.current.send(JSON.stringify({ type: 'privacy_toggle', flag, value: newVal }));
-                        }
-                      }}
-                      className={`flex items-center justify-between px-2 py-1 rounded border transition-all ${
-                        val 
-                          ? 'bg-green-500/20 border-green-500/50 text-green-300 shadow-[0_0_10px_rgba(34,197,94,0.2)]' 
-                          : 'bg-red-500/10 border-red-500/30 text-red-400 opacity-60'
-                      }`}
-                    >
-                      <span className="font-bold tracking-wider">{flag}</span>
-                      <span className="text-[8px] font-extrabold uppercase">{val ? 'ON' : 'OFF'}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Logs */}
-              <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-3">
-                <h2 className="text-purple-400 font-bold tracking-widest text-[10px] uppercase mb-2">
-                  System Logs
-                </h2>
-                <div className="font-mono text-[9px] text-white/50 space-y-1.5 h-16 overflow-y-auto flex flex-col justify-end custom-scrollbar">
-                   {logs.map((log, i) => (
-                      <motion.div 
-                        initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} key={i + log}
-                        className={log.includes('[ERROR]') ? 'text-red-400' : log.includes('[USER]') ? 'text-purple-300 font-bold' : log.includes('[PRIVACY]') ? 'text-green-400 font-bold' : 'text-cyan-400'}
-                      >
-                        {log}
-                      </motion.div>
-                   ))}
-                </div>
-              </div>
-              </div>
+              {/* Tab Bar */}
+              <RightPanelTabs
+                mission={mission}
+                visualContext={visualContext}
+                isSpeaking={isSpeaking}
+                privacy={privacy}
+                setPrivacy={setPrivacy}
+                logs={logs}
+                wsRef={wsRef}
+              />
             </motion.div>
           )}
         </AnimatePresence>
+
 
       </motion.div>
     </div>
