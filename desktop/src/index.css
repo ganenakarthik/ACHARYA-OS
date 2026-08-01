@@ -36,6 +36,30 @@
   pointer-events: none;
 }
 
+/* ── HUD matrix grid overlay ── */
+.hud-grid {
+  background-size: 24px 24px;
+  background-image: 
+    linear-gradient(to right, rgba(0, 243, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 243, 255, 0.025) 1px, transparent 1px);
+}
+
+/* ── Holographic scanner line scanning top-to-bottom ── */
+@keyframes scanning {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+.scanner-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.4), transparent);
+  box-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+  animation: scanning 3s linear infinite;
+  pointer-events: none;
+}
+
 /* ── Animated momentum bar fill ──────────────────────────────────────────── */
 @keyframes fillBar {
   from { width: 0%; }

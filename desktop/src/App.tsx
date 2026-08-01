@@ -24,6 +24,54 @@ interface Mission {
   curated_resources?: Array<{ title: string; type: string; url: string }>;
 }
 
+// ── Synthesized HUD Audio Engine (0ms dependencies, 100% local) ─────────────
+const playSound = (type: 'click' | 'expand' | 'success' | 'alert' | 'beep') => {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === 'click') {
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      gain.gain.setValueAtTime(0.02, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.08);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.08);
+    } else if (type === 'expand') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(300, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.25);
+      gain.gain.setValueAtTime(0.02, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.26);
+    } else if (type === 'beep') {
+      osc.frequency.setValueAtTime(1200, ctx.currentTime);
+      gain.gain.setValueAtTime(0.015, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.05);
+    } else if (type === 'success') {
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.08); // E5
+      gain.gain.setValueAtTime(0.02, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    } else if (type === 'alert') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(180, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(360, ctx.currentTime + 0.18);
+      gain.gain.setValueAtTime(0.015, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.25);
+    }
+  } catch (e) {}
+};
+
 function App() {
   const [mission, setMission] = useState<Mission | null>(null);
   const [isPowerOn, setIsPowerOn] = useState(true);
@@ -111,6 +159,7 @@ function App() {
     setOnboardLoading(false);
     setShowOnboarding(false);
     setIsExpanded(true);
+    playSound('success');
     setLogs(prev => [...prev, `[ACHARYA] Target locked: ${onboardGoal}`].slice(-4));
   };
 
@@ -349,6 +398,7 @@ function App() {
 
   const handleSendText = () => {
     if (!inputText.trim()) return;
+    playSound('click');
     setLogs(prev => [...prev, `[USER] ${inputText}`].slice(-4));
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: "signal", data: { type: "text_command", details: inputText } }));
@@ -503,7 +553,7 @@ function App() {
         )}
       </AnimatePresence>
 
-      {/* Draggable Widget Container */}
+      {/* Draggable Widget Container with 3D Perspective */}
       <motion.div 
         drag 
         dragMomentum={false}
@@ -511,23 +561,27 @@ function App() {
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className="pointer-events-auto relative flex items-center justify-center cursor-grab active:cursor-grabbing"
-
+        style={{ perspective: 1200 }}
       >
         
         {/* LEFT PANEL */}
         <AnimatePresence>
           {isExpanded && (
             <motion.div
-              initial={{ opacity: 0, x: 50, scale: 0.9 }}
-              animate={{ opacity: 1, x: -170, scale: 1 }}
-              exit={{ opacity: 0, x: 50, scale: 0.9 }}
-              transition={{ type: "spring", stiffness: 200, damping: 25 }}
-              className="absolute w-[360px] bg-black/90 backdrop-blur-2xl border border-cyan-500/40 rounded-2xl shadow-[0_0_60px_rgba(0,243,255,0.2),inset_0_1px_0_rgba(255,255,255,0.04)] cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[84vh] flex flex-col overflow-hidden"
+              initial={{ opacity: 0, x: 80, rotateY: 55, scale: 0.9 }}
+              animate={{ opacity: 1, x: -178, rotateY: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 80, rotateY: 55, scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 180, damping: 20 }}
+              className="absolute w-[360px] bg-black/90 backdrop-blur-2xl border border-cyan-500/40 rounded-2xl shadow-[0_0_60px_rgba(0,243,255,0.2),inset_0_1px_0_rgba(255,255,255,0.04)] cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[84vh] flex flex-col overflow-hidden origin-right"
               style={{ right: '50%' }}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
               onPointerDown={(e) => e.stopPropagation()}
             >
+              {/* HUD grid background */}
+              <div className="hud-grid absolute inset-0 pointer-events-none opacity-40 z-0" />
+              {/* Laser scanner effect */}
+              <div className="scanner-line" />
               {/* Scanlines overlay */}
               <div className="scanlines absolute inset-0 rounded-2xl z-0 pointer-events-none" />
 
@@ -798,10 +852,10 @@ function App() {
                 className="absolute -top-14 flex items-center gap-2 cursor-default"
                 onPointerDown={(e) => e.stopPropagation()}
               >
-                <button onClick={() => setIsExpanded(false)} className="p-1.5 bg-black/90 backdrop-blur-md border border-cyan-500/40 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20 rounded-full transition-all shadow-[0_0_15px_rgba(0,243,255,0.3)] text-[10px] font-bold tracking-wider px-3 flex items-center gap-1.5">
+                <button onClick={() => { playSound('expand'); setIsExpanded(false); }} className="p-1.5 bg-black/90 backdrop-blur-md border border-cyan-500/40 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20 rounded-full transition-all shadow-[0_0_15px_rgba(0,243,255,0.3)] text-[10px] font-bold tracking-wider px-3 flex items-center gap-1.5">
                   <Minimize2 size={12} /> Minimize
                 </button>
-                <button onClick={() => { setIsPowerOn(false); setIsExpanded(false); }} className="p-1.5 bg-black/90 backdrop-blur-md border border-red-500/40 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-full transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)] text-[10px] font-bold tracking-wider px-3 flex items-center gap-1.5">
+                <button onClick={() => { playSound('alert'); setIsPowerOn(false); setIsExpanded(false); }} className="p-1.5 bg-black/90 backdrop-blur-md border border-red-500/40 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-full transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)] text-[10px] font-bold tracking-wider px-3 flex items-center gap-1.5">
                   <Power size={12} /> Shutdown
                 </button>
               </motion.div>
@@ -827,7 +881,7 @@ function App() {
                 ].map(({ icon, label, cmd }) => (
                   <button
                     key={label}
-                    onClick={() => handleQuickAction(cmd)}
+                    onClick={() => { playSound('click'); handleQuickAction(cmd); }}
                     title={cmd}
                     className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 bg-black/80 backdrop-blur-md border border-white/10 rounded-xl text-white/50 hover:text-cyan-300 hover:border-cyan-500/50 hover:bg-cyan-500/10 hover:shadow-[0_0_12px_rgba(0,243,255,0.2)] transition-all group"
                   >
@@ -839,10 +893,9 @@ function App() {
             )}
           </AnimatePresence>
 
-          {/* The Orb */}
           <motion.div
             layoutId="central-orb"
-            onClick={() => !isExpanded && setIsExpanded(true)}
+            onClick={() => { if(!isExpanded) { playSound('expand'); setIsExpanded(true); } }}
             className={`rounded-full flex items-center justify-center relative group ${isExpanded ? 'w-40 h-40 cursor-default' : 'w-28 h-28 cursor-pointer'}`}
           >
              {/* Outer glow pulse ring */}
@@ -962,16 +1015,20 @@ function App() {
         <AnimatePresence>
           {isExpanded && (
             <motion.div
-              initial={{ opacity: 0, x: -50, scale: 0.9 }}
-              animate={{ opacity: 1, x: 170, scale: 1 }}
-              exit={{ opacity: 0, x: -50, scale: 0.9 }}
-              transition={{ type: "spring", stiffness: 200, damping: 25 }}
-              className="absolute w-[350px] bg-black/85 backdrop-blur-2xl border border-cyan-500/50 rounded-2xl shadow-[0_0_50px_rgba(0,243,255,0.25)] cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[82vh] flex flex-col overflow-hidden"
+              initial={{ opacity: 0, x: -80, rotateY: -55, scale: 0.9 }}
+              animate={{ opacity: 1, x: 178, rotateY: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -80, rotateY: -55, scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 180, damping: 20 }}
+              className="absolute w-[350px] bg-black/85 backdrop-blur-2xl border border-cyan-500/50 rounded-2xl shadow-[0_0_50px_rgba(0,243,255,0.25)] cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[82vh] flex flex-col overflow-hidden origin-left"
               style={{ left: '50%' }}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
               onPointerDown={(e) => e.stopPropagation()}
             >
+              {/* HUD grid background */}
+              <div className="hud-grid absolute inset-0 pointer-events-none opacity-45 z-0" />
+              {/* Laser scanner effect */}
+              <div className="scanner-line" />
               {/* Tab Bar */}
               <RightPanelTabs
                 mission={mission}
