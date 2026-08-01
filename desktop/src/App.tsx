@@ -74,6 +74,12 @@ function App() {
   const handleOnboardSubmit = async () => {
     if (!onboardGoal.trim()) return;
     setOnboardLoading(true);
+
+    // Persist to localStorage so RightPanelTabs can read domain for news feed
+    localStorage.setItem('acharya_onboard_domain', onboardDomain || 'Startup');
+    localStorage.setItem('acharya_onboard_goal', onboardGoal);
+    localStorage.setItem('acharya_onboard_focus', onboardFocus);
+
     try {
       await fetch('http://127.0.0.1:8000/onboard', {
         method: 'POST',
