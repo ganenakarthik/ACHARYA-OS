@@ -956,72 +956,14 @@ function App() {
               {/* Center holographic glass core */}
               <div className={`absolute inset-5.5 rounded-full flex items-center justify-center overflow-hidden transition-all duration-700 bg-gradient-to-br from-[#071120] to-[#010408] border border-cyan-500/35 shadow-[inset_0_0_35px_rgba(0,243,255,0.5),0_0_20px_rgba(0,243,255,0.2)]`}>
                  
-                 {/* ── Dynamic Swirling Liquid Space Paths (SVG) ── */}
-                 <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none z-0">
-                   <defs>
-                     {/* Thread Gradients */}
-                     <linearGradient id="liquidGrad1" x1="0" y1="0" x2="1" y2="1">
-                       <stop offset="0%" stopColor="#00f3ff" />
-                       <stop offset="50%" stopColor="#8b5cf6" />
-                       <stop offset="100%" stopColor="#ec4899" />
-                     </linearGradient>
-                     <linearGradient id="liquidGrad2" x1="1" y1="0" x2="0" y2="1">
-                       <stop offset="0%" stopColor="#f97316" />
-                       <stop offset="50%" stopColor="#ec4899" />
-                       <stop offset="100%" stopColor="#3b82f6" />
-                     </linearGradient>
-                     <linearGradient id="liquidGrad3" x1="0.5" y1="0" x2="0.5" y2="1">
-                       <stop offset="0%" stopColor="#10b981" />
-                       <stop offset="100%" stopColor="#00f3ff" />
-                     </linearGradient>
-                     
-                     {/* Glow filter */}
-                     <filter id="liquidGlow" x="-20%" y="-20%" width="140%" height="140%">
-                       <feGaussianBlur stdDeviation="3.5" result="blur" />
-                       <feMerge>
-                         <feMergeNode in="blur" />
-                         <feMergeNode in="SourceGraphic" />
-                       </feMerge>
-                     </filter>
-                   </defs>
-
-                   {/* Dark Core Shadow Ring */}
-                   <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(0,243,255,0.06)" strokeWidth="4" />
-
-                   {/* Swirling Liquid Path 1 (Cyan/Purple loop) */}
-                   <path 
-                     d="M 50,12 C 76,12 88,32 88,50 C 88,68 70,88 50,88 C 30,88 12,68 12,50 C 12,32 24,12 50,12" 
-                     fill="none" 
-                     stroke="url(#liquidGrad1)" 
-                     strokeWidth="2.5" 
-                     strokeLinecap="round"
-                     filter="url(#liquidGlow)"
-                     className="liquid-flow-1"
-                   />
-
-                   {/* Swirling Liquid Path 2 (Orange/Magenta loop) */}
-                   <path 
-                     d="M 50,16 C 70,16 84,30 84,50 C 84,70 68,84 50,84 C 32,84 16,70 16,50 C 16,30 30,16 50,16" 
-                     fill="none" 
-                     stroke="url(#liquidGrad2)" 
-                     strokeWidth="2" 
-                     strokeLinecap="round"
-                     strokeDasharray="40 10 15 15"
-                     filter="url(#liquidGlow)"
-                     className="liquid-flow-2"
-                   />
-
-                   {/* Swirling Liquid Path 3 (Green/Cyan slow sync thread) */}
-                   <path 
-                     d="M 50,22 C 64,22 78,32 78,50 C 78,68 64,78 50,78 C 36,78 22,68 22,50 C 22,32 36,22 50,22" 
-                     fill="none" 
-                     stroke="url(#liquidGrad3)" 
-                     strokeWidth="1.2" 
-                     strokeLinecap="round"
-                     filter="url(#liquidGlow)"
-                     className="liquid-flow-3 animate-pulse"
-                   />
-                 </svg>
+                 {/* ── Premium organic liquid metaball swirl (flows like real fluid/lava lamp) ── */}
+                 <div className="liquid-fluid-container">
+                    {/* Pulsing colored blobs that morph together dynamically */}
+                    <div className="fluid-blob-center" />
+                    <div className="fluid-blob-1" />
+                    <div className="fluid-blob-2" />
+                    <div className="fluid-blob-3" />
+                 </div>
 
                  {/* ── Dynamic Holographic Waveform (layer overlay when active) ── */}
                  {(isSpeaking || isListening) && (

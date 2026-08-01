@@ -108,6 +108,64 @@
   animation: spin-clockwise 15s linear infinite;
 }
 
+/* ── Premium CSS Metaball Liquid Swirl Animations ── */
+@keyframes blob-orbit-1 {
+  0% { transform: rotate(0deg) translate(22px) rotate(0deg); }
+  100% { transform: rotate(360deg) translate(22px) rotate(-360deg); }
+}
+@keyframes blob-orbit-2 {
+  0% { transform: rotate(360deg) translate(25px) rotate(-360deg); }
+  100% { transform: rotate(0deg) translate(25px) rotate(0deg); }
+}
+@keyframes blob-orbit-3 {
+  0% { transform: rotate(120deg) translate(18px) rotate(-120deg); }
+  100% { transform: rotate(480deg) translate(18px) rotate(-480deg); }
+}
+.liquid-fluid-container {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  filter: contrast(18) brightness(1.15);
+  background: #030814;
+  overflow: hidden;
+  pointer-events: none;
+}
+.fluid-blob-1 {
+  position: absolute;
+  top: 35%; left: 35%;
+  width: 32%; height: 32%;
+  border-radius: 50%;
+  background: #00f3ff;
+  filter: blur(12px);
+  animation: blob-orbit-1 7s linear infinite;
+}
+.fluid-blob-2 {
+  position: absolute;
+  top: 35%; left: 35%;
+  width: 36%; height: 36%;
+  border-radius: 50%;
+  background: #f43f5e;
+  filter: blur(14px);
+  animation: blob-orbit-2 11s linear infinite;
+}
+.fluid-blob-3 {
+  position: absolute;
+  top: 35%; left: 35%;
+  width: 30%; height: 30%;
+  border-radius: 50%;
+  background: #eab308;
+  filter: blur(11px);
+  animation: blob-orbit-3 15s linear infinite;
+}
+.fluid-blob-center {
+  position: absolute;
+  top: 38%; left: 38%;
+  width: 24%; height: 24%;
+  border-radius: 50%;
+  background: #8b5cf6;
+  filter: blur(10px);
+}
+
 /* ── Animated momentum bar fill ──────────────────────────────────────────── */
 @keyframes fillBar {
   from { width: 0%; }
