@@ -953,6 +953,15 @@ function App() {
              <div className="absolute inset-0 rounded-full border border-cyan-400/40 animate-[spin_10s_linear_infinite]" style={{ borderStyle: 'dashed' }} />
              <div className={`absolute inset-1.5 rounded-full border-2 border-transparent border-t-cyan-400/80 border-b-purple-500/80 ${isSpeaking ? 'animate-[spin_0.8s_linear_infinite]' : 'animate-[spin_4s_linear_infinite]'}`} />
              
+             {/* Sci-Fi Voice Ripples (acoustic wave rings) when speaking */}
+             {isSpeaking && (
+               <>
+                 <div className="voice-ripple" />
+                 <div className="voice-ripple voice-ripple-delay-1" />
+                 <div className="voice-ripple voice-ripple-delay-2" />
+               </>
+             )}
+             
               {/* Center holographic glass core */}
               <div className={`absolute inset-5.5 rounded-full flex items-center justify-center overflow-hidden transition-all duration-700 bg-gradient-to-br from-[#040914] to-[#010205] border border-cyan-500/35 shadow-[inset_0_0_35px_rgba(0,243,255,0.45),0_0_20px_rgba(0,243,255,0.15)]`}>
                  
