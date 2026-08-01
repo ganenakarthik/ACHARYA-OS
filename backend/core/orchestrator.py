@@ -11,6 +11,7 @@ from agents.acharya import AcharyaAgent
 from services.automate.desktop import AutomateService
 from services.memory.project_memory import MemoryService
 from services.voice.tts import VoiceService
+from services.planner.planner import PlannerService
 from models import CuratedFeed
 
 class CoreOrchestrator:
@@ -25,6 +26,7 @@ class CoreOrchestrator:
         self.memory = MemoryService()
         self.voice = VoiceService()
         self.acharya = AcharyaAgent()
+        self.planner = PlannerService()
 
         self.chat_history = []
 
@@ -100,19 +102,19 @@ class CoreOrchestrator:
             return
 
         # Study, Exam Prep & Learning Planner Fastpath
-        if signal_type in ["text_command", "voice_command"]:
-            study_plan = self.automate.generate_study_and_exam_plan(user_input)
+        if signal_type in ["text_command", "voice_command"] and any(w in user_input.lower() for w in ["plan", "prepare", "study plan", "exam plan", "roadmap", "mastery"]):
+            study_plan = self.planner.create_plan(user_input)
             if study_plan:
                 speech = study_plan["speech"]
                 mission_payload = {
                     "mission": speech,
                     "explainability": {
                         "why": f"Generated 5-Phase Action Plan for '{study_plan['title']}'",
-                        "evidence": f"Created file {study_plan['plan_file']} on Desktop",
+                        "evidence": f"Created file {study_plan['file_path']} on Desktop",
                         "impact": "High",
                         "confidence": "100%"
                     },
-                    "plan_phases": study_plan["plan_phases"],
+                    "plan_phases": study_plan["phases"],
                     "privacy_status": self.privacy.get_status()
                 }
                 await self.manager.broadcast({
