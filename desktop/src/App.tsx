@@ -544,6 +544,7 @@ function App() {
                    ))}
                 </div>
               </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
