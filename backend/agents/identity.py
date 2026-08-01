@@ -1,107 +1,109 @@
 import os
 import json
+import re
 import subprocess
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from models import IdentityTwin
 from utils.ollama_client import generate
 
+STATE_FILE = os.path.join(os.path.expanduser("~"), "ACHARYA_IDENTITY_STATE.json")
+
 class IdentityAgent:
     def __init__(self):
-        pass
-        
-    def _gather_local_git_context(self) -> str:
-        """
-        Runs local git commands to determine recent coding behavior.
-        """
+        self.state = self._load_persisted_state()
+
+    def _load_persisted_state(self) -> dict:
+        if os.path.exists(STATE_FILE):
+            try:
+                with open(STATE_FILE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                pass
+        return {
+            "ideal_self": "Visionary Founder & AI Architect",
+            "goals": ["Build Tech Product", "Master AI Systems"],
+            "momentum": 7,
+            "actions_completed": 3,
+            "identity_gap_percent": 42,
+            "history": []
+        }
+
+    def _save_state(self):
         try:
-            # We assume we are running inside the backend folder, so we check the parent folder or current folder.
-            result = subprocess.run(
-                ["git", "log", "-1", "--stat"], 
-                capture_output=True, text=True, timeout=2,
-                cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            )
-            if result.returncode == 0:
-                return f"Recent Git Commit Context:\n{result.stdout.strip()}"
-            return "No recent git commit context available."
-        except Exception:
-            return "Git context unavailable."
+            with open(STATE_FILE, "w", encoding="utf-8") as f:
+                json.dump(self.state, f, indent=2)
+        except Exception as e:
+            print(f"[IdentityAgent] Error saving state: {e}")
+
+    def _count_completed_milestones(self) -> int:
+        count = 0
+        # 1. Count daily notes on desktop
+        desktop_dir = os.path.join(os.path.expanduser("~"), "Desktop")
+        notes_path = os.path.join(desktop_dir, "ACHARYA_DAILY_NOTES.txt")
+        if os.path.exists(notes_path):
+            try:
+                with open(notes_path, "r", encoding="utf-8") as f:
+                    count += len(f.readlines())
+            except Exception:
+                pass
+
+        # 2. Count plan files on desktop
+        if os.path.exists(desktop_dir):
+            try:
+                plans = [f for f in os.listdir(desktop_dir) if f.startswith("ACHARYA_PLAN_")]
+                count += len(plans) * 2
+            except Exception:
+                pass
+        return count
 
     async def update(self, observed_state: dict, db: AsyncSession = None) -> dict:
         """
-        Analyzes the observation and extracts identity shifts using Gemini.
-        Saves the persistent state in PostgreSQL.
+        Dynamically updates identity twin based on user's real input, active project goals, and completed actions.
         """
-        user_id = 1
-        
-        # 1. Fetch current identity twin
-        current_identity = None
-        if db:
-            result = await db.execute(select(IdentityTwin).filter(IdentityTwin.user_id == user_id))
-            current_identity = result.scalars().first()
+        raw_text = observed_state.get("details", "") or observed_state.get("text", "") or ""
+        text_lower = raw_text.lower().strip()
 
-        current_state = {
-            "goals": current_identity.goals if current_identity else ["Win Hackathon"],
-            "skills": current_identity.skills if current_identity else ["Python", "React"],
-            "weaknesses": current_identity.weaknesses if current_identity else ["Procrastination"],
-            "aspirations": current_identity.aspirations if current_identity else ["Become a visionary technical leader"],
-            "habits": current_identity.habits if current_identity else ["Late night coding"],
-            "behavior_patterns": current_identity.behavior_patterns if current_identity else []
+        # Check if user explicitly stated a new goal / identity aspiration
+        if "startup" in text_lower:
+            self.state["ideal_self"] = "Startup Founder & Product Leader"
+        elif "hackathon" in text_lower:
+            self.state["ideal_self"] = "Hackathon Champion & Product Builder"
+        elif "java" in text_lower or "python" in text_lower or "coding" in text_lower:
+            self.state["ideal_self"] = "Master Technical Architect & Engineer"
+        else:
+            goal_match = re.search(r'\b(?:im working on|i am working on|my goal is|i want to build|i am building|im building|my target is|target)\s+(.+)$', text_lower)
+            if goal_match:
+                new_target = goal_match.group(1).strip().title()
+                if len(new_target) > 3:
+                    self.state["ideal_self"] = new_target
+
+        # Calculate progress dynamically based on completed actions & notes
+        milestones_count = self._count_completed_milestones()
+        self.state["actions_completed"] = milestones_count + len(self.state["history"]) + 1
+
+        # Momentum calculation (1-10)
+        new_momentum = min(10, max(5, 5 + (self.state["actions_completed"] // 2)))
+        self.state["momentum"] = new_momentum
+
+        # Identity Gap calculation (decreases as actions complete)
+        new_gap = max(10, 50 - (self.state["actions_completed"] * 4))
+        self.state["identity_gap_percent"] = new_gap
+
+        self.state["history"].append(raw_text)
+        if len(self.state["history"]) > 20:
+            self.state["history"].pop(0)
+
+        self._save_state()
+
+        return {
+            "goals": self.state["goals"],
+            "skills": ["Python", "React", "System Architecture"],
+            "weaknesses": ["Procrastination"],
+            "aspirations": [self.state["ideal_self"]],
+            "habits": ["Active Execution"],
+            "momentum": self.state["momentum"],
+            "ideal_self": self.state["ideal_self"],
+            "identity_gap": f"{self.state['identity_gap_percent']}% Remaining to Ideal Self",
+            "actions_completed": self.state["actions_completed"]
         }
-
-        # 2. Gather Local OS Git Context
-        git_context = self._gather_local_git_context()
-
-        # 3. Use LLM to evolve identity
-        prompt = f"""
-        You are the JARVIS Identity Manager. Your goal is to optimize for the user's Human Potential.
-        The user's current identity state is: {json.dumps(current_state)}
-        The user just performed this action: {json.dumps(observed_state)}
-        The user's local Git environment shows: {git_context}
-        
-        Update their skills, weaknesses, aspirations, habits, and behavior_patterns based on this new data.
-        Also calculate an 'identity_gap_analysis' - how far are their current habits and skills from their aspirations?
-        
-        Return a JSON object with:
-        - "updated_skills": array of strings
-        - "updated_weaknesses": array of strings
-        - "updated_aspirations": array of strings
-        - "updated_habits": array of strings
-        - "momentum_score": integer 1-10 (how much momentum they have toward their aspirations)
-        - "identity_gap_analysis": string (what they need to cross the chasm to their ideal self)
-        """
-        
-        try:
-            result = await generate(prompt, model="llama3", json_format=True)
-            if "error" in result:
-                raise Exception(result["error"])
-            
-            # Save to DB
-            if current_identity and db:
-                current_identity.skills = result.get("updated_skills", current_state["skills"])
-                current_identity.weaknesses = result.get("updated_weaknesses", current_state["weaknesses"])
-                current_identity.aspirations = result.get("updated_aspirations", current_state["aspirations"])
-                current_identity.habits = result.get("updated_habits", current_state["habits"])
-                current_identity.behavior_patterns = [{"momentum": result.get("momentum_score", 5), "gap": result.get("identity_gap_analysis", "")}]
-                await db.commit()
-            
-            return {
-                **current_state,
-                "skills": result.get("updated_skills", current_state["skills"]),
-                "weaknesses": result.get("updated_weaknesses", current_state["weaknesses"]),
-                "aspirations": result.get("updated_aspirations", current_state["aspirations"]),
-                "habits": result.get("updated_habits", current_state["habits"]),
-                "momentum": result.get("momentum_score", 7),
-                "ideal_self": "Visionary Technical Founder & AI Architect",
-                "identity_gap": result.get("identity_gap_analysis", "42% Remaining to Ideal Self"),
-                "recent_milestones": [observed_state]
-            }
-        except Exception as e:
-            print(f"Identity Agent Error: {e}")
-            return {
-                **current_state,
-                "momentum": 7,
-                "ideal_self": "Visionary Technical Founder & AI Architect",
-                "identity_gap": "42% Remaining to Ideal Self",
-                "recent_milestones": [observed_state]
-            }

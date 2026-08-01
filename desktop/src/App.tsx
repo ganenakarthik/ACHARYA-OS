@@ -28,6 +28,12 @@ function App() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [identityTwin, setIdentityTwin] = useState<{
+    ideal_self: string;
+    momentum: number;
+    identity_gap: string;
+    actions_completed: number;
+  } | null>(null);
   const [visualContext, setVisualContext] = useState("");
   const [inputText, setInputText] = useState("");
   const [logs, setLogs] = useState<string[]>(["[SYSTEM] ACHARYA Online."]);
@@ -73,6 +79,9 @@ function App() {
           const data = JSON.parse(event.data);
           if (data.type === 'mission_update') {
             setMission(data.data);
+            if (data.data?.identity_twin) {
+              setIdentityTwin(data.data.identity_twin);
+            }
             if (data.data?.explainability?.evidence) {
                setVisualContext(data.data.explainability.evidence);
             }
@@ -219,19 +228,19 @@ function App() {
                     <User size={14} className="text-purple-400" /> Evolving Identity Twin
                   </h2>
                   <span className="bg-purple-500/30 text-purple-300 text-[9px] px-2 py-0.5 rounded-full border border-purple-400/40 font-bold">
-                    Momentum 7/10
+                    Momentum {identityTwin?.momentum || 7}/10
                   </span>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="text-xs text-white/90 font-semibold">
-                    Target: <span className="text-purple-300">Visionary Technical Founder & AI Architect</span>
+                  <div className="text-xs text-white/90 font-semibold leading-tight">
+                    Target: <span className="text-purple-300 font-bold">{identityTwin?.ideal_self || "Visionary Technical Founder & AI Architect"}</span>
                   </div>
                   <div className="flex items-center justify-between text-[10px] text-white/60">
                     <span>Identity Gap</span>
-                    <span className="text-purple-400 font-bold">42% Remaining</span>
+                    <span className="text-purple-400 font-bold">{identityTwin?.identity_gap || "42% Remaining"}</span>
                   </div>
                   <div className="w-full bg-black/60 rounded-full h-1 overflow-hidden">
-                    <div className="bg-gradient-to-r from-purple-500 to-cyan-400 h-1 rounded-full w-[58%]" />
+                    <div className="bg-gradient-to-r from-purple-500 to-cyan-400 h-1 rounded-full w-[65%]" />
                   </div>
                 </div>
               </div>

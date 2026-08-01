@@ -108,6 +108,9 @@ class CoreOrchestrator:
                 }
             ]
 
+            # Update Identity Twin state
+            identity_state = await self.identity.update({"details": user_input})
+
             mission_payload = {
                 "mission": speech,
                 "explainability": {
@@ -118,6 +121,7 @@ class CoreOrchestrator:
                 },
                 "plan_phases": plan_res.get("phases", []),
                 "curated_resources": resources,
+                "identity_twin": identity_state,
                 "privacy_status": self.privacy.get_status()
             }
             await self.manager.broadcast({
@@ -182,6 +186,7 @@ class CoreOrchestrator:
                 "confidence": "99%"
             },
             "curated_resources": resources,
+            "identity_twin": identity_state,
             "privacy_status": self.privacy.get_status()
         }
 
