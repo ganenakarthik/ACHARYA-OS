@@ -102,6 +102,31 @@ class IdentityAgent:
 
         self._save_state()
 
+        # Synchronize with PostgreSQL database if session is active
+        if db:
+            try:
+                from sqlalchemy import select
+                from models import IdentityTwin as DBIdentityTwin
+                
+                result = await db.execute(select(DBIdentityTwin).filter(DBIdentityTwin.user_id == 1))
+                db_twin = result.scalars().first()
+                
+                if not db_twin:
+                    db_twin = DBIdentityTwin(user_id=1)
+                    db.add(db_twin)
+                
+                db_twin.goals = self.state.get("goals", [])
+                db_twin.skills = ["Python", "React", "System Architecture"]
+                db_twin.weaknesses = ["Procrastination"]
+                db_twin.aspirations = [self.state["ideal_self"]]
+                db_twin.habits = ["Active Execution"]
+                db_twin.behavior_patterns = [{"momentum": self.state["momentum"]}]
+                
+                await db.commit()
+                print("[IdentityAgent] Synchronized IdentityTwin state with PostgreSQL.")
+            except Exception as e:
+                print(f"[IdentityAgent] Database Sync Error: {e}")
+
         return {
             "goals": self.state["goals"],
             "skills": ["Python", "React", "System Architecture"],

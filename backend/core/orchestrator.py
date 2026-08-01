@@ -176,6 +176,43 @@ class CoreOrchestrator:
             if self.privacy.flags["MEMORY"]:
                 self.memory.save_memory("project_memory", f"User: {user_input} | Acharya: {acharya_response['speech']}")
 
+            # Save daily note reflections to PostgreSQL
+            if db and any(w in user_input.lower() for w in ["note", "take note"]):
+                try:
+                    from models import Reflection
+                    note_content = user_input.replace("take note:", "").replace("note:", "").strip()
+                    new_ref = Reflection(user_id=1, content=note_content, mood=identity_state.get("mentor_mood", "Focused"))
+                    db.add(new_ref)
+                    await db.commit()
+                    print("[CoreOrchestrator] Saved user note reflection to PostgreSQL.")
+                except Exception as e:
+                    print(f"Error saving reflection: {e}")
+
+            # Save Mission record to PostgreSQL
+            if db:
+                try:
+                    from models import Mission as DBMission
+                    confidence_val = 80
+                    try:
+                        confidence_val = int(decision_state.get("confidence", "80").replace("%", ""))
+                    except Exception:
+                        pass
+                    new_mission = DBMission(
+                        user_id=1,
+                        highest_impact_action=decision_state.get("highest_roi_action", "Keep up the momentum!"),
+                        reason=decision_state.get("reasoning", ""),
+                        evidence=decision_state.get("what_changed", ""),
+                        expected_impact=decision_state.get("impact", "Medium"),
+                        confidence=confidence_val,
+                        resources=resources,
+                        opportunity=opportunity
+                    )
+                    db.add(new_mission)
+                    await db.commit()
+                    print("[CoreOrchestrator] Saved Mission record to PostgreSQL.")
+                except Exception as e:
+                    print(f"Error saving mission to database: {e}")
+
             # Format Payload for UI
             mission_payload = {
                 "mission": acharya_response["speech"],
@@ -210,6 +247,32 @@ class CoreOrchestrator:
         else:
             # SILENT BACKGROUND SCREEN & VISION UPDATES (NO VOICE OUTPUT!)
             # Only update UI Screen Context & Identity Twin silently without speaking!
+            
+            # Save background Mission record to PostgreSQL
+            if db:
+                try:
+                    from models import Mission as DBMission
+                    confidence_val = 80
+                    try:
+                        confidence_val = int(decision_state.get("confidence", "80").replace("%", ""))
+                    except Exception:
+                        pass
+                    new_mission = DBMission(
+                        user_id=1,
+                        highest_impact_action=decision_state.get("highest_roi_action", "Keep up the momentum!"),
+                        reason=decision_state.get("reasoning", ""),
+                        evidence=decision_state.get("what_changed", ""),
+                        expected_impact=decision_state.get("impact", "Medium"),
+                        confidence=confidence_val,
+                        resources=resources,
+                        opportunity=opportunity
+                    )
+                    db.add(new_mission)
+                    await db.commit()
+                    print("[CoreOrchestrator] Saved background Mission record to PostgreSQL.")
+                except Exception as e:
+                    print(f"Error saving background mission: {e}")
+
             mission_payload = {
                 "identity_twin": identity_state,
                 "curated_resources": resources,
