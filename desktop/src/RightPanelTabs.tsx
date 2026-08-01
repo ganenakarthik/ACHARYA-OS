@@ -14,6 +14,12 @@ interface Resource {
 interface Mission {
   mission: string;
   curated_resources?: Resource[];
+  explainability?: {
+    why: string;
+    evidence: string;
+    impact: string;
+    confidence: string;
+  };
 }
 
 interface Props {
@@ -229,14 +235,32 @@ export default function RightPanelTabs({ mission, visualContext, isSpeaking, pri
               initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }}
               transition={{ duration: 0.18 }} className="flex flex-col gap-3"
             >
-              {/* ── Curated Resources ── */}
-              <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl px-3 py-2.5">
-                <p className="text-amber-400 text-[9px] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                  <Compass size={11} /> ACHARYA Curator · {domainMeta.label}
-                </p>
-                <p className="text-amber-200/60 text-[10px] italic leading-snug">
-                  "Hyper-personalized to your goal &amp; domain."
-                </p>
+              {/* ── Curated Resources & Thought Stream ── */}
+              <div className="flex flex-col gap-2">
+                <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl px-3 py-2.5">
+                  <p className="text-amber-400 text-[9px] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                    <Compass size={11} /> ACHARYA Curator · {domainMeta.label}
+                  </p>
+                  <p className="text-amber-200/60 text-[10px] italic leading-snug">
+                    "Hyper-personalized to your goal &amp; domain."
+                  </p>
+                </div>
+
+                {mission?.explainability?.why && (
+                  <div className="bg-cyan-950/20 border border-cyan-500/30 rounded-xl px-3 py-2.5">
+                    <p className="text-cyan-400 text-[9px] font-black uppercase tracking-widest mb-1 flex items-center gap-1.5 animate-pulse">
+                      <Activity size={11} className="text-cyan-400" /> JARVIS Thought Stream
+                    </p>
+                    <p className="text-cyan-200/80 text-[10px] font-mono leading-relaxed break-words">
+                      &gt; "{mission.explainability.why}"
+                    </p>
+                    {mission.explainability.evidence && (
+                      <p className="text-white/20 text-[8px] mt-1 truncate">
+                        Evidence: {mission.explainability.evidence}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {mission?.curated_resources && mission.curated_resources.length > 0 ? (
