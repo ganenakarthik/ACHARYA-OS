@@ -957,12 +957,20 @@ function App() {
              {/* Center holographic core */}
              <div className={`absolute inset-5.5 rounded-full backdrop-blur-xl flex items-center justify-center overflow-hidden transition-all duration-700 ${
                isSpeaking 
-                 ? 'bg-gradient-to-br from-cyan-400/85 via-purple-600/70 to-blue-900 shadow-[inset_0_0_55px_rgba(0,243,255,0.95),0_0_40px_rgba(0,243,255,0.45)]' 
+                 ? 'bg-gradient-to-br from-cyan-500/80 via-purple-600/70 to-blue-950 shadow-[inset_0_0_55px_rgba(0,243,255,0.95),0_0_40px_rgba(0,243,255,0.45)]' 
                  : isListening
                  ? 'bg-gradient-to-br from-emerald-500/70 to-cyan-950 shadow-[inset_0_0_45px_rgba(16,185,129,0.7)]'
                  : 'bg-gradient-to-br from-[#0c1b35] via-[#050e1e] to-black shadow-[inset_0_0_35px_rgba(0,243,255,0.45),0_0_15px_rgba(0,243,255,0.15)]'
              }`}>
-                <div className={`w-full h-full bg-[radial-gradient(circle_at_center,rgba(0,243,255,0.35)_0%,transparent_70%)] ${isSpeaking ? 'animate-[pulse_0.25s_infinite]' : 'animate-[pulse_2.5s_infinite]'}`} />
+                {/* Dynamic Space Liquid Swirl layers */}
+                <div className="absolute inset-0.5 rounded-full overflow-hidden blur-[6px] opacity-80 mix-blend-screen pointer-events-none z-0">
+                  {/* Liquid swirl 1 (Cyan to Blue to Purple) */}
+                  <div className="nebula-core-1 absolute inset-0 bg-gradient-to-tr from-cyan-400/60 via-blue-500/40 to-purple-600/60" />
+                  {/* Liquid swirl 2 (Fuchsia to Purple to Orange) */}
+                  <div className="nebula-core-2 absolute inset-0 bg-gradient-to-br from-fuchsia-500/50 via-purple-600/30 to-orange-500/50" />
+                </div>
+
+                <div className={`w-full h-full absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,243,255,0.35)_0%,transparent_70%)] z-10 ${isSpeaking ? 'animate-[pulse_0.25s_infinite]' : 'animate-[pulse_2.5s_infinite]'}`} />
                 
                 {/* ── Dynamic Holographic Waveform (oscillates inside orb core) ── */}
                 <svg viewBox="0 0 100 40" className="absolute inset-x-0 bottom-4 w-full h-10 opacity-70 pointer-events-none z-0">
