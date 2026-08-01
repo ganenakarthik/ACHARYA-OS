@@ -15,7 +15,7 @@ class OpportunityAgent:
         Dynamically finds real-world opportunities based on the decision.
         Respects INTERNET privacy toggle and falls back safely when offline.
         """
-        domain = (identity_state.get("domain") or "").lower()
+        domain_raw = (identity_state.get("domain") or "").lower()
         api_key = os.getenv("GEMINI_API_KEY")
         internet_allowed = privacy_flags.get("INTERNET", True)
         
@@ -41,6 +41,11 @@ class OpportunityAgent:
                 "deadline": "Closes in 2 days",
                 "url": "https://sih.gov.in"
             },
+            "product": {
+                "title": "Sir, I found a Product Strategy case study on Jobs-to-Be-Done for Notion's early growth.",
+                "deadline": "Strategy Guide",
+                "url": "https://jobs-to-be-done.com"
+            },
             "startup": {
                 "title": "Sir, Y Combinator applications are active. We should prepare the MVP demo deck.",
                 "deadline": "YC Funding Batch",
@@ -48,7 +53,21 @@ class OpportunityAgent:
             }
         }
         
-        fallback_option = fallbacks.get(domain, fallbacks["startup"])
+        # Safe domain key resolution
+        if "ai" in domain_raw:
+            domain_key = "ai"
+        elif "code" in domain_raw:
+            domain_key = "coding"
+        elif "exam" in domain_raw:
+            domain_key = "exam prep"
+        elif "hack" in domain_raw:
+            domain_key = "hackathon"
+        elif "product" in domain_raw:
+            domain_key = "product"
+        else:
+            domain_key = "startup"
+
+        fallback_option = fallbacks.get(domain_key, fallbacks["startup"])
 
         if not internet_allowed or not api_key or api_key == "your_gemini_api_key_here" or api_key == "dummy" or not self.model:
             return fallback_option
