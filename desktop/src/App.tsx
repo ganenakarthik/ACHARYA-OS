@@ -931,47 +931,85 @@ function App() {
             onClick={() => { if(!isExpanded) { playSound('expand'); setIsExpanded(true); } }}
             className={`rounded-full flex items-center justify-center relative group ${isExpanded ? 'w-40 h-40 cursor-default' : 'w-28 h-28 cursor-pointer'}`}
           >
+             {/* Conic Radar Scanner Sweep Layer */}
+             <div className="radar-scanner absolute inset-[-3px]" />
+
              {/* Outer glow pulse ring */}
              <motion.div
-               animate={{ scale: [1, 1.08, 1], opacity: [0.4, 0.8, 0.4] }}
-               transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-               className="absolute inset-[-6px] rounded-full border border-cyan-500/30 shadow-[0_0_30px_rgba(0,243,255,0.2)]"
+                animate={{ scale: [1, 1.08, 1], opacity: [0.4, 0.8, 0.4] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                className="absolute inset-[-6px] rounded-full border border-cyan-500/30 shadow-[0_0_30px_rgba(0,243,255,0.2)]"
              />
+
              {/* Active speaking/listening pulse */}
              {(isSpeaking || isListening) && (
-               <motion.div 
+                <motion.div 
                   initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1.6 }} exit={{ opacity: 0 }}
                   className={`absolute inset-0 rounded-full border border-cyan-400/60 ${isListening ? 'animate-[ping_0.8s_infinite]' : 'animate-[ping_1.2s_infinite]'}`} 
-               />
+                />
              )}
+
+             {/* Concentric spinning rings */}
              <div className="absolute inset-0 rounded-full border border-cyan-400/40 animate-[spin_10s_linear_infinite]" style={{ borderStyle: 'dashed' }} />
-             <div className={`absolute inset-1 rounded-full border-2 border-transparent border-t-cyan-400/80 border-b-purple-500/80 ${isSpeaking ? 'animate-[spin_0.7s_linear_infinite]' : 'animate-[spin_4s_linear_infinite]'}`} />
-             <div className="absolute inset-3 rounded-full border border-purple-500/40 animate-[spin_7s_linear_infinite_reverse]" />
-             <div className={`absolute inset-5 rounded-full backdrop-blur-xl flex items-center justify-center overflow-hidden transition-all duration-700 ${
+             <div className={`absolute inset-1.5 rounded-full border-2 border-transparent border-t-cyan-400/80 border-b-purple-500/80 ${isSpeaking ? 'animate-[spin_0.8s_linear_infinite]' : 'animate-[spin_4s_linear_infinite]'}`} />
+             <div className="absolute inset-3.5 rounded-full border border-purple-500/40 animate-[spin_8s_linear_infinite_reverse]" style={{ borderStyle: 'dotted' }} />
+             
+             {/* Center holographic core */}
+             <div className={`absolute inset-5.5 rounded-full backdrop-blur-xl flex items-center justify-center overflow-hidden transition-all duration-700 ${
                isSpeaking 
-                 ? 'bg-gradient-to-br from-cyan-400/80 via-purple-600/60 to-blue-900 shadow-[inset_0_0_60px_rgba(0,243,255,0.9),0_0_40px_rgba(0,243,255,0.4)]' 
+                 ? 'bg-gradient-to-br from-cyan-400/85 via-purple-600/70 to-blue-900 shadow-[inset_0_0_55px_rgba(0,243,255,0.95),0_0_40px_rgba(0,243,255,0.45)]' 
                  : isListening
-                 ? 'bg-gradient-to-br from-emerald-500/60 to-cyan-900 shadow-[inset_0_0_40px_rgba(16,185,129,0.6)]'
-                 : 'bg-gradient-to-br from-[#0a1628] via-cyan-950 to-[#050810] shadow-[inset_0_0_40px_rgba(0,243,255,0.35),0_0_20px_rgba(0,243,255,0.1)]'
+                 ? 'bg-gradient-to-br from-emerald-500/70 to-cyan-950 shadow-[inset_0_0_45px_rgba(16,185,129,0.7)]'
+                 : 'bg-gradient-to-br from-[#0c1b35] via-[#050e1e] to-black shadow-[inset_0_0_35px_rgba(0,243,255,0.45),0_0_15px_rgba(0,243,255,0.15)]'
              }`}>
-               <div className={`w-full h-full bg-[radial-gradient(circle_at_center,rgba(0,243,255,0.25)_0%,transparent_65%)] ${isSpeaking ? 'animate-[pulse_0.25s_infinite]' : 'animate-[pulse_2s_infinite]'}`} />
-               {/* ACHARYA label inside orb */}
-               <div className="absolute flex flex-col items-center gap-0.5 select-none">
-                 {isFocusActive ? (
-                   <>
-                     <span className="text-sm font-black text-cyan-400 glow-pulse tracking-wider tabular-nums">
-                       {Math.floor(focusTimeRemaining / 60).toString().padStart(2, '0')}:
-                       {(focusTimeRemaining % 60).toString().padStart(2, '0')}
-                     </span>
-                     <span className="text-[7px] font-black text-cyan-300/60 uppercase tracking-widest">FOCUSING</span>
-                   </>
-                 ) : (
-                   <>
-                     <div className={`rounded-full shadow-[0_0_30px_#00f3ff] ${isExpanded ? 'w-6 h-6' : 'w-3 h-3'} ${isSpeaking ? 'bg-cyan-200 animate-[ping_0.3s_infinite]' : 'bg-cyan-300 animate-pulse'}`} />
-                     {isExpanded && <span className="text-[9px] font-black tracking-[0.25em] text-cyan-300/80 uppercase mt-1">ACHARYA</span>}
-                   </>
-                 )}
-               </div>
+                <div className={`w-full h-full bg-[radial-gradient(circle_at_center,rgba(0,243,255,0.35)_0%,transparent_70%)] ${isSpeaking ? 'animate-[pulse_0.25s_infinite]' : 'animate-[pulse_2.5s_infinite]'}`} />
+                
+                {/* ── Dynamic Holographic Waveform (oscillates inside orb core) ── */}
+                <svg viewBox="0 0 100 40" className="absolute inset-x-0 bottom-4 w-full h-10 opacity-70 pointer-events-none z-0">
+                  <path
+                    d={isSpeaking 
+                      ? "M 0,20 Q 15,-10 30,20 T 60,38 T 80,4 T 100,20" 
+                      : isListening 
+                      ? "M 0,20 Q 15,2 35,20 T 65,32 T 85,12 T 100,20" 
+                      : "M 0,20 Q 25,16 50,20 T 100,20"
+                    }
+                    fill="none"
+                    stroke={isListening ? "#10b981" : "#00f3ff"}
+                    strokeWidth="2"
+                    className="transition-all duration-300"
+                  />
+                  <path
+                    d={isSpeaking 
+                      ? "M 0,20 Q 20,45 40,12 T 70,5 T 90,36 T 100,20" 
+                      : isListening 
+                      ? "M 0,20 Q 20,32 40,16 T 70,28 T 90,8 T 100,20" 
+                      : "M 0,20 Q 25,24 50,20 T 100,20"
+                    }
+                    fill="none"
+                    stroke="#a855f7"
+                    strokeWidth="1"
+                    strokeDasharray="2 2"
+                    className="opacity-40 transition-all duration-300"
+                  />
+                </svg>
+
+                {/* ACHARYA label inside orb */}
+                <div className="absolute flex flex-col items-center gap-0.5 select-none z-10">
+                  {isFocusActive ? (
+                    <>
+                      <span className="text-[15px] font-black text-cyan-200 tracking-wider tabular-nums drop-shadow-[0_0_6px_rgba(0,243,255,0.8)]">
+                        {Math.floor(focusTimeRemaining / 60).toString().padStart(2, '0')}:
+                        {(focusTimeRemaining % 60).toString().padStart(2, '0')}
+                      </span>
+                      <span className="text-[6.5px] font-black text-cyan-300/80 uppercase tracking-widest">FOCUSING</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className={`rounded-full shadow-[0_0_30px_#00f3ff] ${isExpanded ? 'w-5 h-5' : 'w-2.5 h-2.5'} ${isSpeaking ? 'bg-cyan-200 animate-[ping_0.3s_infinite]' : 'bg-cyan-300 animate-pulse'}`} />
+                      {isExpanded && <span className="text-[9px] font-black tracking-[0.25em] text-cyan-300/80 uppercase mt-1 drop-shadow-[0_0_5px_rgba(0,243,255,0.5)]">ACHARYA</span>}
+                    </>
+                  )}
+                </div>
              </div>
           </motion.div>
 

@@ -68,6 +68,22 @@
   pointer-events: none;
 }
 
+/* ── Conic radar scanner sweep effect ── */
+@keyframes radar-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.radar-scanner {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, transparent 40%, rgba(0, 243, 255, 0.08) 75%, rgba(0, 243, 255, 0.35) 100%);
+  mask-image: radial-gradient(circle, transparent 62%, black 63%);
+  -webkit-mask-image: radial-gradient(circle, transparent 62%, black 63%);
+  animation: radar-sweep 6s linear infinite;
+  pointer-events: none;
+}
+
 /* ── Animated momentum bar fill ──────────────────────────────────────────── */
 @keyframes fillBar {
   from { width: 0%; }
