@@ -21,7 +21,7 @@ class DecisionAgent:
                 self.memory_active = True
             except Exception as e:
                 print(f"DecisionAgent: Qdrant or Encoder failed to initialize: {e}")
-            self.memory_active = False
+                self.memory_active = False
         
     async def evaluate(self, identity_state: dict, observed_state: dict) -> dict:
         """
