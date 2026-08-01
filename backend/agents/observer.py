@@ -51,18 +51,21 @@ class ObserverAgent:
                     print(f"Observer Agent: Context shift detected! Spent {int(duration_spent)}s on '{self.last_window_title}'. Now on '{current_title}'")
                     
                     # God-Mode: Capture screen and analyze visual context
-                    visual_context = "Could not capture visual context."
-                    try:
-                        print("Observer Agent: Capturing screen for God-Mode Vision...")
-                        # Run screenshot in a separate thread so we don't block the loop
-                        screenshot = await asyncio.to_thread(ImageGrab.grab)
-                        
-                        prompt = "You are JARVIS. Describe exactly what the user is looking at on this screen in 1 short, highly factual sentence. Do not mention that this is a screenshot."
-                        response = await self.vision_model.generate_content_async([prompt, screenshot])
-                        visual_context = response.text.strip()
-                        print(f"Vision Analysis: {visual_context}")
-                    except Exception as e:
-                        print(f"Vision API Error: {e}")
+                    visual_context = "Vision scanning disabled due to privacy settings."
+                    if orchestrator.privacy.flags.get("SCREEN", True):
+                        try:
+                            print("Observer Agent: Capturing screen for God-Mode Vision...")
+                            # Run screenshot in a separate thread so we don't block the loop
+                            screenshot = await asyncio.to_thread(ImageGrab.grab)
+                            
+                            prompt = "You are JARVIS. Describe exactly what the user is looking at on this screen in 1 short, highly factual sentence. Do not mention that this is a screenshot."
+                            response = await self.vision_model.generate_content_async([prompt, screenshot])
+                            visual_context = response.text.strip()
+                            print(f"Vision Analysis: {visual_context}")
+                        except Exception as e:
+                            print(f"Vision API Error: {e}")
+                    else:
+                        print("Observer Agent: Skipping screen vision analysis due to SCREEN privacy flag.")
                     
                     signal_data = {
                         "type": "context_switch",
