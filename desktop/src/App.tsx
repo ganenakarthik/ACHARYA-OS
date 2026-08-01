@@ -313,56 +313,7 @@ function App() {
                 </div>
               )}
 
-              {/* Wise Supporting Mentor & Human Potential Curation Card */}
-              {mission?.curated_resources && mission.curated_resources.length > 0 && (
-                <div className="bg-amber-950/30 border border-amber-500/40 rounded-xl p-4 shadow-[0_0_20px_rgba(245,158,11,0.15)] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-amber-400 font-bold tracking-widest text-[10px] uppercase flex items-center gap-2">
-                      <Compass size={14} className="text-amber-400" /> Supporting Mentor Guidance
-                    </h2>
-                    <span className="bg-amber-500/20 text-amber-300 text-[9px] px-2 py-0.5 rounded-full border border-amber-400/30 font-bold">
-                      Human Potential Engine
-                    </span>
-                  </div>
 
-                  <div className="text-[11px] text-amber-200/90 bg-black/50 p-2.5 rounded-lg border border-amber-500/20 italic leading-snug">
-                    "Sir, I have curated these 4 high-ROI resources to transform passive scrolling into purposeful growth toward your Ideal Self."
-                  </div>
-
-                  <div className="space-y-2">
-                    {mission.curated_resources.map((res, i) => {
-                      const badgeColor = 
-                        res.type === 'Idea' ? 'border-purple-500/40 text-purple-300 bg-purple-950/40' :
-                        res.type === 'Story' ? 'border-amber-500/40 text-amber-300 bg-amber-950/40' :
-                        res.type === 'Tool' ? 'border-emerald-500/40 text-emerald-300 bg-emerald-950/40' :
-                        'border-cyan-500/40 text-cyan-300 bg-cyan-950/40';
-
-                      const icon = 
-                        res.type === 'Idea' ? '💡' :
-                        res.type === 'Story' ? '📖' :
-                        res.type === 'Tool' ? '🛠️' : '👤';
-
-                      return (
-                        <a
-                          key={i}
-                          href={res.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block p-2.5 bg-black/60 border border-amber-500/30 hover:border-amber-400 rounded-lg transition-all shadow-sm group"
-                        >
-                          <div className="flex items-center justify-between text-[9px] uppercase tracking-wider font-bold mb-1">
-                            <span className={`px-2 py-0.5 rounded border ${badgeColor}`}>
-                              {icon} {res.type}
-                            </span>
-                            <span className="text-white/40 group-hover:text-amber-300 transition-colors">Open Resource &rarr;</span>
-                          </div>
-                          <p className="text-white/90 text-xs font-medium leading-tight mt-1">{res.title}</p>
-                        </a>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
               {/* Memory Sync */}
               <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-3 flex flex-col items-center">
@@ -482,6 +433,56 @@ function App() {
               onPointerDown={(e) => e.stopPropagation()}
             >
               <div className="overflow-y-auto custom-scrollbar flex flex-col gap-3.5 pr-1">
+              {/* Wise Supporting Mentor & Human Potential Curation Card */}
+              {mission?.curated_resources && mission.curated_resources.length > 0 && (
+                <div className="bg-amber-950/30 border border-amber-500/40 rounded-xl p-4 shadow-[0_0_20px_rgba(245,158,11,0.15)] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-amber-400 font-bold tracking-widest text-[10px] uppercase flex items-center gap-2">
+                      <Compass size={14} className="text-amber-400" /> Supporting Mentor Guidance
+                    </h2>
+                    <span className="bg-amber-500/20 text-amber-300 text-[9px] px-2 py-0.5 rounded-full border border-amber-400/30 font-bold">
+                      Human Potential Engine
+                    </span>
+                  </div>
+
+                  <div className="text-[11px] text-amber-200/90 bg-black/50 p-2.5 rounded-lg border border-amber-500/20 italic leading-snug">
+                    "Sir, I have curated these 4 high-ROI resources to transform passive scrolling into purposeful growth toward your Ideal Self."
+                  </div>
+
+                  <div className="space-y-2">
+                    {mission.curated_resources.map((res, i) => {
+                      const badgeColor = 
+                        res.type === 'Idea' ? 'border-purple-500/40 text-purple-300 bg-purple-950/40' :
+                        res.type === 'Story' ? 'border-amber-500/40 text-amber-300 bg-amber-950/40' :
+                        res.type === 'Tool' ? 'border-emerald-500/40 text-emerald-300 bg-emerald-950/40' :
+                        'border-cyan-500/40 text-cyan-300 bg-cyan-950/40';
+
+                      const icon = 
+                        res.type === 'Idea' ? '💡' :
+                        res.type === 'Story' ? '📖' :
+                        res.type === 'Tool' ? '🛠️' : '👤';
+
+                      return (
+                        <a
+                          key={i}
+                          href={res.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block p-2.5 bg-black/60 border border-amber-500/30 hover:border-amber-400 rounded-lg transition-all shadow-sm group"
+                        >
+                          <div className="flex items-center justify-between text-[9px] uppercase tracking-wider font-bold mb-1">
+                            <span className={`px-2 py-0.5 rounded border ${badgeColor}`}>
+                              {icon} {res.type}
+                            </span>
+                            <span className="text-white/40 group-hover:text-amber-300 transition-colors">Open Resource &rarr;</span>
+                          </div>
+                          <p className="text-white/90 text-xs font-medium leading-tight mt-1">{res.title}</p>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {/* Context */}
               <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 overflow-hidden relative">
                  {isSpeaking && <motion.div layoutId="speaking-glow-right" className="absolute inset-0 bg-cyan-400/10 animate-pulse" />}
