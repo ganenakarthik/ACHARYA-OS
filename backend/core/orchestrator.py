@@ -8,6 +8,7 @@ from agents.identity import IdentityAgent
 from agents.decision import DecisionAgent
 from agents.curator import CuratorAgent
 from agents.acharya import AcharyaAgent
+from agents.opportunity import OpportunityAgent
 from services.automate.desktop import AutomateService
 from services.memory.project_memory import MemoryService
 from services.voice.tts import VoiceService
@@ -22,6 +23,7 @@ class CoreOrchestrator:
         self.identity = IdentityAgent()
         self.decision = DecisionAgent()
         self.curator = CuratorAgent()
+        self.opportunity = OpportunityAgent()
         self.automate = AutomateService()
         self.memory = MemoryService()
         self.voice = VoiceService()
@@ -142,6 +144,9 @@ class CoreOrchestrator:
         # 6. Curator: Find Human Potential Resources (Ideas, Stories, Tools, Mentors)
         resources = await self.curator.find_resources(decision_state, identity_state)
 
+        # 6b. Opportunity Agent: Find real-world applications (Hackathons, open-source projects)
+        opportunity = await self.opportunity.find_opportunities(decision_state, self.privacy.flags, identity_state)
+
         # Save Curated Feed to DB
         if db and resources:
             for res in resources:
@@ -181,6 +186,7 @@ class CoreOrchestrator:
                     "confidence": "99%"
                 },
                 "curated_resources": resources,
+                "opportunity": opportunity,
                 "identity_twin": identity_state,
                 "privacy_status": self.privacy.get_status()
             }
@@ -207,6 +213,7 @@ class CoreOrchestrator:
             mission_payload = {
                 "identity_twin": identity_state,
                 "curated_resources": resources,
+                "opportunity": opportunity,
                 "visual_context": observed_state.get("details", ""),
                 "privacy_status": self.privacy.get_status()
             }

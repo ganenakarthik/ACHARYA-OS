@@ -14,6 +14,11 @@ interface Resource {
 interface Mission {
   mission: string;
   curated_resources?: Resource[];
+  opportunity?: {
+    title: string;
+    deadline: string;
+    url: string;
+  };
   explainability?: {
     why: string;
     evidence: string;
@@ -374,6 +379,35 @@ export default function RightPanelTabs({ mission, visualContext, isSpeaking, pri
                   </div>
                 </div>
               </div>
+
+              {/* Recommended Opportunity Card */}
+              {mission?.opportunity && (
+                <div className="bg-gradient-to-br from-amber-950/20 via-black/40 to-amber-950/25 border border-amber-500/25 rounded-2xl p-3.5 shadow-lg relative overflow-hidden">
+                  <h3 className="text-amber-400 text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <Compass size={11} className="text-amber-400" /> JARVIS Recommended Opportunity
+                  </h3>
+                  
+                  <div className="bg-black/40 border border-amber-500/10 rounded-xl p-2.5 flex flex-col gap-1.5">
+                    <p className="text-white/90 text-[11px] font-bold leading-normal">{mission.opportunity.title}</p>
+                    
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-amber-950/50 border border-amber-500/30 text-amber-300">
+                        {mission.opportunity.deadline || "Ongoing"}
+                      </span>
+                      {mission.opportunity.url && (
+                        <a 
+                          href={mission.opportunity.url} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-[9px] font-black uppercase tracking-wider transition-all"
+                        >
+                          Launch Opportunity <ExternalLink size={9} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Action Plan Roadmaps Card */}
               <div className="bg-black/50 border border-white/8 rounded-2xl p-3.5">
