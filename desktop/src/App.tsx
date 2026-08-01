@@ -133,10 +133,14 @@ function App() {
   }, []);
 
   const handleQuickAction = (action: string) => {
-    const msg = { type: "signal", data: { type: "text_command", details: action } };
+    const short = action.split(' ').slice(0, 4).join(' ');
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(msg));
-      setLogs(prev => [...prev, `[QUICK] ${action}`].slice(-4));
+      wsRef.current.send(JSON.stringify({ type: "signal", data: { type: "text_command", details: action } }));
+      setLogs(prev => [...prev, `[QUICK] ${short}…`].slice(-4));
+    } else {
+      // WS not connected — queue via text input fallback and log
+      setInputText(action);
+      setLogs(prev => [...prev, `[QUICK] Not connected — typed into bar`].slice(-4));
     }
   };
 
@@ -757,28 +761,16 @@ function App() {
                  <div className={`rounded-full shadow-[0_0_30px_#00f3ff] ${isExpanded ? 'w-6 h-6' : 'w-3 h-3'} ${isSpeaking ? 'bg-cyan-200 animate-[ping_0.3s_infinite]' : 'bg-cyan-300 animate-pulse'}`} />
                  {isExpanded && <span className="text-[9px] font-black tracking-[0.25em] text-cyan-300/80 uppercase mt-1">ACHARYA</span>}
                </div>
-               {/* Live clock — only when collapsed */}
-              {!isExpanded && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="absolute -bottom-10 flex flex-col items-center gap-0.5 pointer-events-none"
-                >
-                  <div className="flex items-center gap-1 text-cyan-400/70">
-                    <Clock size={9} />
-                    <span className="text-[11px] font-black tracking-wider tabular-nums">{clock}</span>
-                  </div>
-                </motion.div>
-              )}
              </div>
+             {/* ── Live clock below orb (outside overflow-hidden) ── */}
              {!isExpanded && (
-               <motion.div
-                 initial={{ opacity: 0 }}
-                 whileHover={{ opacity: 1 }}
-                 className="absolute -bottom-9 whitespace-nowrap text-cyan-400 font-mono text-[9px] tracking-widest uppercase bg-black/70 px-2.5 py-1 rounded-lg border border-cyan-500/30 shadow-[0_0_10px_rgba(0,243,255,0.2)]"
-               >
-                 ◈ Click to Expand
-               </motion.div>
+               <div className="absolute -bottom-12 flex flex-col items-center gap-1 pointer-events-none">
+                 <div className="flex items-center gap-1 text-cyan-400/80">
+                   <Clock size={9} />
+                   <span className="text-[11px] font-black tracking-wider tabular-nums">{clock}</span>
+                 </div>
+                 <span className="text-[8px] text-white/30 font-mono tracking-widest">◈ click to expand</span>
+               </div>
              )}
           </motion.div>
 
