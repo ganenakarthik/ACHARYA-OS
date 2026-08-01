@@ -105,6 +105,36 @@ function DecryptText({ text }: { text: string }) {
   return <>{displayText}</>;
 }
 
+// ── speakText Helper (Selects premium, free local voices instead of generic defaults) ──
+const speakText = (text: string) => {
+  if (!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.05; // Slightly accelerated rate for standard organic speech rhythm
+    utterance.pitch = 1.05; // Calm tone adjustment
+    
+    // Fetch all available platform/browser voices
+    const voices = window.speechSynthesis.getVoices();
+    
+    // Filter out premium English local voices
+    const preferredVoice = voices.find(v => 
+      v.name.toLowerCase().includes("google us english") || 
+      v.name.toLowerCase().includes("zira") ||
+      v.name.toLowerCase().includes("david") ||
+      v.name.toLowerCase().includes("natural") ||
+      v.name.toLowerCase().includes("hazel")
+    ) || voices.find(v => v.lang.startsWith("en"));
+    
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+    window.speechSynthesis.speak(utterance);
+  } catch (e) {
+    console.error("Speech Synthesis Error:", e);
+  }
+};
+
 function App() {
   const [mission, setMission] = useState<Mission | null>(null);
   const [isPowerOn, setIsPowerOn] = useState(true);
@@ -230,11 +260,7 @@ function App() {
           clearInterval(interval);
           setIsFocusActive(false);
           // Play speech alerts
-          if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance("Focus session complete. Take a break, Sir.");
-            window.speechSynthesis.speak(utterance);
-          }
+          speakText("Focus session complete. Take a break, Sir.");
           return 25 * 60;
         }
         return prev - 1;
@@ -352,17 +378,9 @@ function App() {
             }
             setLogs(prev => [...prev, `[MISSION] ${data.data?.mission || 'Update received'}`].slice(-4));
             
-            // Speak response using Browser Web Speech API TTS
-            if ('speechSynthesis' in window && data.data?.mission) {
-              try {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(data.data.mission);
-                utterance.rate = 1.0;
-                utterance.pitch = 1.0;
-                window.speechSynthesis.speak(utterance);
-              } catch (e) {
-                console.error("Browser TTS error:", e);
-              }
+            // Speak response
+            if (data.data?.mission) {
+              speakText(data.data.mission);
             }
 
             // Trigger speaking animation
