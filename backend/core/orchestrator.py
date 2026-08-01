@@ -1,52 +1,41 @@
-"""
-ACHARYA OS Core Orchestrator
-Coordinates Services (Voice, Vision, Memory, Automate, Privacy) and AI Agents.
-"""
 import asyncio
-import urllib.parse
+import os
+import json
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from services.voice.tts import VoiceService
-from services.memory.project_memory import MemoryService
-from services.automate.desktop import AutomateService
-from services.vision.screen import VisionService
-from services.planner.planner import PlannerService
 from core.privacy import PrivacyManager
-
 from agents.observer import ObserverAgent
 from agents.identity import IdentityAgent
 from agents.decision import DecisionAgent
 from agents.curator import CuratorAgent
 from agents.acharya import AcharyaAgent
+from services.automate.desktop import AutomateService
+from services.memory.project_memory import MemoryService
+from services.voice.tts import VoiceService
 from models import CuratedFeed
 
 class CoreOrchestrator:
-    def __init__(self, websocket_manager):
-        self.manager = websocket_manager
-
-        # OS Services
-        self.voice = VoiceService()
-        self.memory = MemoryService()
-        self.automate = AutomateService()
-        self.vision = VisionService()
-        self.planner = PlannerService()
+    def __init__(self, manager):
+        self.manager = manager
         self.privacy = PrivacyManager()
-
-        # Agents
         self.observer = ObserverAgent()
         self.identity = IdentityAgent()
         self.decision = DecisionAgent()
         self.curator = CuratorAgent()
+        self.automate = AutomateService()
+        self.memory = MemoryService()
+        self.voice = VoiceService()
         self.acharya = AcharyaAgent()
 
         self.chat_history = []
 
     async def process_signal(self, signal_data: dict, db: AsyncSession = None):
         """
-        Main OS signal processing loop.
+        Main OS signal processing loop with SILENT background vision & selective voice speech.
         """
+        signal_type = signal_data.get("type", "")
+
         # 1. Check Privacy Flags
-        if not self.privacy.flags["SCREEN"] and signal_data.get("type") == "context_switch":
+        if not self.privacy.flags["SCREEN"] and signal_type == "context_switch":
             print("[CoreOrchestrator] Vision processing skipped due to SCREEN privacy flag.")
             return
 
@@ -77,60 +66,31 @@ class CoreOrchestrator:
                 asyncio.create_task(self.voice.speak(speech))
             return
 
-        # Study, Exam Prep & Learning Planner Fastpath (e.g., "help me in learning java", "plan python exam", "learn AI", "study guide")
-        import re
-        if re.search(r'\b(help me|learn|learning|teach|tutorial|how to|plan|study|exam|roadmap|schedule|prepare|prep|guide)\b', user_input, re.IGNORECASE):
-            plan_res = self.planner.create_plan(user_input)
-            speech = plan_res.get("speech", f"Generated study and learning roadmap for {user_input}.")
-            
-            # Curate 4 Human Potential Resources for this learning topic
-            topic_clean = re.sub(r'^(?:help me in|help me|learn|learning|teach me|how to)\s+', '', user_input, flags=re.IGNORECASE).strip().title()
-            resources = [
-                {
-                    "title": f"Mental Model: First Principles of {topic_clean}",
-                    "type": "Idea",
-                    "url": f"https://www.google.com/search?q=first+principles+{urllib.parse.quote(topic_clean)}"
-                },
-                {
-                    "title": f"Case Study: How Top Engineers Mastered {topic_clean}",
-                    "type": "Story",
-                    "url": "https://devpost.com/hackathons"
-                },
-                {
-                    "title": f"Tactical Repository: {topic_clean} Practice & System Design",
-                    "type": "Tool",
-                    "url": f"https://github.com/search?q={urllib.parse.quote(topic_clean)}+learning+roadmap"
-                },
-                {
-                    "title": f"Mentor Profile: Follow Leading {topic_clean} Educators",
-                    "type": "Mentor",
-                    "url": f"https://www.google.com/search?q=top+{urllib.parse.quote(topic_clean)}+mentors+and+tutorials"
+        # Study, Exam Prep & Learning Planner Fastpath
+        if signal_type in ["text_command", "voice_command"]:
+            study_plan = self.automate.generate_study_and_exam_plan(user_input)
+            if study_plan:
+                speech = study_plan["speech"]
+                mission_payload = {
+                    "mission": speech,
+                    "explainability": {
+                        "why": f"Generated 5-Phase Action Plan for '{study_plan['title']}'",
+                        "evidence": f"Created file {study_plan['plan_file']} on Desktop",
+                        "impact": "High",
+                        "confidence": "100%"
+                    },
+                    "plan_phases": study_plan["plan_phases"],
+                    "privacy_status": self.privacy.get_status()
                 }
-            ]
+                await self.manager.broadcast({
+                    "type": "mission_update",
+                    "data": mission_payload
+                })
+                if self.privacy.flags["MIC"]:
+                    asyncio.create_task(self.voice.speak(speech))
+                return
 
-            # Update Identity Twin state
-            identity_state = await self.identity.update({"details": user_input})
-
-            mission_payload = {
-                "mission": speech,
-                "explainability": {
-                    "why": f"Created Study & Exam Roadmap: {plan_res.get('title')}",
-                    "evidence": f"Saved to Desktop: {plan_res.get('file_path')}",
-                    "impact": "High",
-                    "confidence": "99%"
-                },
-                "plan_phases": plan_res.get("phases", []),
-                "curated_resources": resources,
-                "identity_twin": identity_state,
-                "privacy_status": self.privacy.get_status()
-            }
-            await self.manager.broadcast({
-                "type": "mission_update",
-                "data": mission_payload
-            })
-            if self.privacy.flags["MIC"]:
-                asyncio.create_task(self.voice.speak(speech))
-            return
+        # 2. Observer Agent: Process screen observation & window title SILENTLY
         observed_state = await self.observer.process(signal_data)
 
         # 3. Identity Twin: Update user profile & momentum
@@ -141,7 +101,7 @@ class CoreOrchestrator:
 
         # 5. Memory Service: Search relevant past project memories
         recalled_memories = []
-        if self.privacy.flags["MEMORY"]:
+        if self.privacy.flags["MEMORY"] and signal_type in ["text_command", "voice_command"]:
             recalled_memories = self.memory.recall_memories("project_memory", user_input)
 
         # 6. Curator: Find Human Potential Resources (Ideas, Stories, Tools, Mentors)
@@ -160,48 +120,63 @@ class CoreOrchestrator:
                 db.add(new_feed)
             await db.commit()
 
-        # 7. Conversational Chat History
-        if signal_data.get("type") in ["text_command", "voice_command"]:
+        # 7. Conversational Chat History (only for explicit user commands)
+        is_user_command = signal_type in ["text_command", "voice_command"]
+
+        if is_user_command:
             self.chat_history.append({"role": "user", "content": user_input})
             if len(self.chat_history) > 10:
                 self.chat_history.pop(0)
 
-        # 8. Acharya Agent reasoning & speech formulation
-        acharya_response = await self.acharya.chat(user_input, self.chat_history, identity_state, resources)
-
-        if signal_data.get("type") in ["text_command", "voice_command"]:
+            # 8. Acharya Agent reasoning & speech formulation for user input
+            acharya_response = await self.acharya.chat(user_input, self.chat_history, identity_state, resources)
             self.chat_history.append({"role": "acharya", "content": acharya_response["speech"]})
 
-        # Save interaction to semantic memory if enabled
-        if self.privacy.flags["MEMORY"] and user_input:
-            self.memory.save_memory("project_memory", f"User: {user_input} | Acharya: {acharya_response['speech']}")
+            # Save interaction to semantic memory if enabled
+            if self.privacy.flags["MEMORY"]:
+                self.memory.save_memory("project_memory", f"User: {user_input} | Acharya: {acharya_response['speech']}")
 
-        # 9. Format Payload for UI
-        mission_payload = {
-            "mission": acharya_response["speech"],
-            "explainability": {
-                "why": acharya_response["thought"],
-                "evidence": f"Recalled Memories: {len(recalled_memories)} | Privacy: {self.privacy.flags}",
-                "impact": "High",
-                "confidence": "99%"
-            },
-            "curated_resources": resources,
-            "identity_twin": identity_state,
-            "privacy_status": self.privacy.get_status()
-        }
+            # Format Payload for UI
+            mission_payload = {
+                "mission": acharya_response["speech"],
+                "explainability": {
+                    "why": acharya_response["thought"],
+                    "evidence": f"Recalled Memories: {len(recalled_memories)} | Privacy: {self.privacy.flags}",
+                    "impact": "High",
+                    "confidence": "99%"
+                },
+                "curated_resources": resources,
+                "identity_twin": identity_state,
+                "privacy_status": self.privacy.get_status()
+            }
 
-        # 10. Execute OS Action (Open URL, Launch App, etc.)
-        action = acharya_response.get("action")
-        if action:
-            action_result = self.automate.execute_action(action)
-            print(f"[CoreOrchestrator] {action_result}")
+            # Execute OS Action if specified
+            action = acharya_response.get("action")
+            if action:
+                action_result = self.automate.execute_action(action)
+                print(f"[CoreOrchestrator Action] {action_result}")
 
-        # 11. Broadcast payload to UI WebSocket
-        await self.manager.broadcast({
-            "type": "mission_update",
-            "data": mission_payload
-        })
+            # Broadcast payload to UI WebSocket
+            await self.manager.broadcast({
+                "type": "mission_update",
+                "data": mission_payload
+            })
 
-        # 12. Voice Output
-        if self.privacy.flags["MIC"]:
-            asyncio.create_task(self.voice.speak(acharya_response["speech"]))
+            # Voice Output ONLY for direct user commands!
+            if self.privacy.flags["MIC"]:
+                asyncio.create_task(self.voice.speak(acharya_response["speech"]))
+
+        else:
+            # SILENT BACKGROUND SCREEN & VISION UPDATES (NO VOICE OUTPUT!)
+            # Only update UI Screen Context & Identity Twin silently without speaking!
+            mission_payload = {
+                "identity_twin": identity_state,
+                "curated_resources": resources,
+                "visual_context": observed_state.get("details", ""),
+                "privacy_status": self.privacy.get_status()
+            }
+
+            await self.manager.broadcast({
+                "type": "mission_update",
+                "data": mission_payload
+            })

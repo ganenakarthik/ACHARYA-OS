@@ -285,3 +285,7 @@ class AutomateService:
         except Exception as e:
             print(f"[AutomateService] Action Error: {e}")
             return f"Failed to execute {action_type}: {e}"
+
+# Backward Compatibility Alias
+DesktopAutomationEngine = AutomateService
+
