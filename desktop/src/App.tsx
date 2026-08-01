@@ -1113,6 +1113,7 @@ function App() {
                 setPrivacy={setPrivacy}
                 logs={logs}
                 wsRef={wsRef}
+                identityTwin={identityTwin}
               />
             </motion.div>
           )}

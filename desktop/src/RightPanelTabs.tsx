@@ -30,6 +30,12 @@ interface Props {
   setPrivacy: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   logs: string[];
   wsRef: React.RefObject<WebSocket | null>;
+  identityTwin: {
+    ideal_self: string;
+    momentum: number;
+    identity_gap: string;
+    actions_completed: number;
+  } | null;
 }
 
 const STORAGE_KEY = 'acharya_my_resources';
@@ -113,9 +119,10 @@ const TYPE_META: Record<string, { color: string; icon: JSX.Element; border: stri
 };
 
 const TABS = [
-  { id: 'acharya', label: 'ACHARYA Picks', glow: 'text-amber-400 border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.3)]' },
-  { id: 'mine',    label: 'My Resources',  glow: 'text-purple-400 border-purple-500/60 shadow-[0_0_12px_rgba(168,85,247,0.3)]' },
-  { id: 'system',  label: 'System',        glow: 'text-cyan-400 border-cyan-500/60 shadow-[0_0_12px_rgba(0,243,255,0.3)]' },
+  { id: 'acharya', label: 'Curator', glow: 'text-amber-400 border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.3)]' },
+  { id: 'goals',   label: 'Directives', glow: 'text-cyan-400 border-cyan-500/60 shadow-[0_0_12px_rgba(0,243,255,0.3)]' },
+  { id: 'mine',    label: 'Bookmarks',  glow: 'text-purple-400 border-purple-500/60 shadow-[0_0_12px_rgba(168,85,247,0.3)]' },
+  { id: 'system',  label: 'System',     glow: 'text-zinc-400 border-zinc-500/60 shadow-[0_0_12px_rgba(150,150,150,0.15)]' },
 ];
 
 // ── Resource card (ACHARYA curated & user-added) ─────────────────────────────
@@ -172,8 +179,8 @@ function NewsCard({ item }: { item: NewsItem }) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export default function RightPanelTabs({ mission, visualContext, isSpeaking, privacy, setPrivacy, logs, wsRef }: Props) {
-  const [activeTab, setActiveTab] = useState<'acharya' | 'mine' | 'system'>('acharya');
+export default function RightPanelTabs({ mission, visualContext, isSpeaking, privacy, setPrivacy, logs, wsRef, identityTwin }: Props) {
+  const [activeTab, setActiveTab] = useState<'acharya' | 'goals' | 'mine' | 'system'>('acharya');
 
   // Read domain from localStorage (saved during onboarding)
   const domain = (() => {
@@ -315,7 +322,90 @@ export default function RightPanelTabs({ mission, visualContext, isSpeaking, pri
             </motion.div>
           )}
 
-          {/* ── Tab 2: My Resources ──────────────────────────────────── */}
+          {/* ── Tab 2: Directives (Active Goals & Planner Roadmaps) ── */}
+          {activeTab === 'goals' && (
+            <motion.div key="goals"
+              initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }}
+              transition={{ duration: 0.18 }} className="flex flex-col gap-3.5"
+            >
+              {/* Identity Twin & Momentum Card */}
+              <div className="bg-gradient-to-br from-cyan-950/20 via-black/40 to-purple-950/20 border border-cyan-500/25 rounded-2xl p-3.5 shadow-lg relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-400/5 rounded-full blur-xl pointer-events-none" />
+                
+                <h3 className="text-cyan-400 text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                  <User size={11} /> Identity Twin Directive
+                </h3>
+                
+                {/* Target Self */}
+                <div className="mb-3.5">
+                  <p className="text-white/40 text-[8px] uppercase tracking-wider">Aspiration Profile</p>
+                  <p className="text-white text-[13px] font-black tracking-wide leading-tight drop-shadow-[0_0_6px_rgba(255,255,255,0.1)]">
+                    {identityTwin?.ideal_self || "Evolving Growth Candidate"}
+                  </p>
+                </div>
+
+                {/* Progress Gap Bar */}
+                <div className="mb-3">
+                  <div className="flex justify-between text-[9px] font-black uppercase tracking-wider mb-1.5">
+                    <span className="text-purple-300">Identity Gap Alignment</span>
+                    <span className="text-purple-400">{identityTwin?.identity_gap || "50% Remaining"}</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-black/60 rounded-full overflow-hidden border border-purple-500/10">
+                    <div 
+                      className="h-full bg-gradient-to-r from-purple-500 to-fuchsia-500 transition-all duration-1000"
+                      style={{ width: `${100 - parseInt(identityTwin?.identity_gap || '50')}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Momentum Dial Indicator */}
+                <div className="flex items-center justify-between border-t border-white/5 pt-3 mt-3">
+                  <div>
+                    <p className="text-white/40 text-[8px] uppercase tracking-wider">Momentum Level</p>
+                    <p className="text-[11px] font-black text-cyan-300 uppercase tracking-widest mt-0.5">
+                      {identityTwin && identityTwin.momentum >= 8 ? "🔥 Peak Flow State" : identityTwin && identityTwin.momentum >= 5 ? "⚡ Steady Progress" : "💤 Focus Required"}
+                    </p>
+                  </div>
+                  <div className="flex items-baseline gap-0.5">
+                    <span className="text-[18px] font-black text-cyan-300 tabular-nums drop-shadow-[0_0_8px_rgba(0,243,255,0.4)]">
+                      {identityTwin?.momentum || 7}
+                    </span>
+                    <span className="text-white/30 text-[9px]">/10</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Plan Roadmaps Card */}
+              <div className="bg-black/50 border border-white/8 rounded-2xl p-3.5">
+                <h3 className="text-white/85 text-[9.5px] font-black uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                  <Compass size={11} className="text-purple-400" /> Active Roadmap Phases
+                </h3>
+
+                {mission?.plan_phases && mission.plan_phases.length > 0 ? (
+                  <div className="flex flex-col gap-2.5">
+                    {mission.plan_phases.map((phase: any, idx: number) => (
+                      <div key={idx} className="bg-black/60 border border-white/5 rounded-xl p-2.5 flex gap-2.5 items-start hover:border-purple-500/20 transition-all">
+                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-950/40 border border-purple-500/30 text-purple-300 shrink-0">
+                          {phase.phase}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white/90 text-[10.5px] font-bold leading-tight truncate">{phase.title}</p>
+                          <p className="text-white/50 text-[9.5px] leading-normal mt-0.5">{phase.task}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-7 border border-dashed border-white/5 rounded-xl">
+                    <p className="text-white/25 text-[10px]">No active learning roadmap loaded.</p>
+                    <p className="text-white/15 text-[8.5px] mt-1 font-mono">Type 'plan python exam' to create one</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── Tab 3: Bookmarks ──────────────────────────────────── */}
           {activeTab === 'mine' && (
             <motion.div key="mine"
               initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }}
