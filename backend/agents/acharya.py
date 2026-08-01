@@ -20,6 +20,15 @@ class AcharyaAgent:
         if re.search(r'\b(recursion|recursive)\b', text_lower):
             return "Sir, recursion is a programming technique where a function calls itself to break a complex problem into smaller base cases until a termination condition is reached."
 
+        if re.search(r'\b(system design|architecture)\b', text_lower):
+            return "Sir, System Design is the process of defining the architecture, modules, interfaces, and data for a system to satisfy specified requirements. Key concepts include horizontal scaling, load balancing, caching, and database replication."
+
+        if re.search(r'\b(clean code|dry|yagni)\b', text_lower):
+            return "Sir, Clean Code is readable and maintainable. DRY (Don't Repeat Yourself) advocates reducing repetition, and YAGNI (You Aren't Gonna Need It) warns against adding functionality until it is absolutely necessary."
+
+        if re.search(r'\b(premature optimization)\b', text_lower):
+            return "Sir, Donald Knuth stated that 'premature optimization is the root of all evil.' Focus first on building clean, working code, and only optimize when performance bottlenecks are measured."
+
         if re.search(r'\b(paul graham|y combinator|yc)\b', text_lower):
             return "Sir, Paul Graham is the co-founder of Y Combinator. His core mentor philosophy focuses on making things people want, launching fast, and doing things that don't scale."
 
@@ -31,6 +40,39 @@ class AcharyaAgent:
 
         if re.search(r'\b(mvp|minimum viable product)\b', text_lower):
             return "Sir, a Minimum Viable Product (MVP) is the simplest version of a product that allows you to collect the maximum amount of validated learning about customers with the least effort."
+
+        if re.search(r'\b(product market fit|pmf)\b', text_lower):
+            return "Sir, Product-Market Fit (PMF) is being in a good market with a product that can satisfy that market. Marc Andreessen defines it as: 'the customers are buying the product just as fast as you can make it.'"
+
+        if re.search(r'\b(retention|churn)\b', text_lower):
+            return "Sir, retention measures how many users return to your product over time. Churn is the rate at which users stop using it. PMF cannot exist without a stable retention curve."
+
+        # 3. Product Strategy & Metrics
+        if re.search(r'\b(jobs to be done|jtbd)\b', text_lower):
+            return "Sir, Jobs-to-Be-Done (JTBD) is a framework for understanding customer needs. It states that customers don't buy products; they 'hire' them to do a specific job in their life."
+
+        if re.search(r'\b(north star metric|nsm)\b', text_lower):
+            return "Sir, the North Star Metric is the key measure that best captures the core value your product delivers to customers. Focusing on this prevents distraction from vanity metrics."
+
+        if re.search(r'\b(pirate metrics|aarrr)\b', text_lower):
+            return "Sir, the AARRR framework (Acquisition, Activation, Retention, Referral, Revenue) maps the user lifecycle, helping startup founders identify where their growth funnel is leaking."
+
+        # 4. Cognitive & Learning Techniques
+        if re.search(r'\b(feynman technique)\b', text_lower):
+            return "Sir, the Feynman Technique is a learning method where you explain a complex concept in simple, plain language to a child. If you get stuck, it highlights exactly where your understanding is weak."
+
+        if re.search(r'\b(active recall|spaced repetition)\b', text_lower):
+            return "Sir, Active Recall involves testing your memory instead of passively re-reading notes. Spaced Repetition distributes review sessions over increasing intervals of time to optimize long-term retention."
+
+        if re.search(r'\b(pareto principle|80/20 rule)\b', text_lower):
+            return "Sir, the Pareto Principle states that 80% of effects come from 20% of causes. Identify the 20% high-leverage efforts that yield 80% of your results and execute them ruthlessly."
+
+        # 5. Mentor Wisdom Quotes
+        if re.search(r'\b(naval ravikant|naval)\b', text_lower):
+            return "Sir, Naval Ravikant advises: 'Seek wealth, not money or status. Wealth is having assets that earn while you sleep.' He emphasizes specific knowledge, accountability, and leverage."
+
+        if re.search(r'\b(steve jobs|jobs advice)\b', text_lower):
+            return "Sir, Steve Jobs famously advised: 'Your work is going to fill a large part of your life, and the only way to be truly satisfied is to do what you believe is great work. Stay hungry, stay foolish.'"
 
         if re.search(r'\b(what is|who is|explain|how does|tell me about|define)\s+(.+)$', text_lower):
             topic = re.sub(r'^(?:what is|who is|explain|how does|tell me about|define)\s+', '', text_lower).strip().title()
