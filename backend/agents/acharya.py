@@ -43,6 +43,12 @@ class AcharyaAgent:
         Conversational Acharya agent (JARVIS persona with a living mentor personality).
         """
         qa_answer = self._answer_general_question(user_input, identity_state)
+        if qa_answer:
+            return {
+                "thought": "Deterministic Living Mentor Engine match (0ms latency).",
+                "speech": qa_answer,
+                "action": None
+            }
 
         history_str = ""
         for msg in chat_history:
