@@ -952,71 +952,114 @@ function App() {
              {/* Concentric spinning rings */}
              <div className="absolute inset-0 rounded-full border border-cyan-400/40 animate-[spin_10s_linear_infinite]" style={{ borderStyle: 'dashed' }} />
              <div className={`absolute inset-1.5 rounded-full border-2 border-transparent border-t-cyan-400/80 border-b-purple-500/80 ${isSpeaking ? 'animate-[spin_0.8s_linear_infinite]' : 'animate-[spin_4s_linear_infinite]'}`} />
-             <div className="absolute inset-3.5 rounded-full border border-purple-500/40 animate-[spin_8s_linear_infinite_reverse]" style={{ borderStyle: 'dotted' }} />
              
-             {/* Center holographic core */}
-             <div className={`absolute inset-5.5 rounded-full backdrop-blur-xl flex items-center justify-center overflow-hidden transition-all duration-700 ${
-               isSpeaking 
-                 ? 'bg-gradient-to-br from-cyan-500/80 via-purple-600/70 to-blue-950 shadow-[inset_0_0_55px_rgba(0,243,255,0.95),0_0_40px_rgba(0,243,255,0.45)]' 
-                 : isListening
-                 ? 'bg-gradient-to-br from-emerald-500/70 to-cyan-950 shadow-[inset_0_0_45px_rgba(16,185,129,0.7)]'
-                 : 'bg-gradient-to-br from-[#0c1b35] via-[#050e1e] to-black shadow-[inset_0_0_35px_rgba(0,243,255,0.45),0_0_15px_rgba(0,243,255,0.15)]'
-             }`}>
-                {/* Dynamic Space Liquid Swirl layers */}
-                <div className="absolute inset-0.5 rounded-full overflow-hidden blur-[6px] opacity-80 mix-blend-screen pointer-events-none z-0">
-                  {/* Liquid swirl 1 (Cyan to Blue to Purple) */}
-                  <div className="nebula-core-1 absolute inset-0 bg-gradient-to-tr from-cyan-400/60 via-blue-500/40 to-purple-600/60" />
-                  {/* Liquid swirl 2 (Fuchsia to Purple to Orange) */}
-                  <div className="nebula-core-2 absolute inset-0 bg-gradient-to-br from-fuchsia-500/50 via-purple-600/30 to-orange-500/50" />
-                </div>
+              {/* Center holographic glass core */}
+              <div className={`absolute inset-5.5 rounded-full flex items-center justify-center overflow-hidden transition-all duration-700 bg-gradient-to-br from-[#071120] to-[#010408] border border-cyan-500/35 shadow-[inset_0_0_35px_rgba(0,243,255,0.5),0_0_20px_rgba(0,243,255,0.2)]`}>
+                 
+                 {/* ── Dynamic Swirling Liquid Space Paths (SVG) ── */}
+                 <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                   <defs>
+                     {/* Thread Gradients */}
+                     <linearGradient id="liquidGrad1" x1="0" y1="0" x2="1" y2="1">
+                       <stop offset="0%" stopColor="#00f3ff" />
+                       <stop offset="50%" stopColor="#8b5cf6" />
+                       <stop offset="100%" stopColor="#ec4899" />
+                     </linearGradient>
+                     <linearGradient id="liquidGrad2" x1="1" y1="0" x2="0" y2="1">
+                       <stop offset="0%" stopColor="#f97316" />
+                       <stop offset="50%" stopColor="#ec4899" />
+                       <stop offset="100%" stopColor="#3b82f6" />
+                     </linearGradient>
+                     <linearGradient id="liquidGrad3" x1="0.5" y1="0" x2="0.5" y2="1">
+                       <stop offset="0%" stopColor="#10b981" />
+                       <stop offset="100%" stopColor="#00f3ff" />
+                     </linearGradient>
+                     
+                     {/* Glow filter */}
+                     <filter id="liquidGlow" x="-20%" y="-20%" width="140%" height="140%">
+                       <feGaussianBlur stdDeviation="3.5" result="blur" />
+                       <feMerge>
+                         <feMergeNode in="blur" />
+                         <feMergeNode in="SourceGraphic" />
+                       </feMerge>
+                     </filter>
+                   </defs>
 
-                <div className={`w-full h-full absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,243,255,0.35)_0%,transparent_70%)] z-10 ${isSpeaking ? 'animate-[pulse_0.25s_infinite]' : 'animate-[pulse_2.5s_infinite]'}`} />
-                
-                {/* ── Dynamic Holographic Waveform (oscillates inside orb core) ── */}
-                <svg viewBox="0 0 100 40" className="absolute inset-x-0 bottom-4 w-full h-10 opacity-70 pointer-events-none z-0">
-                  <path
-                    d={isSpeaking 
-                      ? "M 0,20 Q 15,-10 30,20 T 60,38 T 80,4 T 100,20" 
-                      : isListening 
-                      ? "M 0,20 Q 15,2 35,20 T 65,32 T 85,12 T 100,20" 
-                      : "M 0,20 Q 25,16 50,20 T 100,20"
-                    }
-                    fill="none"
-                    stroke={isListening ? "#10b981" : "#00f3ff"}
-                    strokeWidth="2"
-                    className="transition-all duration-300"
-                  />
-                  <path
-                    d={isSpeaking 
-                      ? "M 0,20 Q 20,45 40,12 T 70,5 T 90,36 T 100,20" 
-                      : isListening 
-                      ? "M 0,20 Q 20,32 40,16 T 70,28 T 90,8 T 100,20" 
-                      : "M 0,20 Q 25,24 50,20 T 100,20"
-                    }
-                    fill="none"
-                    stroke="#a855f7"
-                    strokeWidth="1"
-                    strokeDasharray="2 2"
-                    className="opacity-40 transition-all duration-300"
-                  />
-                </svg>
+                   {/* Dark Core Shadow Ring */}
+                   <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(0,243,255,0.06)" strokeWidth="4" />
 
-                {/* ACHARYA label inside orb */}
-                <div className="absolute flex flex-col items-center gap-0.5 select-none z-10">
-                  {isFocusActive ? (
-                    <>
-                      <span className="text-[15px] font-black text-cyan-200 tracking-wider tabular-nums drop-shadow-[0_0_6px_rgba(0,243,255,0.8)]">
-                        {Math.floor(focusTimeRemaining / 60).toString().padStart(2, '0')}:
-                        {(focusTimeRemaining % 60).toString().padStart(2, '0')}
-                      </span>
-                      <span className="text-[6.5px] font-black text-cyan-300/80 uppercase tracking-widest">FOCUSING</span>
-                    </>
-                  ) : (
-                    <>
-                      <div className={`rounded-full shadow-[0_0_30px_#00f3ff] ${isExpanded ? 'w-5 h-5' : 'w-2.5 h-2.5'} ${isSpeaking ? 'bg-cyan-200 animate-[ping_0.3s_infinite]' : 'bg-cyan-300 animate-pulse'}`} />
-                      {isExpanded && <span className="text-[9px] font-black tracking-[0.25em] text-cyan-300/80 uppercase mt-1 drop-shadow-[0_0_5px_rgba(0,243,255,0.5)]">ACHARYA</span>}
-                    </>
-                  )}
+                   {/* Swirling Liquid Path 1 (Cyan/Purple loop) */}
+                   <path 
+                     d="M 50,12 C 76,12 88,32 88,50 C 88,68 70,88 50,88 C 30,88 12,68 12,50 C 12,32 24,12 50,12" 
+                     fill="none" 
+                     stroke="url(#liquidGrad1)" 
+                     strokeWidth="2.5" 
+                     strokeLinecap="round"
+                     filter="url(#liquidGlow)"
+                     className="liquid-flow-1"
+                   />
+
+                   {/* Swirling Liquid Path 2 (Orange/Magenta loop) */}
+                   <path 
+                     d="M 50,16 C 70,16 84,30 84,50 C 84,70 68,84 50,84 C 32,84 16,70 16,50 C 16,30 30,16 50,16" 
+                     fill="none" 
+                     stroke="url(#liquidGrad2)" 
+                     strokeWidth="2" 
+                     strokeLinecap="round"
+                     strokeDasharray="40 10 15 15"
+                     filter="url(#liquidGlow)"
+                     className="liquid-flow-2"
+                   />
+
+                   {/* Swirling Liquid Path 3 (Green/Cyan slow sync thread) */}
+                   <path 
+                     d="M 50,22 C 64,22 78,32 78,50 C 78,68 64,78 50,78 C 36,78 22,68 22,50 C 22,32 36,22 50,22" 
+                     fill="none" 
+                     stroke="url(#liquidGrad3)" 
+                     strokeWidth="1.2" 
+                     strokeLinecap="round"
+                     filter="url(#liquidGlow)"
+                     className="liquid-flow-3 animate-pulse"
+                   />
+                 </svg>
+
+                 {/* ── Dynamic Holographic Waveform (layer overlay when active) ── */}
+                 {(isSpeaking || isListening) && (
+                   <svg viewBox="0 0 100 40" className="absolute inset-x-0 bottom-4 w-full h-9 opacity-80 pointer-events-none z-10">
+                     <path
+                       d={isSpeaking 
+                         ? "M 0,20 Q 15,-10 30,20 T 60,38 T 80,4 T 100,20" 
+                         : "M 0,20 Q 15,2 35,20 T 65,32 T 85,12 T 100,20"
+                       }
+                       fill="none"
+                       stroke={isListening ? "#10b981" : "#00f3ff"}
+                       strokeWidth="2"
+                       className="transition-all duration-300"
+                     />
+                   </svg>
+                 )}
+
+                 {/* ── Glassy Light Reflection Overlay (Adds that 3D Marble Glass look) ── */}
+                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_25%,rgba(255,255,255,0.18)_0%,transparent_50%)] pointer-events-none z-20" />
+                 <div className="absolute inset-0 border border-white/10 rounded-full pointer-events-none z-25" />
+                 <ellipse cx="50" cy="18" rx="22" ry="7" fill="rgba(255, 255, 255, 0.12)" className="absolute top-1.5 left-[15%] pointer-events-none z-20" />
+
+                 {/* ACHARYA label inside orb */}
+                 <div className="absolute flex flex-col items-center gap-0.5 select-none z-30">
+                   {isFocusActive ? (
+                     <>
+                       <span className="text-[15px] font-black text-cyan-200 tracking-wider tabular-nums drop-shadow-[0_0_6px_rgba(0,243,255,0.8)]">
+                         {Math.floor(focusTimeRemaining / 60).toString().padStart(2, '0')}:
+                         {(focusTimeRemaining % 60).toString().padStart(2, '0')}
+                       </span>
+                       <span className="text-[6.5px] font-black text-cyan-300/80 uppercase tracking-widest">FOCUSING</span>
+                     </>
+                   ) : (
+                     <>
+                       <div className={`rounded-full shadow-[0_0_30px_#00f3ff] ${isExpanded ? 'w-4 h-4' : 'w-2.5 h-2.5'} ${isSpeaking ? 'bg-cyan-200 animate-[ping_0.3s_infinite]' : 'bg-cyan-300 animate-pulse'}`} />
+                       {isExpanded && <span className="text-[9px] font-black tracking-[0.25em] text-cyan-300/80 uppercase mt-1 drop-shadow-[0_0_5px_rgba(0,243,255,0.5)]">ACHARYA</span>}
+                     </>
+                   )}
                 </div>
              </div>
           </motion.div>

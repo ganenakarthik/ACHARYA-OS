@@ -85,21 +85,27 @@
 }
 
 /* ── Dynamic Space Liquid Nebula Flow Animations ── */
-@keyframes nebula-flow-1 {
-  0% { transform: rotate(0deg) scale(1); border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
-  50% { transform: rotate(180deg) scale(1.18); border-radius: 70% 30% 52% 48% / 60% 40% 60% 40%; }
-  100% { transform: rotate(360deg) scale(1); border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
+@keyframes spin-clockwise {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.04); }
+  100% { transform: rotate(360deg) scale(1); }
 }
-@keyframes nebula-flow-2 {
-  0% { transform: rotate(360deg) scale(1.15); border-radius: 50% 50% 30% 70% / 50% 60% 40% 50%; }
-  50% { transform: rotate(180deg) scale(0.92); border-radius: 30% 70% 70% 30% / 50% 30% 70% 50%; }
-  100% { transform: rotate(0deg) scale(1.15); border-radius: 50% 50% 30% 70% / 50% 60% 40% 50%; }
+@keyframes spin-counter-clockwise {
+  0% { transform: rotate(360deg) scale(1.04); }
+  50% { transform: rotate(180deg) scale(0.96); }
+  100% { transform: rotate(0deg) scale(1.04); }
 }
-.nebula-core-1 {
-  animation: nebula-flow-1 9s ease-in-out infinite;
+.liquid-flow-1 {
+  transform-origin: 50px 50px;
+  animation: spin-clockwise 7s linear infinite;
 }
-.nebula-core-2 {
-  animation: nebula-flow-2 13s ease-in-out infinite;
+.liquid-flow-2 {
+  transform-origin: 50px 50px;
+  animation: spin-counter-clockwise 10s linear infinite;
+}
+.liquid-flow-3 {
+  transform-origin: 50px 50px;
+  animation: spin-clockwise 15s linear infinite;
 }
 
 /* ── Animated momentum bar fill ──────────────────────────────────────────── */
