@@ -272,7 +272,8 @@ class AutomateService:
                     return "Opened Notepad."
 
                 elif target_lower in ["terminal", "cmd", "command prompt", "powershell"]:
-                    os.system("start wt") or os.system("start cmd")
+                    if os.system("start wt") != 0:
+                        os.system("start cmd")
                     return "Opened Terminal / Command Prompt."
 
                 elif target_lower in ["settings", "system settings"]:
