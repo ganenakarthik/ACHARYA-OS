@@ -340,14 +340,14 @@ function App() {
             {isExpanded && (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                className="absolute -top-16 flex items-center gap-2 cursor-default"
+                className="absolute -top-14 flex items-center gap-2 cursor-default"
                 onPointerDown={(e) => e.stopPropagation()}
               >
-                <button onClick={() => setIsExpanded(false)} className="p-2 bg-black/80 backdrop-blur-md border border-cyan-500/50 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/30 rounded-full transition-all shadow-[0_0_20px_rgba(0,243,255,0.4)]">
-                  <Minimize2 size={16} />
+                <button onClick={() => setIsExpanded(false)} className="p-1.5 bg-black/90 backdrop-blur-md border border-cyan-500/40 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20 rounded-full transition-all shadow-[0_0_15px_rgba(0,243,255,0.3)] text-[10px] font-bold tracking-wider px-3 flex items-center gap-1.5">
+                  <Minimize2 size={12} /> Minimize
                 </button>
-                <button onClick={() => { setIsPowerOn(false); setIsExpanded(false); }} className="p-2 bg-black/80 backdrop-blur-md border border-red-500/50 text-red-400 hover:text-red-300 hover:bg-red-500/30 rounded-full transition-all shadow-[0_0_20px_rgba(239,68,68,0.4)]">
-                  <Power size={16} />
+                <button onClick={() => { setIsPowerOn(false); setIsExpanded(false); }} className="p-1.5 bg-black/90 backdrop-blur-md border border-red-500/40 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-full transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)] text-[10px] font-bold tracking-wider px-3 flex items-center gap-1.5">
+                  <Power size={12} /> Shutdown
                 </button>
               </motion.div>
             )}
@@ -357,29 +357,46 @@ function App() {
           <motion.div
             layoutId="central-orb"
             onClick={() => !isExpanded && setIsExpanded(true)}
-            className={`rounded-full flex items-center justify-center relative group ${isExpanded ? 'w-36 h-36 cursor-default' : 'w-24 h-24 cursor-pointer hover:scale-105 transition-transform'}`}
+            className={`rounded-full flex items-center justify-center relative group ${isExpanded ? 'w-40 h-40 cursor-default' : 'w-28 h-28 cursor-pointer'}`}
           >
-             {/* Audio waves when speaking/listening */}
+             {/* Outer glow pulse ring */}
+             <motion.div
+               animate={{ scale: [1, 1.08, 1], opacity: [0.4, 0.8, 0.4] }}
+               transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+               className="absolute inset-[-6px] rounded-full border border-cyan-500/30 shadow-[0_0_30px_rgba(0,243,255,0.2)]"
+             />
+             {/* Active speaking/listening pulse */}
              {(isSpeaking || isListening) && (
                <motion.div 
-                  initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1.5 }} exit={{ opacity: 0 }}
-                  className={`absolute inset-0 rounded-full border-2 border-cyan-400/50 ${isListening ? 'animate-[ping_1s_infinite]' : 'animate-[ping_1.5s_infinite]'}`} 
+                  initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1.6 }} exit={{ opacity: 0 }}
+                  className={`absolute inset-0 rounded-full border border-cyan-400/60 ${isListening ? 'animate-[ping_0.8s_infinite]' : 'animate-[ping_1.2s_infinite]'}`} 
                />
              )}
-             
-             <div className="absolute inset-0 rounded-full border border-cyan-400/60 animate-[spin_8s_linear_infinite]" />
-             <div className={`absolute inset-1 rounded-full border-2 border-transparent border-t-cyan-400 border-b-cyan-400 ${isSpeaking ? 'animate-[spin_0.8s_linear_infinite]' : 'animate-[spin_3s_linear_infinite]'}`} />
-             <div className="absolute inset-2 rounded-full border border-purple-500/50 animate-[spin_5s_linear_infinite_reverse]" />
-             
-             <div className={`absolute inset-4 rounded-full backdrop-blur-xl flex items-center justify-center overflow-hidden transition-all duration-500 ${isSpeaking ? 'bg-gradient-to-br from-cyan-500/90 to-purple-800/90 shadow-[inset_0_0_50px_rgba(0,243,255,0.8)]' : 'bg-gradient-to-br from-cyan-900/90 to-black shadow-[inset_0_0_30px_rgba(0,243,255,0.5)]'}`}>
-                <div className={`w-full h-full bg-[radial-gradient(circle_at_center,rgba(0,243,255,0.3)_0%,transparent_70%)] ${isSpeaking ? 'animate-[pulse_0.3s_infinite]' : 'animate-pulse'}`} />
-                <div className={`rounded-full bg-cyan-300 shadow-[0_0_40px_#00f3ff] ${isExpanded ? 'w-8 h-8' : 'w-4 h-4'} ${isSpeaking ? 'animate-[ping_0.3s_infinite]' : 'animate-pulse'}`} />
-             </div>
-             
-             {!isExpanded && (
-               <div className="absolute -bottom-8 whitespace-nowrap text-cyan-400 font-mono text-[10px] tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 px-2 py-1 rounded-md border border-cyan-500/30">
-                 System Ready
+             <div className="absolute inset-0 rounded-full border border-cyan-400/40 animate-[spin_10s_linear_infinite]" style={{ borderStyle: 'dashed' }} />
+             <div className={`absolute inset-1 rounded-full border-2 border-transparent border-t-cyan-400/80 border-b-purple-500/80 ${isSpeaking ? 'animate-[spin_0.7s_linear_infinite]' : 'animate-[spin_4s_linear_infinite]'}`} />
+             <div className="absolute inset-3 rounded-full border border-purple-500/40 animate-[spin_7s_linear_infinite_reverse]" />
+             <div className={`absolute inset-5 rounded-full backdrop-blur-xl flex items-center justify-center overflow-hidden transition-all duration-700 ${
+               isSpeaking 
+                 ? 'bg-gradient-to-br from-cyan-400/80 via-purple-600/60 to-blue-900 shadow-[inset_0_0_60px_rgba(0,243,255,0.9),0_0_40px_rgba(0,243,255,0.4)]' 
+                 : isListening
+                 ? 'bg-gradient-to-br from-emerald-500/60 to-cyan-900 shadow-[inset_0_0_40px_rgba(16,185,129,0.6)]'
+                 : 'bg-gradient-to-br from-[#0a1628] via-cyan-950 to-[#050810] shadow-[inset_0_0_40px_rgba(0,243,255,0.35),0_0_20px_rgba(0,243,255,0.1)]'
+             }`}>
+               <div className={`w-full h-full bg-[radial-gradient(circle_at_center,rgba(0,243,255,0.25)_0%,transparent_65%)] ${isSpeaking ? 'animate-[pulse_0.25s_infinite]' : 'animate-[pulse_2s_infinite]'}`} />
+               {/* ACHARYA label inside orb */}
+               <div className="absolute flex flex-col items-center gap-0.5">
+                 <div className={`rounded-full shadow-[0_0_30px_#00f3ff] ${isExpanded ? 'w-6 h-6' : 'w-3 h-3'} ${isSpeaking ? 'bg-cyan-200 animate-[ping_0.3s_infinite]' : 'bg-cyan-300 animate-pulse'}`} />
+                 {isExpanded && <span className="text-[9px] font-black tracking-[0.25em] text-cyan-300/80 uppercase mt-1">ACHARYA</span>}
                </div>
+             </div>
+             {!isExpanded && (
+               <motion.div
+                 initial={{ opacity: 0 }}
+                 whileHover={{ opacity: 1 }}
+                 className="absolute -bottom-9 whitespace-nowrap text-cyan-400 font-mono text-[9px] tracking-widest uppercase bg-black/70 px-2.5 py-1 rounded-lg border border-cyan-500/30 shadow-[0_0_10px_rgba(0,243,255,0.2)]"
+               >
+                 ◈ Click to Expand
+               </motion.div>
              )}
           </motion.div>
 
@@ -388,17 +405,25 @@ function App() {
             {isExpanded && (
               <motion.div 
                 initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                className="absolute -bottom-20 w-80 bg-black/80 backdrop-blur-xl border border-cyan-500/50 rounded-2xl p-2 flex items-center gap-2 shadow-[0_0_30px_rgba(0,243,255,0.3)] cursor-default z-50"
+                className="absolute -bottom-24 w-[340px] bg-black/90 backdrop-blur-2xl border border-cyan-500/60 rounded-2xl px-3 py-2 flex items-center gap-2 shadow-[0_0_40px_rgba(0,243,255,0.25),inset_0_1px_0_rgba(255,255,255,0.05)] cursor-default z-50"
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
                 onPointerDown={(e) => e.stopPropagation()}
               >
+                {/* Mic button with glow */}
                 <button 
                   onClick={isListening ? stopListening : startListening}
-                  className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${isListening ? 'bg-cyan-500/30 border border-cyan-400 shadow-[0_0_20px_rgba(0,243,255,0.6)]' : 'bg-transparent hover:bg-white/10'}`}
+                  className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 border ${
+                    isListening 
+                      ? 'bg-cyan-500/30 border-cyan-400/80 shadow-[0_0_20px_rgba(0,243,255,0.5)]' 
+                      : 'bg-white/5 border-white/10 hover:border-cyan-500/50 hover:bg-cyan-500/10'
+                  }`}
                 >
-                  <Mic size={16} className={isListening ? 'text-cyan-300 animate-[ping_0.5s_infinite]' : 'text-cyan-400'} />
+                  <Mic size={15} className={isListening ? 'text-cyan-200' : 'text-cyan-400/80'} />
                 </button>
+
+                {/* Input divider */}
+                <div className="w-px h-5 bg-white/10" />
 
                 <div className="flex-1 relative">
                   <input 
@@ -406,12 +431,20 @@ function App() {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSendText()}
-                    placeholder="Command..."
-                    className="w-full bg-transparent border-none py-2 px-2 text-xs text-white placeholder-white/40 focus:outline-none focus:ring-0"
+                    placeholder="Ask ACHARYA anything..."
+                    className="w-full bg-transparent border-none py-1.5 px-1 text-[12px] text-white/90 placeholder-white/25 focus:outline-none focus:ring-0 font-light tracking-wide"
                   />
                 </div>
-                <button onClick={handleSendText} className="flex-shrink-0 p-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20 rounded-lg transition-all">
-                  <Send size={16} />
+
+                <button 
+                  onClick={handleSendText} 
+                  className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 border ${
+                    inputText.trim() 
+                      ? 'bg-cyan-500/20 border-cyan-400/60 text-cyan-300 shadow-[0_0_15px_rgba(0,243,255,0.3)] hover:bg-cyan-500/30' 
+                      : 'bg-white/5 border-white/10 text-white/30'
+                  }`}
+                >
+                  <Send size={14} />
                 </button>
               </motion.div>
             )}
