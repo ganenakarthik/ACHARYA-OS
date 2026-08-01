@@ -601,9 +601,9 @@ function App() {
         <AnimatePresence>
           {isExpanded && (
             <motion.div
-              initial={{ opacity: 0, x: 80, rotateY: 55, scale: 0.9 }}
-              animate={{ opacity: 1, x: -178, rotateY: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 80, rotateY: 55, scale: 0.9 }}
+              initial={{ opacity: 0, x: 80 }}
+              animate={{ opacity: 1, x: -178 }}
+              exit={{ opacity: 0, x: 80 }}
               transition={{ type: "spring", stiffness: 180, damping: 20 }}
               className="glass-panel-premium absolute w-[360px] border border-cyan-500/35 rounded-2xl cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[84vh] flex flex-col overflow-hidden origin-right"
               style={{ right: '50%' }}
@@ -1048,9 +1048,9 @@ function App() {
         <AnimatePresence>
           {isExpanded && (
             <motion.div
-              initial={{ opacity: 0, x: -80, rotateY: -55, scale: 0.9 }}
-              animate={{ opacity: 1, x: 178, rotateY: 0, scale: 1 }}
-              exit={{ opacity: 0, x: -80, rotateY: -55, scale: 0.9 }}
+              initial={{ opacity: 0, x: -80 }}
+              animate={{ opacity: 1, x: 178 }}
+              exit={{ opacity: 0, x: -80 }}
               transition={{ type: "spring", stiffness: 180, damping: 20 }}
               className="glass-panel-premium absolute w-[350px] border border-cyan-500/35 rounded-2xl cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[82vh] flex flex-col overflow-hidden origin-left"
               style={{ left: '50%' }}
