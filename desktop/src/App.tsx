@@ -572,7 +572,7 @@ function App() {
               animate={{ opacity: 1, x: -178, rotateY: 0, scale: 1 }}
               exit={{ opacity: 0, x: 80, rotateY: 55, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 180, damping: 20 }}
-              className="absolute w-[360px] bg-black/90 backdrop-blur-2xl border border-cyan-500/40 rounded-2xl shadow-[0_0_60px_rgba(0,243,255,0.2),inset_0_1px_0_rgba(255,255,255,0.04)] cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[84vh] flex flex-col overflow-hidden origin-right"
+              className="glass-panel-premium absolute w-[360px] border border-cyan-500/35 rounded-2xl cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[84vh] flex flex-col overflow-hidden origin-right"
               style={{ right: '50%' }}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
@@ -964,7 +964,7 @@ function App() {
             {isExpanded && (
               <motion.div 
                 initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                className="absolute -bottom-24 w-[340px] bg-black/90 backdrop-blur-2xl border border-cyan-500/60 rounded-2xl px-3 py-2 flex items-center gap-2 shadow-[0_0_40px_rgba(0,243,255,0.25),inset_0_1px_0_rgba(255,255,255,0.05)] cursor-default z-50"
+                className="glass-panel-premium absolute -bottom-24 w-[340px] border border-cyan-500/40 rounded-2xl px-3 py-2 flex items-center gap-2 cursor-default z-50"
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
                 onPointerDown={(e) => e.stopPropagation()}
@@ -1019,7 +1019,7 @@ function App() {
               animate={{ opacity: 1, x: 178, rotateY: 0, scale: 1 }}
               exit={{ opacity: 0, x: -80, rotateY: -55, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 180, damping: 20 }}
-              className="absolute w-[350px] bg-black/85 backdrop-blur-2xl border border-cyan-500/50 rounded-2xl shadow-[0_0_50px_rgba(0,243,255,0.25)] cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[82vh] flex flex-col overflow-hidden origin-left"
+              className="glass-panel-premium absolute w-[350px] border border-cyan-500/35 rounded-2xl cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[82vh] flex flex-col overflow-hidden origin-left"
               style={{ left: '50%' }}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
