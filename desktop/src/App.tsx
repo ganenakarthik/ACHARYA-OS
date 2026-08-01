@@ -190,6 +190,14 @@ function App() {
       
       ws.onopen = () => {
         setLogs(prev => [...prev, `[SYSTEM] Neural link established.`].slice(-4));
+        // Auto-mark today's streak — ACHARYA being active = streak earned
+        const todayIdx = new Date().getDay();
+        setStreak(prev => {
+          const next = [...prev];
+          next[todayIdx] = true;
+          localStorage.setItem('acharya_streak', JSON.stringify(next));
+          return next;
+        });
       };
 
       ws.onmessage = (event) => {
@@ -596,47 +604,47 @@ function App() {
                 </div>
               )}
 
-              {/* ── 7-Day Streak Tracker ── */}
-              <div className="bg-black/40 border border-white/10 rounded-xl p-3">
+              {/* ── 7-Day Streak Tracker (auto by ACHARYA) ── */}
+              <div className="bg-black/40 border border-orange-500/20 rounded-xl p-3">
                 <div className="flex items-center justify-between mb-2.5">
                   <h2 className="text-orange-400/80 font-black tracking-widest text-[9px] uppercase flex items-center gap-1.5">
-                    <Zap size={11} className="text-orange-400" /> Daily Streak
+                    <Zap size={11} className="text-orange-400" /> ACHARYA Streak
                   </h2>
-                  <span className="text-[8px] text-white/30 font-mono">
-                    {streak.filter(Boolean).length}/7 days
+                  <span className="text-[8px] font-black text-orange-300/70 bg-orange-500/10 border border-orange-400/20 px-2 py-0.5 rounded-md">
+                    🔥 {streak.filter(Boolean).length} days
                   </span>
                 </div>
-                <div className="flex gap-1.5 items-center">
+                <div className="flex gap-1 items-end mb-2">
                   {['S','M','T','W','T','F','S'].map((day, i) => {
                     const isToday = i === new Date().getDay();
                     const done = streak[i];
                     return (
                       <div key={i} className="flex flex-col items-center gap-1 flex-1">
-                        <motion.button
-                          whileTap={{ scale: 0.85 }}
-                          onClick={() => {
-                            const next = [...streak];
-                            next[i] = !next[i];
-                            setStreak(next);
-                            localStorage.setItem('acharya_streak', JSON.stringify(next));
-                          }}
-                          className={`w-full h-7 rounded-lg border transition-all ${
+                        <motion.div
+                          animate={done ? { scale: [1, 1.15, 1] } : {}}
+                          transition={{ duration: 0.4 }}
+                          className={`w-full rounded-lg border transition-all flex items-center justify-center ${
                             done
-                              ? 'bg-orange-500/30 border-orange-400/70 shadow-[0_0_10px_rgba(251,146,60,0.3)]'
+                              ? 'h-8 bg-orange-500/30 border-orange-400/60 shadow-[0_0_12px_rgba(251,146,60,0.35)]'
                               : isToday
-                              ? 'bg-white/5 border-cyan-500/40 shadow-[0_0_8px_rgba(0,243,255,0.15)]'
-                              : 'bg-white/3 border-white/8'
+                              ? 'h-7 bg-white/5 border-cyan-500/30 shadow-[0_0_6px_rgba(0,243,255,0.1)]'
+                              : 'h-6 bg-white/3 border-white/8'
                           }`}
                         >
-                          {done && <div className="w-full h-full flex items-center justify-center"><Zap size={10} className="text-orange-400" /></div>}
-                        </motion.button>
+                          {done ? (
+                            <span className="text-[11px]">🔥</span>
+                          ) : isToday ? (
+                            <div className="w-1 h-1 rounded-full bg-cyan-400 animate-pulse" />
+                          ) : null}
+                        </motion.div>
                         <span className={`text-[7px] font-black uppercase ${
-                          isToday ? 'text-cyan-400' : done ? 'text-orange-400/60' : 'text-white/20'
+                          isToday ? 'text-cyan-400' : done ? 'text-orange-400/70' : 'text-white/15'
                         }`}>{day}</span>
                       </div>
                     );
                   })}
                 </div>
+                <p className="text-[8px] text-white/20 italic text-center">ACHARYA marks your streak automatically</p>
               </div>
 
               {/* ── Neural Link ── */}
@@ -695,23 +703,23 @@ function App() {
             )}
           </AnimatePresence>
 
-          {/* Quick Actions row — visible when expanded, above orb */}
+          {/* Quick Actions row — shown ABOVE the controls row when expanded */}
           <AnimatePresence>
             {isExpanded && (
               <motion.div
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                transition={{ delay: 0.1 }}
-                className="absolute -top-28 flex items-center gap-1.5 cursor-default"
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
+                transition={{ delay: 0.15 }}
+                className="absolute -top-[116px] flex items-center gap-1.5"
                 onPointerDown={(e) => e.stopPropagation()}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
               >
-                {([
-                  { icon: <FileText size={12} />, label: 'Note', cmd: 'Take a quick note about what I just did' },
-                  { icon: <Focus size={12} />,    label: 'Focus', cmd: 'Start a 25 minute focus session' },
-                  { icon: <Zap size={12} />,      label: 'Boost', cmd: 'Give me a quick motivational push' },
+                {[
+                  { icon: <FileText size={12} />, label: 'Note',   cmd: 'Take a quick note about what I just did' },
+                  { icon: <Focus size={12} />,    label: 'Focus',  cmd: 'Start a 25 minute focus session' },
+                  { icon: <Zap size={12} />,      label: 'Boost',  cmd: 'Give me a quick motivational push' },
                   { icon: <BellOff size={12} />,  label: 'Snooze', cmd: 'Snooze all alerts for 15 minutes' },
-                ] as const).map(({ icon, label, cmd }) => (
+                ].map(({ icon, label, cmd }) => (
                   <button
                     key={label}
                     onClick={() => handleQuickAction(cmd)}
@@ -762,17 +770,24 @@ function App() {
                  {isExpanded && <span className="text-[9px] font-black tracking-[0.25em] text-cyan-300/80 uppercase mt-1">ACHARYA</span>}
                </div>
              </div>
-             {/* ── Live clock below orb (outside overflow-hidden) ── */}
-             {!isExpanded && (
-               <div className="absolute -bottom-12 flex flex-col items-center gap-1 pointer-events-none">
-                 <div className="flex items-center gap-1 text-cyan-400/80">
-                   <Clock size={9} />
-                   <span className="text-[11px] font-black tracking-wider tabular-nums">{clock}</span>
-                 </div>
-                 <span className="text-[8px] text-white/30 font-mono tracking-widest">◈ click to expand</span>
-               </div>
-             )}
           </motion.div>
+
+          {/* Clock + hint — as flex sibling BELOW the orb, so it flows naturally */}
+          <AnimatePresence mode="wait">
+            {!isExpanded && (
+              <motion.div
+                key="clock-hint"
+                initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                className="flex flex-col items-center gap-0.5 mt-2 pointer-events-none select-none"
+              >
+                <div className="flex items-center gap-1 text-cyan-400">
+                  <Clock size={10} />
+                  <span className="text-[12px] font-black tracking-wider tabular-nums">{clock}</span>
+                </div>
+                <span className="text-[8px] text-white/25 font-mono">◈ tap to expand</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Input Area visible only when expanded */}
           <AnimatePresence>
