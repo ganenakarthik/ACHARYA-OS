@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy
+alembic
+asyncpg
+qdrant-client
+google-generativeai
+python-dotenv
+websockets
+pydantic
+pydantic-settings
