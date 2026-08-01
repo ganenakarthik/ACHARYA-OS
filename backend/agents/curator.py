@@ -83,6 +83,7 @@ class CuratorAgent:
         focus = identity_state.get("focus", "")
 
         # If user is onboarded with a domain, use personalized bank first
+        resources = []
         detected = self._detect_domain(identity_state)
         if detected in DOMAIN_RESOURCES:
             resources = [dict(r) for r in DOMAIN_RESOURCES[detected]]
@@ -90,10 +91,9 @@ class CuratorAgent:
             if domain or focus:
                 tag = domain or focus
                 resources[0]["title"] = f"[{tag.title()}] {resources[0]['title']}"
-            return resources
-
-        # Try AI-generated curation (Ollama)
-        prompt = f"""You are the Curator Agent optimizing for HUMAN POTENTIAL.
+        else:
+            # Try AI-generated curation (Ollama)
+            prompt = f"""You are the Curator Agent optimizing for HUMAN POTENTIAL.
 User Target: {aspirations}
 Domain: {domain or 'General'}
 Focus Area: {focus or 'Startup & Tech'}
@@ -104,17 +104,27 @@ Generate a JSON array of 4 resources, one per type: Idea, Story, Tool, Mentor.
 Return a JSON array of 4 objects, each with: "title", "type", "url".
 Only return the JSON array, nothing else."""
 
-        try:
-            result = await generate(prompt, model="llama3", json_format=True)
-            if isinstance(result, list) and len(result) > 0:
-                return result
-            elif isinstance(result, dict) and "resources" in result:
-                return result["resources"]
-            else:
-                return self._fallback_curation(aspirations, momentum)
-        except Exception as e:
-            print(f"Curator Agent Error: {e}")
-            return self._fallback_curation(aspirations, momentum)
+            try:
+                result = await generate(prompt, model="llama3", json_format=True)
+                if isinstance(result, list) and len(result) > 0:
+                    resources = result
+                elif isinstance(result, dict) and "resources" in result:
+                    resources = result["resources"]
+                else:
+                    resources = self._fallback_curation(aspirations, momentum)
+            except Exception as e:
+                print(f"Curator Agent Error: {e}")
+                resources = self._fallback_curation(aspirations, momentum)
+
+        # Enforce strict Momentum Curation Rule
+        if momentum < 5:
+            # Stuck/Low Momentum: Serve only Stories and Mentors to inspire and guide
+            filtered_resources = [r for r in resources if r.get("type") in ["Story", "Mentor"]]
+        else:
+            # Active Flow State: Serve only Ideas and Tools to speed execution
+            filtered_resources = [r for r in resources if r.get("type") in ["Idea", "Tool"]]
+
+        return filtered_resources
 
     def _fallback_curation(self, aspirations: str, momentum: int) -> list:
         return [dict(r) for r in DOMAIN_RESOURCES["startup"]]
