@@ -14,7 +14,9 @@ except ImportError:
 
 class VoiceService:
     def __init__(self):
-        self.enabled = PYTTSX3_AVAILABLE
+        # Disabled by default because the frontend React UI already handles high-fidelity HTML5 SpeechSynthesis.
+        # Keeping it True causes double voice echoes and SAPI5 thread locks on rapid calls.
+        self.enabled = False
 
     def _speak_sync(self, text: str):
         """Runs synchronously in a thread."""
