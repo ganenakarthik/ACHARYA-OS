@@ -215,7 +215,7 @@ function App() {
               animate={{ opacity: 1, x: -160, scale: 1 }}
               exit={{ opacity: 0, x: 50, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 200, damping: 25 }}
-              className="absolute w-[300px] bg-black/70 backdrop-blur-xl border border-cyan-500/40 rounded-2xl p-5 shadow-[0_0_40px_rgba(0,243,255,0.2)] flex flex-col gap-4 cursor-default z-0"
+              className="absolute w-[320px] max-h-[80vh] overflow-y-auto custom-scrollbar bg-black/80 backdrop-blur-xl border border-cyan-500/40 rounded-2xl p-4 shadow-[0_0_40px_rgba(0,243,255,0.2)] flex flex-col gap-3.5 cursor-default z-0 top-1/2 -translate-y-1/2"
               style={{ right: '50%' }}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
@@ -473,7 +473,7 @@ function App() {
               animate={{ opacity: 1, x: 160, scale: 1 }}
               exit={{ opacity: 0, x: -50, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 200, damping: 25 }}
-              className="absolute w-[300px] bg-black/70 backdrop-blur-xl border border-cyan-500/40 rounded-2xl p-5 shadow-[0_0_40px_rgba(0,243,255,0.2)] flex flex-col gap-4 cursor-default z-0"
+              className="absolute w-[320px] max-h-[80vh] overflow-y-auto custom-scrollbar bg-black/80 backdrop-blur-xl border border-cyan-500/40 rounded-2xl p-4 shadow-[0_0_40px_rgba(0,243,255,0.2)] flex flex-col gap-3.5 cursor-default z-0 top-1/2 -translate-y-1/2"
               style={{ left: '50%' }}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
