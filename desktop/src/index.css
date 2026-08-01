@@ -108,62 +108,38 @@
   animation: spin-clockwise 15s linear infinite;
 }
 
-/* ── Premium CSS Metaball Liquid Swirl Animations ── */
-@keyframes blob-orbit-1 {
-  0% { transform: rotate(0deg) translate(22px) rotate(0deg); }
-  100% { transform: rotate(360deg) translate(22px) rotate(-360deg); }
+/* ── Siri Style Wave Orb Animations ── */
+@keyframes siri-wave-1 {
+  0% { transform: rotate(0deg) scale(1); border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
+  50% { transform: rotate(180deg) scale(1.06); border-radius: 70% 30% 52% 48% / 60% 40% 60% 40%; }
+  100% { transform: rotate(360deg) scale(1); border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
 }
-@keyframes blob-orbit-2 {
-  0% { transform: rotate(360deg) translate(25px) rotate(-360deg); }
-  100% { transform: rotate(0deg) translate(25px) rotate(0deg); }
+@keyframes siri-wave-2 {
+  0% { transform: rotate(120deg) scale(1.03); border-radius: 70% 30% 52% 48% / 60% 40% 60% 40%; }
+  50% { transform: rotate(270deg) scale(0.94); border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
+  100% { transform: rotate(480deg) scale(1.03); border-radius: 70% 30% 52% 48% / 60% 40% 60% 40%; }
 }
-@keyframes blob-orbit-3 {
-  0% { transform: rotate(120deg) translate(18px) rotate(-120deg); }
-  100% { transform: rotate(480deg) translate(18px) rotate(-480deg); }
+@keyframes siri-wave-3 {
+  0% { transform: rotate(240deg) scale(0.97); border-radius: 50% 50% 30% 70% / 50% 60% 40% 50%; }
+  50% { transform: rotate(60deg) scale(1.05); border-radius: 30% 70% 70% 30% / 50% 30% 70% 50%; }
+  100% { transform: rotate(600deg) scale(0.97); border-radius: 50% 50% 30% 70% / 50% 60% 40% 50%; }
 }
-.liquid-fluid-container {
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  filter: contrast(18) brightness(1.15);
-  background: #030814;
-  overflow: hidden;
-  pointer-events: none;
+@keyframes siri-wave-4 {
+  0% { transform: rotate(360deg) scale(1.04); border-radius: 60% 40% 45% 55% / 40% 60% 50% 50%; }
+  50% { transform: rotate(120deg) scale(0.96); border-radius: 50% 50% 60% 40% / 60% 40% 55% 45%; }
+  100% { transform: rotate(0deg) scale(1.04); border-radius: 60% 40% 45% 55% / 40% 60% 50% 50%; }
 }
-.fluid-blob-1 {
-  position: absolute;
-  top: 35%; left: 35%;
-  width: 32%; height: 32%;
-  border-radius: 50%;
-  background: #00f3ff;
-  filter: blur(12px);
-  animation: blob-orbit-1 7s linear infinite;
+.siri-wave-layer-1 {
+  animation: siri-wave-1 4.5s ease-in-out infinite;
 }
-.fluid-blob-2 {
-  position: absolute;
-  top: 35%; left: 35%;
-  width: 36%; height: 36%;
-  border-radius: 50%;
-  background: #f43f5e;
-  filter: blur(14px);
-  animation: blob-orbit-2 11s linear infinite;
+.siri-wave-layer-2 {
+  animation: siri-wave-2 6.5s ease-in-out infinite;
 }
-.fluid-blob-3 {
-  position: absolute;
-  top: 35%; left: 35%;
-  width: 30%; height: 30%;
-  border-radius: 50%;
-  background: #eab308;
-  filter: blur(11px);
-  animation: blob-orbit-3 15s linear infinite;
+.siri-wave-layer-3 {
+  animation: siri-wave-3 8.5s ease-in-out infinite;
 }
-.fluid-blob-center {
-  position: absolute;
-  top: 38%; left: 38%;
-  width: 24%; height: 24%;
-  border-radius: 50%;
-  background: #8b5cf6;
-  filter: blur(10px);
+.siri-wave-layer-4 {
+  animation: siri-wave-4 10.5s ease-in-out infinite;
 }
 
 /* ── Animated momentum bar fill ──────────────────────────────────────────── */

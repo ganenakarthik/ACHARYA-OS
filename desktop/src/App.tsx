@@ -954,15 +954,18 @@ function App() {
              <div className={`absolute inset-1.5 rounded-full border-2 border-transparent border-t-cyan-400/80 border-b-purple-500/80 ${isSpeaking ? 'animate-[spin_0.8s_linear_infinite]' : 'animate-[spin_4s_linear_infinite]'}`} />
              
               {/* Center holographic glass core */}
-              <div className={`absolute inset-5.5 rounded-full flex items-center justify-center overflow-hidden transition-all duration-700 bg-gradient-to-br from-[#071120] to-[#010408] border border-cyan-500/35 shadow-[inset_0_0_35px_rgba(0,243,255,0.5),0_0_20px_rgba(0,243,255,0.2)]`}>
+              <div className={`absolute inset-5.5 rounded-full flex items-center justify-center overflow-hidden transition-all duration-700 bg-gradient-to-br from-[#040914] to-[#010205] border border-cyan-500/35 shadow-[inset_0_0_35px_rgba(0,243,255,0.45),0_0_20px_rgba(0,243,255,0.15)]`}>
                  
-                 {/* ── Premium organic liquid metaball swirl (flows like real fluid/lava lamp) ── */}
-                 <div className="liquid-fluid-container">
-                    {/* Pulsing colored blobs that morph together dynamically */}
-                    <div className="fluid-blob-center" />
-                    <div className="fluid-blob-1" />
-                    <div className="fluid-blob-2" />
-                    <div className="fluid-blob-3" />
+                 {/* ── Siri Style Wave Layers (Overlapping neon fluid threads) ── */}
+                 <div className="absolute inset-2 pointer-events-none z-0">
+                    {/* Siri wave 1: Cyan thread */}
+                    <div className="siri-wave-layer-1 absolute inset-0 border-t-2 border-l border-cyan-400/80 shadow-[0_0_12px_rgba(6,182,212,0.25)]" />
+                    {/* Siri wave 2: Fuchsia/Pink thread */}
+                    <div className="siri-wave-layer-2 absolute inset-1.5 border-b-2 border-r border-fuchsia-500/80 shadow-[0_0_12px_rgba(244,63,94,0.25)]" />
+                    {/* Siri wave 3: Purple thread */}
+                    <div className="siri-wave-layer-3 absolute inset-0.5 border-t border-r-2 border-purple-500/85 shadow-[0_0_12px_rgba(168,85,247,0.25)]" />
+                    {/* Siri wave 4: Emerald thread */}
+                    <div className="siri-wave-layer-4 absolute inset-2.5 border-b border-l-2 border-emerald-400/75 shadow-[0_0_12px_rgba(16,185,129,0.25)]" />
                  </div>
 
                  {/* ── Dynamic Holographic Waveform (layer overlay when active) ── */}
@@ -976,7 +979,7 @@ function App() {
                        fill="none"
                        stroke={isListening ? "#10b981" : "#00f3ff"}
                        strokeWidth="2"
-                       className="transition-all duration-300"
+                       className="transition-all duration-300 animate-pulse"
                      />
                    </svg>
                  )}
