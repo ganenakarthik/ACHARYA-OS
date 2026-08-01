@@ -11,7 +11,7 @@ class PlannerService:
     def create_plan(self, query: str, user_identity: dict = None) -> dict:
         """
         Generates a rich 5-phase Exam Preparation & Study Roadmap using Pure Python.
-        Saves the file to Desktop and opens it asynchronously.
+        Saves the file to Desktop, opens it asynchronously, and returns structured phases for UI rendering.
         """
         clean_topic = re.sub(r'^(?:help me in|help me|learn|learning|teach me|how to|plan|create plan|study plan|prepare for|planner|schedule)\s+', '', query, flags=re.IGNORECASE).strip()
         if not clean_topic:
@@ -25,6 +25,14 @@ class PlannerService:
 
         desktop_dir = os.path.join(os.path.expanduser("~"), "Desktop")
         file_path = os.path.join(desktop_dir, plan_filename)
+
+        phases = [
+            {"phase": "Phase 1", "title": "Core Fundamentals", "task": f"Review primary syllabus & definitions for {topic_display}"},
+            {"phase": "Phase 2", "title": "Targeted Practice", "task": f"Solve 10-15 standard practice problems in {topic_display}"},
+            {"phase": "Phase 3", "title": "Simulated Mock Exam", "task": f"Complete timed speed run under test conditions"},
+            {"phase": "Phase 4", "title": "Memory Consolidation", "task": f"Audit weak spots & review Feynman summary sheet"},
+            {"phase": "Phase 5", "title": "Execution Strategy", "task": f"Final review & optimal performance preparation"}
+        ]
 
         markdown_content = f"""# 🎯 ACHARYA OS — Study & Exam Preparation Roadmap: {topic_display}
 
@@ -76,5 +84,6 @@ class PlannerService:
             "summary": f"Generated 5-phase preparation roadmap for {topic_display}.",
             "speech": f"Sir, I have generated your customized study and preparation roadmap for {topic_display} and opened it from your Desktop.",
             "markdown_plan": markdown_content,
+            "phases": phases,
             "file_path": file_path
         }

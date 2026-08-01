@@ -9,9 +9,16 @@ interface Explainability {
   confidence: string;
 }
 
+interface PlanPhase {
+  phase: string;
+  title: string;
+  task: string;
+}
+
 interface Mission {
   mission: string;
   explainability: Explainability;
+  plan_phases?: PlanPhase[];
   curated_resources?: Array<{ title: string; type: string; url: string }>;
 }
 
@@ -266,6 +273,35 @@ function App() {
                   <p className="text-white/30 text-xs text-center py-2 italic relative z-10">Awaiting directive...</p>
                 )}
               </div>
+
+              {/* Interactive Action Plan Card */}
+              {mission?.plan_phases && mission.plan_phases.length > 0 && (
+                <div className="bg-emerald-950/30 border border-emerald-500/40 rounded-xl p-4 space-y-3 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-emerald-400 font-bold tracking-widest text-[10px] uppercase flex items-center gap-2">
+                      <Target size={14} className="text-emerald-400" /> Action Roadmap & Plan
+                    </h2>
+                    <span className="bg-emerald-500/20 text-emerald-300 text-[9px] px-2 py-0.5 rounded-full border border-emerald-400/30 font-bold">
+                      5 Phases Active
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {mission.plan_phases.map((item, idx) => (
+                      <div key={idx} className="bg-black/60 p-2.5 rounded-lg border border-emerald-500/30 flex items-start gap-2.5 group hover:border-emerald-400 transition-colors">
+                        <input type="checkbox" className="mt-0.5 accent-emerald-400 cursor-pointer" defaultChecked={idx === 0} />
+                        <div>
+                          <div className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider">
+                            {item.phase}: {item.title}
+                          </div>
+                          <div className="text-xs text-white/90 leading-snug mt-0.5 font-medium">
+                            {item.task}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Wise Supporting Mentor & Human Potential Curation Card */}
               {mission?.curated_resources && mission.curated_resources.length > 0 && (

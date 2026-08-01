@@ -116,6 +116,7 @@ class CoreOrchestrator:
                     "impact": "High",
                     "confidence": "99%"
                 },
+                "plan_phases": plan_res.get("phases", []),
                 "curated_resources": resources,
                 "privacy_status": self.privacy.get_status()
             }
