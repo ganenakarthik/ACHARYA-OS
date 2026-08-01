@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Power, Target, Activity, Mic, Brain, Send, Minimize2, Shield, Compass, User } from 'lucide-react';
+import { Power, Target, Activity, Mic, Brain, Send, Minimize2, Shield, Compass, User, Clock, Zap, FileText, Focus, BellOff, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RightPanelTabs from './RightPanelTabs';
 
@@ -54,6 +54,18 @@ function App() {
   const [onboardFocus, setOnboardFocus] = useState("");
   const [onboardLoading, setOnboardLoading] = useState(false);
 
+  // Live clock
+  const [clock, setClock] = useState(() => {
+    const now = new Date();
+    return now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  });
+
+  // Streak tracker (localStorage persisted)
+  const [streak, setStreak] = useState<boolean[]>(() => {
+    try { return JSON.parse(localStorage.getItem('acharya_streak') || 'null') || Array(7).fill(false); }
+    catch { return Array(7).fill(false); }
+  });
+
   const wsRef = useRef<WebSocket | null>(null);
 
   // Check if user is already onboarded on startup
@@ -99,6 +111,34 @@ function App() {
     // Make the fullscreen background click-through by default on mount
     (window as any).electronAPI?.setIgnoreMouseEvents(true, { forward: true });
   }, []);
+
+  // Live clock tick
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const now = new Date();
+      setClock(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }));
+    }, 10000);
+    return () => clearInterval(tick);
+  }, []);
+
+  // Mark today as active in streak on first run
+  useEffect(() => {
+    const todayIdx = new Date().getDay(); // 0=Sun…6=Sat
+    setStreak(prev => {
+      const next = [...prev];
+      next[todayIdx] = true;
+      localStorage.setItem('acharya_streak', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const handleQuickAction = (action: string) => {
+    const msg = { type: "signal", data: { type: "text_command", details: action } };
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(msg));
+      setLogs(prev => [...prev, `[QUICK] ${action}`].slice(-4));
+    }
+  };
 
   // ── KEY FIX: whenever the widget collapses, always release mouse capture ──
   useEffect(() => {
@@ -552,6 +592,49 @@ function App() {
                 </div>
               )}
 
+              {/* ── 7-Day Streak Tracker ── */}
+              <div className="bg-black/40 border border-white/10 rounded-xl p-3">
+                <div className="flex items-center justify-between mb-2.5">
+                  <h2 className="text-orange-400/80 font-black tracking-widest text-[9px] uppercase flex items-center gap-1.5">
+                    <Zap size={11} className="text-orange-400" /> Daily Streak
+                  </h2>
+                  <span className="text-[8px] text-white/30 font-mono">
+                    {streak.filter(Boolean).length}/7 days
+                  </span>
+                </div>
+                <div className="flex gap-1.5 items-center">
+                  {['S','M','T','W','T','F','S'].map((day, i) => {
+                    const isToday = i === new Date().getDay();
+                    const done = streak[i];
+                    return (
+                      <div key={i} className="flex flex-col items-center gap-1 flex-1">
+                        <motion.button
+                          whileTap={{ scale: 0.85 }}
+                          onClick={() => {
+                            const next = [...streak];
+                            next[i] = !next[i];
+                            setStreak(next);
+                            localStorage.setItem('acharya_streak', JSON.stringify(next));
+                          }}
+                          className={`w-full h-7 rounded-lg border transition-all ${
+                            done
+                              ? 'bg-orange-500/30 border-orange-400/70 shadow-[0_0_10px_rgba(251,146,60,0.3)]'
+                              : isToday
+                              ? 'bg-white/5 border-cyan-500/40 shadow-[0_0_8px_rgba(0,243,255,0.15)]'
+                              : 'bg-white/3 border-white/8'
+                          }`}
+                        >
+                          {done && <div className="w-full h-full flex items-center justify-center"><Zap size={10} className="text-orange-400" /></div>}
+                        </motion.button>
+                        <span className={`text-[7px] font-black uppercase ${
+                          isToday ? 'text-cyan-400' : done ? 'text-orange-400/60' : 'text-white/20'
+                        }`}>{day}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* ── Neural Link ── */}
               <div className="bg-black/40 border border-blue-500/25 rounded-xl p-3">
                 <h2 className="text-blue-400/80 font-black tracking-widest text-[9px] uppercase mb-2 flex items-center gap-1.5">
@@ -608,6 +691,37 @@ function App() {
             )}
           </AnimatePresence>
 
+          {/* Quick Actions row — visible when expanded, above orb */}
+          <AnimatePresence>
+            {isExpanded && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                transition={{ delay: 0.1 }}
+                className="absolute -top-28 flex items-center gap-1.5 cursor-default"
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                {([
+                  { icon: <FileText size={12} />, label: 'Note', cmd: 'Take a quick note about what I just did' },
+                  { icon: <Focus size={12} />,    label: 'Focus', cmd: 'Start a 25 minute focus session' },
+                  { icon: <Zap size={12} />,      label: 'Boost', cmd: 'Give me a quick motivational push' },
+                  { icon: <BellOff size={12} />,  label: 'Snooze', cmd: 'Snooze all alerts for 15 minutes' },
+                ] as const).map(({ icon, label, cmd }) => (
+                  <button
+                    key={label}
+                    onClick={() => handleQuickAction(cmd)}
+                    title={cmd}
+                    className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 bg-black/80 backdrop-blur-md border border-white/10 rounded-xl text-white/50 hover:text-cyan-300 hover:border-cyan-500/50 hover:bg-cyan-500/10 hover:shadow-[0_0_12px_rgba(0,243,255,0.2)] transition-all group"
+                  >
+                    <span className="group-hover:scale-110 transition-transform">{icon}</span>
+                    <span className="text-[7px] font-black uppercase tracking-wider">{label}</span>
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* The Orb */}
           <motion.div
             layoutId="central-orb"
@@ -643,6 +757,19 @@ function App() {
                  <div className={`rounded-full shadow-[0_0_30px_#00f3ff] ${isExpanded ? 'w-6 h-6' : 'w-3 h-3'} ${isSpeaking ? 'bg-cyan-200 animate-[ping_0.3s_infinite]' : 'bg-cyan-300 animate-pulse'}`} />
                  {isExpanded && <span className="text-[9px] font-black tracking-[0.25em] text-cyan-300/80 uppercase mt-1">ACHARYA</span>}
                </div>
+               {/* Live clock — only when collapsed */}
+              {!isExpanded && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="absolute -bottom-10 flex flex-col items-center gap-0.5 pointer-events-none"
+                >
+                  <div className="flex items-center gap-1 text-cyan-400/70">
+                    <Clock size={9} />
+                    <span className="text-[11px] font-black tracking-wider tabular-nums">{clock}</span>
+                  </div>
+                </motion.div>
+              )}
              </div>
              {!isExpanded && (
                <motion.div
