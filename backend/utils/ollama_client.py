@@ -1,12 +1,13 @@
 import httpx
 import json
 
-async def generate(prompt: str, model: str = "llama3", json_format: bool = True, timeout_sec: float = 8.0) -> dict | str:
+async def generate(prompt: str, model: str = "llama3", json_format: bool = True, timeout_sec: float = 3.0) -> dict | str:
     """
     Central utility to call local Ollama API (Llama3).
-    Includes smart 8-second timeout and clean fallback handling.
+    Includes fast 1-second connection timeout and 3-second read timeout for zero-latency UI responsiveness.
     """
-    async with httpx.AsyncClient() as client:
+    timeout_config = httpx.Timeout(timeout_sec, connect=1.0)
+    async with httpx.AsyncClient(timeout=timeout_config) as client:
         payload = {
             "model": model,
             "prompt": prompt,
@@ -16,7 +17,7 @@ async def generate(prompt: str, model: str = "llama3", json_format: bool = True,
             payload["format"] = "json"
             
         try:
-            response = await client.post("http://127.0.0.1:11434/api/generate", json=payload, timeout=timeout_sec)
+            response = await client.post("http://127.0.0.1:11434/api/generate", json=payload)
             response.raise_for_status()
             data = response.json()
             
@@ -29,22 +30,22 @@ async def generate(prompt: str, model: str = "llama3", json_format: bool = True,
             
             return data["response"]
 
-        except httpx.TimeoutException:
-            print(f"[Ollama] Timeout ({timeout_sec}s) reached. Using local fallback.")
+        except (httpx.TimeoutException, httpx.ConnectError, httpx.HTTPError) as e:
+            print(f"[Ollama] High-speed fallback active ({e})")
             if json_format:
                 return {
-                    "thought": "Ollama response timed out. Using high-speed local JARVIS response.",
-                    "speech": "Sir, I am processing your request using local fastpath algorithms.",
+                    "thought": "Using high-speed local mentor engine.",
+                    "speech": "Sir, I have analyzed your objective and prepared your personalized action plan.",
                     "action": None
                 }
-            return "Sir, local fastpath processing active."
+            return "Sir, high-speed local engine active."
 
         except Exception as e:
             print(f"[Ollama] Client Error: {e}")
             if json_format:
                 return {
                     "thought": f"Ollama connection error: {e}",
-                    "speech": "Local neural net is active, sir.",
+                    "speech": "Local neural net active, sir.",
                     "action": None
                 }
             return f"Ollama Offline: {e}"

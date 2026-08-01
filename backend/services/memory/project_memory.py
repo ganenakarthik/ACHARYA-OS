@@ -34,17 +34,23 @@ class MemoryService:
         try:
             self.qdrant.get_collection("acharya_memory")
         except Exception:
-            self.qdrant.create_collection(
-                collection_name="acharya_memory",
-                vectors_config=VectorParams(size=384, distance=Distance.COSINE),
-            )
+            try:
+                self.qdrant.create_collection(
+                    collection_name="acharya_memory",
+                    vectors_config=VectorParams(size=384, distance=Distance.COSINE),
+                )
+            except Exception:
+                pass
         try:
             self.qdrant.get_collection("project_memory")
         except Exception:
-            self.qdrant.create_collection(
-                collection_name="project_memory",
-                vectors_config=VectorParams(size=384, distance=Distance.COSINE),
-            )
+            try:
+                self.qdrant.create_collection(
+                    collection_name="project_memory",
+                    vectors_config=VectorParams(size=384, distance=Distance.COSINE),
+                )
+            except Exception:
+                pass
 
     def save_memory(self, collection: str, text: str, metadata: dict = None):
         if not self.active or not VECTOR_MEMORY_AVAILABLE or not text:
@@ -67,12 +73,14 @@ class MemoryService:
             return []
         try:
             vector = self.encoder.encode(query).tolist()
-            results = self.qdrant.search(
-                collection_name=collection,
-                query_vector=vector,
-                limit=limit
-            )
-            return [hit.payload.get("memory_text", "") for hit in results if hit.score >= score_threshold]
+            results = []
+            if hasattr(self.qdrant, "query_points"):
+                res = self.qdrant.query_points(collection_name=collection, query=vector, limit=limit)
+                results = getattr(res, "points", [])
+            elif hasattr(self.qdrant, "search"):
+                results = self.qdrant.search(collection_name=collection, query_vector=vector, limit=limit)
+            
+            return [hit.payload.get("memory_text", "") for hit in results if getattr(hit, "score", 1.0) >= score_threshold]
         except Exception as e:
             print(f"[MemoryService] Recall Error: {e}")
             return []
