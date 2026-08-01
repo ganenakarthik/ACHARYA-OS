@@ -212,15 +212,16 @@ function App() {
           {isExpanded && (
             <motion.div
               initial={{ opacity: 0, x: 50, scale: 0.9 }}
-              animate={{ opacity: 1, x: -160, scale: 1 }}
+              animate={{ opacity: 1, x: -170, scale: 1 }}
               exit={{ opacity: 0, x: 50, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 200, damping: 25 }}
-              className="absolute w-[320px] max-h-[80vh] overflow-y-auto custom-scrollbar bg-black/80 backdrop-blur-xl border border-cyan-500/40 rounded-2xl p-4 shadow-[0_0_40px_rgba(0,243,255,0.2)] flex flex-col gap-3.5 cursor-default z-0 top-1/2 -translate-y-1/2"
+              className="absolute w-[350px] bg-black/85 backdrop-blur-2xl border border-cyan-500/50 rounded-2xl p-4 shadow-[0_0_50px_rgba(0,243,255,0.25)] cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[82vh] flex flex-col overflow-hidden"
               style={{ right: '50%' }}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
               onPointerDown={(e) => e.stopPropagation()} // Prevent dragging from panels
             >
+              <div className="overflow-y-auto custom-scrollbar flex flex-col gap-3.5 pr-1">
               {/* Evolving Identity Twin Card */}
               <div className="bg-purple-900/20 border border-purple-500/40 rounded-xl p-4 relative overflow-hidden">
                 <div className="flex items-center justify-between mb-2">
@@ -364,17 +365,18 @@ function App() {
               )}
 
               {/* Memory Sync */}
-              <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 flex flex-col items-center">
-                 <h2 className="text-blue-400 font-bold tracking-widest text-[10px] uppercase mb-2 w-full text-left flex items-center gap-2">
+              <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-3 flex flex-col items-center">
+                 <h2 className="text-blue-400 font-bold tracking-widest text-[10px] uppercase mb-1.5 w-full text-left flex items-center gap-2">
                     <Brain size={14} /> Neural Link
                   </h2>
-                  <svg viewBox="0 0 100 40" className="w-full h-12 opacity-80 mt-2">
-                    <path d="M10,20 Q25,5 40,20 T70,20 T90,10" fill="none" stroke="#60a5fa" strokeWidth="1" className="opacity-50" />
-                    <circle cx="10" cy="20" r="2" fill="#60a5fa" className="animate-pulse" />
-                    <circle cx="40" cy="20" r="3" fill="#3b82f6" className={isSpeaking ? 'animate-[ping_0.5s_infinite]' : 'animate-pulse'} />
-                    <circle cx="70" cy="20" r="2" fill="#93c5fd" />
-                    <circle cx="90" cy="10" r="2" fill="#60a5fa" className="animate-pulse" />
+                  <svg viewBox="0 0 100 30" className="w-full h-8 opacity-80 mt-1">
+                    <path d="M10,15 Q25,5 40,15 T70,15 T90,8" fill="none" stroke="#60a5fa" strokeWidth="1" className="opacity-50" />
+                    <circle cx="10" cy="15" r="2" fill="#60a5fa" className="animate-pulse" />
+                    <circle cx="40" cy="15" r="3" fill="#3b82f6" className={isSpeaking ? 'animate-[ping_0.5s_infinite]' : 'animate-pulse'} />
+                    <circle cx="70" cy="15" r="2" fill="#93c5fd" />
+                    <circle cx="90" cy="8" r="2" fill="#60a5fa" className="animate-pulse" />
                   </svg>
+              </div>
               </div>
             </motion.div>
           )}
@@ -470,15 +472,16 @@ function App() {
           {isExpanded && (
             <motion.div
               initial={{ opacity: 0, x: -50, scale: 0.9 }}
-              animate={{ opacity: 1, x: 160, scale: 1 }}
+              animate={{ opacity: 1, x: 170, scale: 1 }}
               exit={{ opacity: 0, x: -50, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 200, damping: 25 }}
-              className="absolute w-[320px] max-h-[80vh] overflow-y-auto custom-scrollbar bg-black/80 backdrop-blur-xl border border-cyan-500/40 rounded-2xl p-4 shadow-[0_0_40px_rgba(0,243,255,0.2)] flex flex-col gap-3.5 cursor-default z-0 top-1/2 -translate-y-1/2"
+              className="absolute w-[350px] bg-black/85 backdrop-blur-2xl border border-cyan-500/50 rounded-2xl p-4 shadow-[0_0_50px_rgba(0,243,255,0.25)] cursor-default z-0 top-1/2 -translate-y-1/2 max-h-[82vh] flex flex-col overflow-hidden"
               style={{ left: '50%' }}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
               onPointerDown={(e) => e.stopPropagation()}
             >
+              <div className="overflow-y-auto custom-scrollbar flex flex-col gap-3.5 pr-1">
               {/* Context */}
               <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 overflow-hidden relative">
                  {isSpeaking && <motion.div layoutId="speaking-glow-right" className="absolute inset-0 bg-cyan-400/10 animate-pulse" />}
