@@ -646,7 +646,7 @@ function App() {
                 </div>
                 {/* Ideal self */}
                 <p className="neon-shimmer text-[13px] font-black leading-tight mb-3">
-                  <DecryptText text={identityTwin?.ideal_self || "Visionary Technical Founder"} />
+                  {identityTwin?.ideal_self || "Visionary Technical Founder"}
                 </p>
                 {/* Momentum bar */}
                 <div className="space-y-1">
@@ -689,7 +689,7 @@ function App() {
                       initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} key={mission.mission}
                       className="text-white/90 text-[12px] font-semibold leading-snug"
                     >
-                      <DecryptText text={mission.mission} />
+                      {mission.mission}
                     </motion.p>
                     {mission.explainability?.why && (
                       <p className="text-white/40 text-[10px] leading-snug border-l-2 border-cyan-500/30 pl-2">
