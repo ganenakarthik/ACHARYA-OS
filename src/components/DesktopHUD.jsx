@@ -211,6 +211,52 @@ export default function DesktopHUD() {
   const [fixedCodePreview, setFixedCodePreview] = useState(null)
   const [isAutoFixingCode, setIsAutoFixingCode] = useState(false)
 
+  // Autonomous Ambient Code Observer Loop (Acharya's Brain - Zero Button Clicking Needed)
+  useEffect(() => {
+    let lastCheckedCode = ''
+    let isAnalyzing = false
+
+    const observerTimer = setInterval(async () => {
+      if (isAnalyzing) return
+      const electron = getElectron()
+      if (!electron || !electron.invoke) return
+
+      try {
+        isAnalyzing = true
+        const currentCode = await electron.invoke('get-active-editor-code')
+        if (currentCode && currentCode.trim().length >= 8 && currentCode !== lastCheckedCode) {
+          lastCheckedCode = currentCode
+          const result = await analyzeCodeWithAI(currentCode, '', userProfile)
+          if (result && result.isError) {
+            setActiveCodeIssue({
+              ...result,
+              programDomain: result.projectIntent || result.language || 'Code Flow',
+              fileName: result.fileName || 'active_editor'
+            })
+            playCyberChime('alarm')
+            if (ttsEnabled && result.mentorSpeech) {
+              setIsSpeaking(true)
+              speakText(result.mentorSpeech, {
+                persona: voicePersona,
+                onStart: () => setIsSpeaking(true),
+                onEnd: () => setIsSpeaking(false)
+              })
+            }
+          } else if (result && !result.isError) {
+            if (activeCodeIssue) {
+              dismissActiveCodeIssue()
+            }
+          }
+        }
+      } catch (_) {
+      } finally {
+        isAnalyzing = false
+      }
+    }, 3500)
+
+    return () => clearInterval(observerTimer)
+  }, [ttsEnabled, voicePersona, userProfile, activeCodeIssue])
+
   // Document & PDF Active Flashcards & Guide
   const [activePdfGuide, setActivePdfGuide] = useState(null)
 
