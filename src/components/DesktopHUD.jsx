@@ -436,7 +436,7 @@ export default function DesktopHUD() {
 
   // Draggable Pill Position State & Native OS Window Drag
   const [pillPos, setPillPos] = useState({ 
-    x: (typeof window !== 'undefined' && window.screen) ? (window.screen.availWidth - 350) : 1180, 
+    x: (typeof window !== 'undefined' && window.screen) ? (window.screen.availWidth - 564) : 1180, 
     y: 16 
   })
   const isDraggingPill = useRef(false)

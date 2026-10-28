@@ -190,7 +190,12 @@ function createWindow() {
     const screenWidth = primaryDisplay.workAreaSize ? primaryDisplay.workAreaSize.width : primaryDisplay.bounds.width;
     const pillWidth = 540;
     const pillHeight = 64; // Comfortably hosts the inline Pill error sentry and action buttons
-    const targetX = (bounds && typeof bounds.x === 'number' && bounds.x > 0) ? Math.round(bounds.x) : (screenWidth - pillWidth - 20);
+    let targetX = (bounds && typeof bounds.x === 'number' && bounds.x > 0) ? Math.round(bounds.x) : (screenWidth - pillWidth - 24);
+    // Boundary clamp: ensure window never overflows right or left monitor borders
+    if (targetX + pillWidth > screenWidth - 10) {
+      targetX = screenWidth - pillWidth - 24;
+    }
+    if (targetX < 10) targetX = 10;
     const targetY = (bounds && typeof bounds.y === 'number' && bounds.y > 0) ? Math.round(bounds.y) : 16;
     mainWindow.setResizable(true);
     mainWindow.setBounds({
@@ -206,7 +211,15 @@ function createWindow() {
 
   ipcMain.on('move-window', (event, { x, y }) => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
-    mainWindow.setPosition(Math.round(x), Math.round(y));
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const screenWidth = primaryDisplay.workAreaSize ? primaryDisplay.workAreaSize.width : primaryDisplay.bounds.width;
+    const pillWidth = 540;
+    let safeX = Math.round(x);
+    if (safeX + pillWidth > screenWidth - 10) {
+      safeX = screenWidth - pillWidth - 24;
+    }
+    if (safeX < 10) safeX = 10;
+    mainWindow.setPosition(safeX, Math.round(y));
   });
 
   // Terminate & Quit App immediately
