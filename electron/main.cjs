@@ -188,8 +188,8 @@ function createWindow() {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const primaryDisplay = screen.getPrimaryDisplay();
     const screenWidth = primaryDisplay.workAreaSize ? primaryDisplay.workAreaSize.width : primaryDisplay.bounds.width;
-    const pillWidth = 380;
-    const pillHeight = 260; // Height to accommodate floating popout cards seamlessly
+    const pillWidth = 460;
+    const pillHeight = 64; // Comfortably hosts the inline Pill error sentry and action buttons
     const targetX = (bounds && typeof bounds.x === 'number' && bounds.x > 0) ? Math.round(bounds.x) : (screenWidth - pillWidth - 20);
     const targetY = (bounds && typeof bounds.y === 'number' && bounds.y > 0) ? Math.round(bounds.y) : 16;
     mainWindow.setResizable(true);

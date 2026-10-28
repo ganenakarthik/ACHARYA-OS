@@ -101,16 +101,17 @@ a {
    ══════════════════════════════════════════════════════════ */
 .small-circular-orb-pill {
   position: absolute;
-  top: 14px;
+  top: 10px;
   right: 18px;
   display: inline-flex;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
-  height: 38px;
-  max-height: 38px;
-  gap: 7px;
-  padding: 3px 12px 3px 5px;
+  min-height: 38px;
+  height: auto;
+  max-height: 48px;
+  gap: 8px;
+  padding: 3px 12px 3px 6px;
   background: linear-gradient(135deg, rgba(8, 18, 32, 0.96), rgba(3, 8, 16, 0.98));
   border: 1.2px solid var(--neon-cyan);
   border-radius: 9999px;

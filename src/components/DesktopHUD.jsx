@@ -1074,167 +1074,106 @@ export default function DesktopHUD() {
               borderColor: activeCodeIssue ? '#ff7b72 transparent #ff7b72 transparent' : undefined
             }} />
           </div>
-          <div className="orb-pill-tag">
-            <div className={`tag-status-dot ${isListening ? 'listening' : ''}`} style={{
-              background: activeCodeIssue ? '#ff4d6d' : (liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? '#00ff9d' : undefined,
-              boxShadow: activeCodeIssue ? '0 0 8px #ff4d6d' : undefined
-            }} />
-            <span className="tag-text">ACHARYA</span>
+          {/* NORMAL PILL CONTENT (When No Error) */}
+          {!(activeCodeIssue || activeSocraticIntervention) ? (
+            <div className="orb-pill-tag">
+              <div className={`tag-status-dot ${isListening ? 'listening' : ''}`} style={{
+                background: (liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? '#00ff9d' : undefined
+              }} />
+              <span className="tag-text">ACHARYA</span>
 
-            {/* Real-time Code Issue Badge in Collapsed Pill */}
-            {(activeCodeIssue || activeSocraticIntervention) ? (() => {
-              const current = activeCodeIssue || activeSocraticIntervention;
-              const lineStr = current.line ? `Line ${current.line}` : 'Alert';
-              return (
-                <span className="pill-event-badge-glow" style={{ background: 'rgba(255, 77, 109, 0.28)', border: '1px solid #ff4d6d', color: '#ff7b72', whiteSpace: 'nowrap' }} title={`Error on Line ${current.line || 'Active'}: ${current.errorType}`}>
-                  <span className="event-pulse-dot" style={{ background: '#ff4d6d', boxShadow: '0 0 10px #ff4d6d' }} />
-                  🚨 {lineStr}
+              {(liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? (
+                <span className="pill-event-badge-glow cyan" title={`Clean Code Flow: ${liveCodeStatus.fileName || 'Active File'}`}>
+                  <span className="event-pulse-dot cyan" style={{ background: '#00ff9d', boxShadow: '0 0 8px #00ff9d' }} />
+                  ✍️ {liveCodeStatus.fileName ? liveCodeStatus.fileName.slice(0, 12) : 'Clean Code'}
                 </span>
-              );
-            })() : (liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? (
-              <span className="pill-event-badge-glow cyan" title={`Clean Code Flow: ${liveCodeStatus.fileName || 'Active File'}`}>
-                <span className="event-pulse-dot cyan" style={{ background: '#00ff9d', boxShadow: '0 0 8px #00ff9d' }} />
-                ✍️ {liveCodeStatus.fileName ? liveCodeStatus.fileName.slice(0, 12) : 'Clean Code'}
-              </span>
-            ) : pillEventNotification ? (
-              <span className={`pill-event-badge-glow ${pillEventNotification.type === 'EXAM' ? '' : 'cyan'}`} title={`Event Active: ${pillEventNotification.title}`}>
-                <span className={`event-pulse-dot ${pillEventNotification.type === 'EXAM' ? '' : 'cyan'}`} />
-                🔔 {pillEventNotification.title.slice(0, 18)} {pillEventNotification.detail ? `· ${pillEventNotification.detail.slice(0, 12)}` : ''}
-              </span>
-            ) : nearestDeadline ? (
-              <span className="pill-event-badge-glow cyan" title={`Upcoming Event: ${nearestDeadline.title}`}>
-                <span className="event-pulse-dot cyan" />
-                📅 {nearestDeadline.title.slice(0, 16)} · {nearestDeadline.days}d
-              </span>
-            ) : (
-              <span className="tag-model-badge">ONLINE</span>
-            )}
+              ) : pillEventNotification ? (
+                <span className={`pill-event-badge-glow ${pillEventNotification.type === 'EXAM' ? '' : 'cyan'}`} title={`Event Active: ${pillEventNotification.title}`}>
+                  <span className={`event-pulse-dot ${pillEventNotification.type === 'EXAM' ? '' : 'cyan'}`} />
+                  🔔 {pillEventNotification.title.slice(0, 18)} {pillEventNotification.detail ? `· ${pillEventNotification.detail.slice(0, 12)}` : ''}
+                </span>
+              ) : nearestDeadline ? (
+                <span className="pill-event-badge-glow cyan" title={`Upcoming Event: ${nearestDeadline.title}`}>
+                  <span className="event-pulse-dot cyan" />
+                  📅 {nearestDeadline.title.slice(0, 16)} · {nearestDeadline.days}d
+                </span>
+              ) : (
+                <span className="tag-model-badge">ONLINE</span>
+              )}
 
-            {readingAlarm?.active && (
-              <span className="pill-reading-alarm" title="Active Reading Timer">
-                ⏱ {Math.floor(readingAlarm.remainingSeconds / 60)}:{String(readingAlarm.remainingSeconds % 60).padStart(2, '0')}
-              </span>
-            )}
-          </div>
-          <button
-            className="pill-terminate-dot-btn"
-            title="Terminate Acharya"
-            onPointerDown={(e) => {
-              e.stopPropagation()
-            }}
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              const electron = getElectron()
-              if (electron) {
-                electron.send('quit-app')
-              }
-            }}
-          >
-            ✕
-          </button>
-
-          {/* Real-time Code Issue Popout Toast attached to Pill */}
-          {(activeCodeIssue || activeSocraticIntervention) && (() => {
-            const currentIssue = activeCodeIssue || activeSocraticIntervention;
+              {readingAlarm?.active && (
+                <span className="pill-reading-alarm" title="Active Reading Timer">
+                  ⏱ {Math.floor(readingAlarm.remainingSeconds / 60)}:{String(readingAlarm.remainingSeconds % 60).padStart(2, '0')}
+                </span>
+              )}
+            </div>
+          ) : (() => {
+            /* ERROR DETECTED: SHOW DETAILS DIRECTLY INSIDE THE PILL AT THAT PLACE! */
+            const current = activeCodeIssue || activeSocraticIntervention;
+            const lineStr = current.line ? `Line ${current.line}` : 'Alert';
+            const shortErr = (current.errorType || 'Syntax / Logic Flaw').replace(/SyntaxError:\s*/i, '').replace(/Logic Flaw:\s*/i, '');
             return (
-              <div 
-                className="pill-event-popout-toast"
-                style={{
-                  border: '1.5px solid #ff4d6d',
-                  background: 'linear-gradient(135deg, rgba(18, 4, 12, 0.98), rgba(35, 8, 20, 0.98))',
-                  boxShadow: '0 12px 40px rgba(0, 0, 0, 0.9), 0 0 35px rgba(255, 77, 109, 0.55)',
-                  minWidth: '280px',
-                  maxWidth: '340px',
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  whiteSpace: 'normal',
-                  zIndex: 300
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Top Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '15px' }}>🚨</span>
-                    <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#ff4d6d', letterSpacing: '0.5px' }}>
-                      {currentIssue.language} FLAW · LINE {currentIssue.line || 'ACTIVE'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', maxWidth: '240px', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ fontSize: '9px', fontWeight: '900', color: '#ff4d6d', letterSpacing: '0.4px', whiteSpace: 'nowrap' }}>
+                      🚨 {lineStr}: {shortErr.slice(0, 22)}
+                    </span>
+                    <span style={{ fontSize: '7.5px', padding: '1px 4px', borderRadius: '3px', background: 'rgba(255, 77, 109, 0.3)', color: '#ff7b72', border: '1px solid #ff4d6d', fontWeight: 'bold' }}>
+                      {current.language || 'Python'}
                     </span>
                   </div>
-                  <span style={{ fontSize: '8px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(255, 77, 109, 0.25)', color: '#ff7b72', border: '1px solid #ff4d6d', fontFamily: 'monospace' }}>
-                    {currentIssue.fileName || 'active_code'}
-                  </span>
-                </div>
-
-                {/* Error Title & Code Snippet */}
-                <div>
-                  <div style={{ color: '#ffffff', fontSize: '11px', fontWeight: 'bold' }}>
-                    {currentIssue.errorType}
-                  </div>
-                  {(currentIssue.codeSnippet || currentIssue.rawSample) && (
-                    <div style={{ fontSize: '8.5px', fontFamily: 'monospace', color: '#ff7b72', background: 'rgba(0,0,0,0.5)', padding: '3px 6px', borderRadius: '4px', marginTop: '4px', borderLeft: '2px solid #ff4d6d', wordBreak: 'break-all' }}>
-                      &gt; {(currentIssue.codeSnippet || currentIssue.rawSample || '').slice(0, 90)}
-                    </div>
-                  )}
-                  <div style={{ color: '#ffd166', fontSize: '9px', marginTop: '4px', lineHeight: '1.3' }}>
-                    💡 {currentIssue.hint || currentIssue.socraticHint}
+                  <div style={{ fontSize: '8px', color: '#ffd166', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    💡 {(current.hint || current.socraticHint || 'Check syntax invariant').slice(0, 48)}...
                   </div>
                 </div>
 
-                {/* Two Side-by-Side Action Buttons: Fix on Left, Ignore on Right */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto' }}>
                   <button
                     onClick={(e) => {
-                      e.stopPropagation()
-                      setCodeSnippet(currentIssue.suggestedFix || currentIssue.codeSnippet || currentIssue.rawSample || '')
-                      setActiveModal('code')
-                      handleExpandHUD()
-                      if (activeCodeIssue) dismissActiveCodeIssue()
-                      if (activeSocraticIntervention) dismissSocraticIntervention()
-                      playCyberChime('affirm')
+                      e.stopPropagation();
+                      setCodeSnippet(current.suggestedFix || current.codeSnippet || current.rawSample || '');
+                      setActiveModal('code');
+                      handleExpandHUD();
+                      if (activeCodeIssue) dismissActiveCodeIssue();
+                      if (activeSocraticIntervention) dismissSocraticIntervention();
+                      playCyberChime('affirm');
                     }}
                     style={{
                       background: 'linear-gradient(135deg, #00f0ff, #00ff9d)',
                       border: 'none',
                       color: '#000',
                       fontWeight: '900',
-                      fontSize: '9.5px',
-                      padding: '6px 10px',
-                      borderRadius: '5px',
+                      fontSize: '8.5px',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
                       cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px',
-                      boxShadow: '0 0 12px rgba(0, 240, 255, 0.4)'
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 0 10px rgba(0, 240, 255, 0.4)'
                     }}
+                    title="Click to auto-fix in AST Code Sentry"
                   >
-                    ⚡ Fix in HUD
+                    ⚡ Fix
                   </button>
                   <button
                     onClick={(e) => {
-                      e.stopPropagation()
-                      if (activeCodeIssue) dismissActiveCodeIssue()
-                      if (activeSocraticIntervention) dismissSocraticIntervention()
-                      playCyberChime('scan')
+                      e.stopPropagation();
+                      if (activeCodeIssue) dismissActiveCodeIssue();
+                      if (activeSocraticIntervention) dismissSocraticIntervention();
+                      playCyberChime('scan');
                     }}
                     style={{
                       background: 'rgba(255, 255, 255, 0.08)',
                       border: '1px solid rgba(255, 255, 255, 0.25)',
                       color: '#ffffff',
                       fontWeight: 'bold',
-                      fontSize: '9.5px',
-                      padding: '6px 10px',
-                      borderRadius: '5px',
+                      fontSize: '8.5px',
+                      padding: '4px 7px',
+                      borderRadius: '4px',
                       cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px'
+                      whiteSpace: 'nowrap'
                     }}
+                    title="Dismiss alert"
                   >
                     ✕ Ignore
                   </button>
