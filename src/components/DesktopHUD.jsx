@@ -95,6 +95,31 @@ export default function DesktopHUD() {
         electron.on('live-code-clean', (info) => {
           setLiveCodeClean(info)
         })
+        electron.on('clipboard-code-received', async (codeText) => {
+          if (!codeText || codeText.trim().length < 8) return
+          try {
+            const aiRes = await analyzeCodeWithAI(codeText, '', userProfile)
+            if (aiRes && aiRes.isError) {
+              setActiveCodeIssue({
+                ...aiRes,
+                programDomain: aiRes.projectIntent || aiRes.language || 'Code Flow',
+                fileName: aiRes.fileName || 'active_editor'
+              })
+              playCyberChime('alarm')
+              showToast(`🚨 ${aiRes.errorType} (Line ${aiRes.line})`, '⚠️')
+              if (ttsEnabled && aiRes.mentorSpeech) {
+                setIsSpeaking(true)
+                speakText(aiRes.mentorSpeech, {
+                  persona: voicePersona,
+                  onStart: () => setIsSpeaking(true),
+                  onEnd: () => setIsSpeaking(false)
+                })
+              }
+            } else if (aiRes && !aiRes.isError) {
+              dismissActiveCodeIssue()
+            }
+          } catch (_) {}
+        })
       }
       // Guarantee fullscreen display bounds on startup
       if (electron.send) {

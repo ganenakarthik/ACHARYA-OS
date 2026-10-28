@@ -1201,11 +1201,14 @@ function createWindow() {
       const { exec } = require('child_process');
       const psCmd = `
         Add-Type -AssemblyName System.Windows.Forms;
+        $wshell = New-Object -ComObject WScript.Shell;
         $procs = Get-Process -Name notepad, Code -ErrorAction SilentlyContinue | Sort-Object -Property StartTime -Descending | Select-Object -First 1;
-        if ($procs) {
-          $wshell = New-Object -ComObject WScript.Shell;
-          $wshell.AppActivate($procs.Id);
-          Start-Sleep -Milliseconds 80;
+        $act = $wshell.AppActivate("Notepad");
+        if (-not $act) { $act = $wshell.AppActivate("Visual Studio Code"); }
+        if (-not $act) { $act = $wshell.AppActivate("Code"); }
+        if (-not $act -and $procs) { $act = $wshell.AppActivate($procs.Id); }
+        if ($act) {
+          Start-Sleep -Milliseconds 100;
           [System.Windows.Forms.SendKeys]::SendWait('^a');
           Start-Sleep -Milliseconds 60;
           [System.Windows.Forms.SendKeys]::SendWait('^c');
@@ -1225,6 +1228,23 @@ function createWindow() {
       });
     });
   });
+
+  // Background Clipboard Sentry (Instant Auto-Detection when code is copied - Zero Buttons Needed)
+  let lastSeenClipText = '';
+  let clipGracePeriod = true;
+  setTimeout(() => { clipGracePeriod = false; }, 2500);
+
+  setInterval(() => {
+    if (!mainWindow || mainWindow.isDestroyed() || clipGracePeriod) return;
+    try {
+      const txt = clipboard.readText();
+      if (txt && txt !== lastSeenClipText && txt.trim().length >= 8) {
+        lastSeenClipText = txt;
+        // Notify renderer to run AI Model on newly copied code
+        mainWindow.webContents.send('clipboard-code-received', txt);
+      }
+    } catch (_) {}
+  }, 1200);
 
   // Get current clipboard text safely on demand
   ipcMain.handle('get-clipboard-code', async () => {
