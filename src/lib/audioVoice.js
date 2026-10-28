@@ -1,5 +1,5 @@
 /* ================================================================
-   ACHARYA JARVIS & EDITH TACTICAL AUDIO & VOICE ENGINE
+   ACHARYA NEURAL AUDIO & VOICE ENGINE
    Long-Form Charismatic Speech Narration ("Big Speaking")
    Web Audio API Cybernetic Synthesizer · Sentence Pipelining
    ================================================================ */
@@ -9,7 +9,7 @@ let isSpeakingActive = false
 let keepAliveTimer = null
 let sharedAudioCtx = null
 
-/* ── 0. CYBERNETIC WEB AUDIO SYNTHESIZER (JARVIS / EDITH Chimes) ── */
+/* ── 0. CYBERNETIC WEB AUDIO SYNTHESIZER (Acharya Chimes) ── */
 export function playCyberChime(type = 'affirm') {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext
@@ -25,7 +25,7 @@ export function playCyberChime(type = 'affirm') {
     const now = ctx.currentTime
 
     if (type === 'boot') {
-      // Iron Man / EDITH HUD initialization power-up hum
+      // Acharya HUD initialization power-up hum
       const osc = ctx.createOscillator()
       const gain = ctx.createGain()
       osc.type = 'sine'
@@ -141,8 +141,8 @@ export function speakText(text, options = {}) {
 
   if (!clean) return
 
-  const persona = options.persona || 'jarvis' // 'jarvis' | 'edith' | 'mentor'
-  const lang = persona === 'jarvis' ? 'en-gb' : persona === 'edith' ? 'en-us' : 'en-gb'
+  const persona = options.persona || 'acharya'
+  const lang = 'en-gb'
   const neuralUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodeURIComponent(clean)}`
 
   // 1. Primary High-Definition Neural Studio Audio Stream
@@ -192,7 +192,7 @@ function fallbackWebSpeech(cleanText, options = {}) {
   if (options.onStart) options.onStart()
 
   let currentIndex = 0
-  const persona = options.persona || 'jarvis'
+  const persona = options.persona || 'acharya'
 
   function speakNextChunk() {
     if (!isSpeakingActive || currentIndex >= activeSpeechQueue.length) {
@@ -206,33 +206,14 @@ function fallbackWebSpeech(cleanText, options = {}) {
 
     const utterance = new SpeechSynthesisUtterance(chunk)
     const voices = window.speechSynthesis.getVoices()
-    let chosenVoice = null
-
-    if (persona === 'jarvis') {
-      chosenVoice = voices.find(v => v.lang.startsWith('en') && (
-        v.name.includes('Hazel') ||
-        v.name.includes('George') ||
-        v.name.includes('Oliver') ||
-        v.lang === 'en-GB'
-      )) || voices.find(v => v.lang.startsWith('en'))
-      utterance.pitch = 1.02
-      utterance.rate = 1.15
-    } else if (persona === 'edith') {
-      chosenVoice = voices.find(v => v.lang.startsWith('en') && (
-        v.name.includes('Zira') ||
-        v.name.includes('Hazel') ||
-        v.name.includes('Susan')
-      )) || voices.find(v => v.lang.startsWith('en'))
-      utterance.pitch = 1.06
-      utterance.rate = 1.18
-    } else {
-      chosenVoice = voices.find(v => v.lang.startsWith('en') && (
-        v.name.includes('Hazel') ||
-        v.name.includes('Zira')
-      )) || voices.find(v => v.lang.startsWith('en'))
-      utterance.pitch = 1.03
-      utterance.rate = 1.12
-    }
+    let chosenVoice = voices.find(v => v.lang.startsWith('en') && (
+      v.name.includes('Hazel') ||
+      v.name.includes('George') ||
+      v.name.includes('Oliver') ||
+      v.lang === 'en-GB'
+    )) || voices.find(v => v.lang.startsWith('en'))
+    utterance.pitch = 1.02
+    utterance.rate = 1.15
 
     if (chosenVoice) utterance.voice = chosenVoice
     utterance.volume = options.volume !== undefined ? options.volume : 1.0

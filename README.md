@@ -64,10 +64,8 @@ Traditional AI learning tools are trapped inside browser tabs—they lack eyes o
 
 ### 5. Studio-Grade 44.1kHz Neural Voice Engine
 - Replaced robotic legacy SAPI5 audio with studio 44.1kHz High-Definition audio narration.
-- Accents tuned to tactical personas:
-  - **JARVIS**: British English (`en-gb`), polished, dignified.
-  - **EDITH**: American English (`en-us`), sharp, futuristic.
-- Delivers concise, executive-level spoken summaries while rendering detailed diagrams in the chat window.
+- Tuned for clear, executive-level technical mentoring and academic explanations.
+- Delivers concise, Socratic spoken summaries while rendering detailed diagrams in the HUD window.
 
 ### 6. Episodic Long-Term Memory Vault
 - Automatically persists learning goals, skill progression, project preferences, and exam milestones to disk (`userData/acharya-memory-vault.json`), retaining context across sessions and system reboots.

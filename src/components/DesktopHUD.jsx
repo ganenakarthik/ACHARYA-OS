@@ -83,9 +83,7 @@ export default function DesktopHUD() {
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [isAiThinking, setIsAiThinking] = useState(false)
   const [ttsEnabled, setTtsEnabled] = useState(true)
-  const [voicePersona, setVoicePersona] = useState('jarvis') // 'jarvis' | 'edith' | 'mentor'
-
-  // Workspace Intelligence Tree & File Inspection
+  const [voicePersona, setVoicePersona] = useState('acharya')
   const [workspaceTree, setWorkspaceTree] = useState([])
   const [selectedWorkspaceFile, setSelectedWorkspaceFile] = useState(null)
   const [workspaceFileContent, setWorkspaceFileContent] = useState('')
@@ -94,7 +92,7 @@ export default function DesktopHUD() {
   const handleScanWorkspace = async () => {
     setIsScanningWorkspace(true)
     playCyberChime('scan')
-    showToast('JARVIS scanning local repository tree...', '⚡')
+    showToast('Acharya scanning local repository tree...', '⚡')
     const electron = getElectron()
     if (electron) {
       try {
@@ -1163,18 +1161,12 @@ export default function DesktopHUD() {
               <span>{ttsEnabled ? '🔊 VOICE: ON' : '🔇 VOICE: MUTED'}</span>
             </div>
 
-            {/* Tactical Voice Persona Selector in Header */}
+            {/* Acharya AI Mentor Badge */}
             <div 
               className="persona-hud-badge"
-              onClick={() => {
-                const next = voicePersona === 'jarvis' ? 'edith' : voicePersona === 'edith' ? 'mentor' : 'jarvis'
-                setVoicePersona(next)
-                playCyberChime(next === 'edith' ? 'scan' : next === 'mentor' ? 'boot' : 'affirm')
-                showToast(`Tactical Persona: ${next.toUpperCase()}`, next === 'edith' ? '💎' : next === 'mentor' ? '🧘' : '⚡')
-              }}
-              title="Click to toggle tactical persona (JARVIS / EDITH / MENTOR)"
+              title="Acharya Autonomous AI Mentor"
             >
-              <span>{voicePersona === 'jarvis' ? '⚡ JARVIS' : voicePersona === 'edith' ? '💎 EDITH' : '🧘 MENTOR'}</span>
+              <span>🧘 ACHARYA AI</span>
             </div>
 
             <div className="ai-engine-capsule-badge" onClick={() => setActiveModal('settings')}>
@@ -1224,13 +1216,13 @@ export default function DesktopHUD() {
             </div>
           </header>
 
-          {/* Center 3D Gyro Orb Stage & JARVIS Arc Reactor Core */}
+          {/* Center 3D Gyro Orb Stage & Acharya Neural Core */}
           <div className="hud-center-stage-container">
             <div className="stage-top-capsule" onClick={toggleListening}>
               <span className="status-emoji">{isAiThinking ? '🧠' : '⚡'}</span>
               <span className="status-sep-line" />
               <span className="status-text-glow">
-                {isAiThinking ? 'JARVIS // SYNTHESIZING...' : `ACHARYA // ${voicePersona.toUpperCase()} CORE`}
+                {isAiThinking ? 'ACHARYA // SYNTHESIZING...' : 'ACHARYA // NEURAL CORE'}
               </span>
               <div className="stage-inline-waveform">
                 <span className={`micro-wave-stem ${isSpeaking ? 'speaking-wave' : ''}`} style={{ height: isSpeaking ? '14px' : '4px' }} />
@@ -1240,8 +1232,8 @@ export default function DesktopHUD() {
             </div>
 
             {/* Holographic Arc Reactor Core */}
-            <div className="stage-sphere-wrapper" onClick={toggleListening} title="Click to interact with JARVIS / EDITH Core">
-              <div className={`jarvis-arc-reactor-core ${isSpeaking ? 'active-speaking' : ''} ${isAiThinking ? 'active-thinking' : ''} ${isListening ? 'active-listening' : ''}`}>
+            <div className="stage-sphere-wrapper" onClick={toggleListening} title="Click to interact with Acharya Voice Core">
+              <div className={`acharya-neural-reactor-core jarvis-arc-reactor-core ${isSpeaking ? 'active-speaking' : ''} ${isAiThinking ? 'active-thinking' : ''} ${isListening ? 'active-listening' : ''}`}>
                 <div className="arc-ring-outer" />
                 <div className="arc-ring-mid" />
                 <div className="arc-ring-inner" />
@@ -1262,38 +1254,14 @@ export default function DesktopHUD() {
               </div>
             </div>
 
-            {/* JARVIS / EDITH Tactical Persona Switcher Bar */}
-            <div className="jarvis-persona-capsule-bar">
-              <button 
-                className={`persona-pill-btn ${voicePersona === 'jarvis' ? 'active-jarvis' : ''}`}
-                onClick={() => {
-                  setVoicePersona('jarvis')
-                  playCyberChime('affirm')
-                  showToast('Tactical Persona: JARVIS (Dignified Tech Lead)', '⚡')
-                }}
+            {/* Acharya Socratic AI Mentor Capsule */}
+            <div className="acharya-persona-capsule-bar jarvis-persona-capsule-bar" style={{ justifyContent: 'center' }}>
+              <div 
+                className="persona-pill-btn active-mentor"
+                style={{ cursor: 'default', padding: '3px 14px', fontSize: '10px' }}
               >
-                ⚡ JARVIS
-              </button>
-              <button 
-                className={`persona-pill-btn ${voicePersona === 'edith' ? 'active-edith' : ''}`}
-                onClick={() => {
-                  setVoicePersona('edith')
-                  playCyberChime('scan')
-                  showToast('Tactical Persona: E.D.I.T.H. (Strategic Tactical AI)', '💎')
-                }}
-              >
-                💎 EDITH
-              </button>
-              <button 
-                className={`persona-pill-btn ${voicePersona === 'mentor' ? 'active-mentor' : ''}`}
-                onClick={() => {
-                  setVoicePersona('mentor')
-                  playCyberChime('boot')
-                  showToast('Tactical Persona: ACHARYA (Socratic Mentor)', '🧘')
-                }}
-              >
-                🧘 MENTOR
-              </button>
+                🧘 ACHARYA // AI MENTOR
+              </div>
             </div>
 
             {/* Cognitive Mood Indicator */}
@@ -2772,7 +2740,7 @@ export default function DesktopHUD() {
                     <div className="workspace-modal-view" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       <div className="v-card">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div className="v-card-lbl">📁 JARVIS Workspace & Codebase Intelligence</div>
+                          <div className="v-card-lbl">📁 Workspace & Codebase Intelligence</div>
                           <button 
                             className="btn-vision-speak" 
                             onClick={handleScanWorkspace} 

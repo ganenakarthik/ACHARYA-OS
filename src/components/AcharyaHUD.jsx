@@ -31,7 +31,7 @@ export default function AcharyaHUD() {
 
   /* ─ State ─ */
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: '◈ Acharya OS online. I am your JARVIS-level coding assistant. Say "Hey Acharya", paste code to diagnose, or tap expand for full IDE dashboard.', id: 1, time: ts() }
+    { role: 'assistant', content: '◈ Acharya OS online. I am your autonomous AI learning mentor. Say "Hey Acharya", paste code to diagnose, or tap expand for full IDE dashboard.', id: 1, time: ts() }
   ])
   const [inputText, setInputText]       = useState('')
   const [isListening, setIsListening]   = useState(false)
