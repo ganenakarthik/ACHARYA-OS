@@ -1,74 +1,67 @@
-# 🌌 ACHARYA // Autonomous Desktop AI Mentor OS
+# 🌌 ACHARYA // Context-Aware AI Mentor OS
 
-> **Major Project**: *A Context-Aware AI Mentor with Persistent Memory Across Learning Sessions*  
-> **Researchers**: G. Karthik (2411cs040056) & K. Shalem Raju (2411cs040088)  
-> **Guide**: Mr. Ch. P.S.S. Prakash — Department of Computer Science & Engineering, Malla Reddy University
-
----
-
-## ⚡ Overview
-
-Traditional AI learning tools are trapped inside browser tabs—they lack eyes on the user's workspace, cannot detect real-time coding bottlenecks, and lose context across sessions.
-
-**Acharya** is an ambient, desktop-integrated AI companion built with **Electron**, **React 19**, and native **Win32 OS sensors**. It runs seamlessly on your desktop as an unobtrusive, draggable glowing pill that expands into a full-scale cyberpunk holographic glassmorphic HUD.
-
-```
-┌────────────────────────────────────────────────────────┐
-│                   WINDOWS OS TELEMETRY                 │
-│   • Win32 GetForegroundWindow   • Screen Frame Capture │
-│   • System Clipboard Sentry      • CPU / RAM Telemetry  │
-└───────────────────────────┬────────────────────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│               ACHARYA REASONING PIPELINE               │
-│  ┌───────────────────────┐   ┌──────────────────────┐  │
-│  │ Context Vision Engine │   │ AST Code Sentry      │  │
-│  └───────────┬───────────┘   └──────────┬───────────┘  │
-│              └─────────────┬────────────┘              │
-│                            ▼                           │
-│               Socratic Knowledge Engine                │
-│             & Long-Term Disk Memory Vault              │
-└───────────────────────────┬────────────────────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│             HOLOGRAPHIC AMBIENT GLASS HUD              │
-│   • Vision Monitor Card · Arc Reactor Core             │
-│   • Digital Twin Deadlines & Timetable · Tool Ribbon   │
-│   • Ambient Draggable Pill with Real-Time Event Alerts │
-└────────────────────────────────────────────────────────┘
-```
+> **Major Project**: *A CONTEXT-AWARE AI MENTOR WITH PERSISTENT MEMORY ACROSS LEARNING SESSIONS*  
+> **Researchers**: **G. Karthik** (`2411CS040056`) & **K. Shalem Raju** (`2411CS040088`)  
+> **Department**: Department of Computer Science & Engineering (Cyber Security), School of Engineering  
+> **Institution**: Malla Reddy University, Hyderabad  
+> **Internal Guide**: Mr. Ch. P.S.S. Prakash (Assistant Professor)  
+> **Dean**: Dr. G. Anand Kumar (Professor & Dean, CSE - Cyber Security)  
 
 ---
 
-## 🌟 Key Capabilities
+## ⚡ Overview & Problem Statement
 
-### 1. Ambient Desktop Pill with Live Event Notifications
-- Sits unobtrusively in the corner of your screen as a draggable floating pill.
-- Dynamically surfaces upcoming deadlines and newly created exam events directly inside the pill badge (`🔔 Operating Systems Exam · In 2 Days`).
-- Displays animated drop-down popout event notifications with one-click navigation to full study schedules.
+Traditional AI learning assistants (such as ChatGPT) suffer from three fatal limitations in higher-education engineering environments:
+1. **Manual Prompting Overhead**: The student must manually context-switch, copy-paste compiler traces into a browser, and request help.
+2. **Session Amnesia**: Standard LLMs forget student weaknesses between sessions, treating each login as a cold start without longitudinal cognitive tracking.
+3. **Data Exfiltration in Cyber Security Environments**: Cloud-hosted screen trackers transmit sensitive developer telemetry to third-party endpoints.
 
-### 2. Native Win32 Screen & Process Perception
+**Acharya** solves this by operating as an ambient, desktop-integrated AI companion built with **Electron**, **React 19**, and native **Win32 OS sensors**. It runs seamlessly on your desktop as an unobtrusive, draggable glowing pill that expands into a full-scale cyberpunk holographic HUD with zero cloud data leaks.
+
+---
+
+## 🌟 Novel Core Contributions (Addressing Viva & Review Criteria)
+
+### 1. Autonomous Zero-Touch Socratic OS Error Interceptor
+- **Unlike ChatGPT**, Acharya does not require manual prompting. Native Win32 OS background hooks continuously monitor runtime exceptions across Java (NullPointerException), Python (KeyError), C/C++ (Segmentation Fault / SIGSEGV), and SQL.
+- When an IDE or console throws a fault, Acharya autonomously surfaces a **Socratic guidance banner** without the student touching a keyboard.
+- It directs the student to the invariant rather than spoon-feeding code, preserving deep problem-solving skills.
+
+### 2. Longitudinal Ebbinghaus Spaced Retrieval Engine ($R = e^{-t/S}$)
+- Tracks concept retention decay across sequential learning intervals.
+- If a student struggles with a concept during Session 1 (e.g. *Banker's Algorithm Safety Invariant*), Acharya calculates the decay rate over elapsed time.
+- When Session 3 launches, Acharya proactively activates a **Cross-Session Retrieval Drill**, restoring retention from 48% to 96% upon verification.
+
+### 3. Cryptographic Block-Chained Session Memory Ledger (SHA-256)
+- Designed specifically for the **CSE (Cyber Security)** curriculum:
+  $$\mathcal{H}_n = \text{SHA256}(\mathcal{H}_{n-1} \parallel \text{SessionPayload})$$
+- All learning sessions, concept scores, and weaknesses are sealed into an air-gapped cryptographic blockchain stored locally at `userData/acharya-learning-sessions.json`.
+- Includes a live 1-click **Chain Integrity Validator** (`verify-session-ledger-integrity`) that proves tamper resistance across sessions.
+
+### 4. Native Win32 Screen & Process Perception
 - Interrogates native Windows APIs (`GetForegroundWindow` / `GetWindowText`) and Electron `desktopCapturer` every 2.5s.
 - Displays the active foreground window, application process name, and live thumbnail frame preview with zero heavy CPU overhead.
 
-### 3. Universal AST Code Sentry & 1-Click Multi-Bug Fix
-- Continuously polls the Windows system clipboard for code.
-- Runs local Abstract Syntax Tree (AST) inspection across Java, Python, JavaScript, and C++.
-- **`[⚡ FIX ALL AT ONCE]`**: Pinpoints and resolves multiple concurrent issues (missing imports, missing `@Service` annotations, unhandled null pointers) simultaneously in a single atomic pass with side-by-side diff previews.
+### 5. Universal AST Code Sentry & 1-Click Multi-Bug Fix
+- Real-time Abstract Syntax Tree inspection across Java, Python, JavaScript, and C++.
+- Pinpoints and resolves multiple concurrent issues (missing imports, missing `@Service` annotations, unhandled null pointers) in a single atomic pass with side-by-side diff previews.
 
-### 4. Autonomous Conversational Exam Timetable Engine
-- Natural language intent extraction: state *"I have Operating Systems exam on Friday"*.
-- Automatically registers the deadline countdown in the Digital Twin, commits it to the on-disk memory vault, and populates a 3-phase daily study schedule (Theory, Drills, Mock Exam).
-
-### 5. Studio-Grade 44.1kHz Neural Voice Engine
+### 6. Studio-Grade 44.1kHz Neural Voice Engine
 - Replaced robotic legacy SAPI5 audio with studio 44.1kHz High-Definition audio narration.
-- Tuned for clear, executive-level technical mentoring and academic explanations.
 - Delivers concise, Socratic spoken summaries while rendering detailed diagrams in the HUD window.
 
-### 6. Episodic Long-Term Memory Vault
-- Automatically persists learning goals, skill progression, project preferences, and exam milestones to disk (`userData/acharya-memory-vault.json`), retaining context across sessions and system reboots.
+---
+
+## 🎬 2-Minute Reviewer Demonstration Walkthrough
+
+When presenting to evaluators, execute this sequence:
+
+| Step | Action in HUD | Reviewer Value Demonstrated |
+| :--- | :--- | :--- |
+| **1** | Open Acharya & click **`🧠 SESSIONS & MEMORY`** | Shows persistent timeline across Session 1 (Concurrency), Session 2 (Paging), Session 3 (Live). |
+| **2** | In Tab 1, click **`[Test Java NullPointer]`** | Demonstrates **Zero-Touch OS Interception**: Acharya catches the runtime error automatically without student prompt. |
+| **3** | Switch to **Tab 2 (`RETENTION GRAPH`)** & answer Drill B | Demonstrates **Ebbinghaus Decay & Cross-Session Retrieval**: Session 1 weakness is tested and boosted from 48% $\rightarrow$ 96%. |
+| **4** | Switch to **Tab 3 (`SECURITY & LEDGER`)** & click **`[🔍 Verify Chain]`** | Demonstrates **Cyber Security Blockchain Ledger**: All sessions validated with SHA-256 air-gapped integrity. |
 
 ---
 
@@ -78,6 +71,8 @@ Traditional AI learning tools are trapped inside browser tabs—they lack eyes o
 - **Frontend**: [React 19](https://react.dev/), [Vite](https://vitejs.dev/)
 - **State Management**: [Zustand](https://github.com/pmndrs/zustand)
 - **Design System**: Frosted Obsidian Glassmorphism (`backdrop-filter: blur(28px)`), JetBrains Mono, Orbitron
+- **Cryptographic Security**: Node.js `crypto` SHA-256 cascade, Air-Gapped Local Storage
+- **Audio & Sensory**: Web Audio API cybernetic sound synthesizer, HTML5 Audio Neural Stream, Win32 PowerShell telemetry
 - **Markdown & Math**: `react-markdown`, `remark-gfm`, KaTeX LaTeX engine
 - **Audio & Sensory**: Web Audio API cybernetic sound synthesizer, HTML5 Audio Neural Stream, Win32 PowerShell telemetry
 
