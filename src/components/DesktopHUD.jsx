@@ -1108,7 +1108,7 @@ export default function DesktopHUD() {
             const shortErr = (current.errorType || 'Syntax / Logic Flaw').replace(/SyntaxError:\s*/i, '').replace(/Logic Flaw:\s*/i, '');
             return (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', maxWidth: '240px', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', maxWidth: '290px', overflow: 'hidden' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <span style={{ fontSize: '9px', fontWeight: '900', color: '#ff4d6d', letterSpacing: '0.4px', whiteSpace: 'nowrap' }}>
                       🚨 {lineStr}: {shortErr.slice(0, 22)}

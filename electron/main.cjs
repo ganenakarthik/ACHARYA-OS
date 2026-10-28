@@ -188,7 +188,7 @@ function createWindow() {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const primaryDisplay = screen.getPrimaryDisplay();
     const screenWidth = primaryDisplay.workAreaSize ? primaryDisplay.workAreaSize.width : primaryDisplay.bounds.width;
-    const pillWidth = 460;
+    const pillWidth = 540;
     const pillHeight = 64; // Comfortably hosts the inline Pill error sentry and action buttons
     const targetX = (bounds && typeof bounds.x === 'number' && bounds.x > 0) ? Math.round(bounds.x) : (screenWidth - pillWidth - 20);
     const targetY = (bounds && typeof bounds.y === 'number' && bounds.y > 0) ? Math.round(bounds.y) : 16;
@@ -1116,7 +1116,20 @@ function createWindow() {
       const clipText = clipboard.readText();
       if (clipText && clipText !== lastSeenClip && clipText.length > 8) {
         lastSeenClip = clipText;
-        // First check if it's an error stack trace
+
+        // 1. If it looks like code, run multi-language comprehension FIRST!
+        const isCodeSnippet = clipText.includes('def ') || clipText.includes('class ') || clipText.includes('public ') || clipText.includes('#include') || clipText.includes('function ') || clipText.includes('import ') || clipText.includes('for ') || clipText.includes('if ');
+        if (isCodeSnippet) {
+          const codeAnalysis = analyzeSourceCodeUnderstanding(clipText);
+          if (codeAnalysis.isError) {
+            mainWindow.webContents.send('live-code-issue-detected', codeAnalysis);
+          } else {
+            mainWindow.webContents.send('live-code-clean', codeAnalysis);
+          }
+          return;
+        }
+
+        // 2. Otherwise check if it's an error stack trace from terminal
         const errAnalysis = classifyExceptionTrace(clipText);
         if (errAnalysis.isError) {
           mainWindow.webContents.send('os-runtime-error-detected', errAnalysis);
@@ -1126,16 +1139,6 @@ function createWindow() {
             hint: errAnalysis.socraticHint
           });
           return;
-        }
-
-        // If it looks like code, run multi-language comprehension
-        if (clipText.includes('def ') || clipText.includes('class ') || clipText.includes('public ') || clipText.includes('#include') || clipText.includes('function ') || clipText.includes('for ') || clipText.includes('if ')) {
-          const codeAnalysis = analyzeSourceCodeUnderstanding(clipText);
-          if (codeAnalysis.isError) {
-            mainWindow.webContents.send('live-code-issue-detected', codeAnalysis);
-          } else {
-            mainWindow.webContents.send('live-code-clean', codeAnalysis);
-          }
         }
       }
     } catch (_) {}
