@@ -1047,19 +1047,13 @@ export default function DesktopHUD() {
           style={{
             cursor: 'pointer',
             userSelect: 'none',
-            touchAction: 'none',
           }}
-          onPointerDown={handlePillPointerDown}
-          onPointerMove={handlePillPointerMove}
-          onPointerUp={handlePillPointerUp}
-          onPointerCancel={handlePillPointerUp}
           onClick={(e) => {
-            if (!hasMovedSignificantly.current) {
-              handleExpandHUD()
-            }
+            // Prevent expanding if clicking internal action buttons
+            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+            handleExpandHUD();
           }}
           onDoubleClick={() => handleExpandHUD()}
-          onDragStart={(e) => e.preventDefault()}
         >
           <div className="orb-circle-body" style={{
             boxShadow: activeCodeIssue ? '0 0 25px #ff4d6d, inset 0 0 15px #ff4d6d' : (liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? '0 0 20px #00ff9d' : undefined
