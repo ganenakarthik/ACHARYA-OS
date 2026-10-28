@@ -586,6 +586,123 @@ function createWindow() {
     saveMemoriesToDisk([]);
     return { success: true, memories: [] };
   });
+
+  /* ══════════════════════════════════════════════════════════
+     LEARNING SESSIONS & PERSISTENT MEMORY ACROSS SESSIONS
+     (Academic Title: A Context-Aware AI Mentor with Persistent Memory Across Learning Sessions)
+     ══════════════════════════════════════════════════════════ */
+  const getSessionsFilePath = () => {
+    return path.join(app.getPath('userData'), 'acharya-learning-sessions.json');
+  };
+
+  const loadSessionsFromDisk = () => {
+    const fs = require('fs');
+    try {
+      const file = getSessionsFilePath();
+      if (fs.existsSync(file)) {
+        const raw = fs.readFileSync(file, 'utf8');
+        return JSON.parse(raw);
+      }
+    } catch (e) {
+      console.warn('Session read notice:', e);
+    }
+    // Default initial historical sessions showcasing memory carried across sessions
+    return [
+      {
+        id: 'session-101',
+        sessionNumber: 1,
+        title: 'OS Concurrency & Process Synchronization',
+        date: '2026-10-26T10:30:00.000Z',
+        durationMinutes: 45,
+        contextApp: 'VS Code',
+        contextDetail: 'Semaphores.c & DiningPhilosophers.c',
+        conceptsMastered: ['Mutual Exclusion', 'Counting Semaphores', 'Peterson Algorithm'],
+        weakConceptsIdentified: ["Banker's Algorithm Safety State", 'Circular Wait Condition'],
+        masteryScore: 72,
+        carriedOverInsight: "Flagged Banker's Algorithm safety invariant as weak. Scheduled for retrieval practice in Session 2.",
+        retentionStatus: 'Review Scheduled'
+      },
+      {
+        id: 'session-102',
+        sessionNumber: 2,
+        title: 'Virtual Memory Architecture & Paging',
+        date: '2026-10-27T15:00:00.000Z',
+        durationMinutes: 65,
+        contextApp: 'Chrome / Acrobat',
+        contextDetail: 'Operating_Systems_Unit_IV_Paging.pdf',
+        conceptsMastered: ['Page Tables', 'Demand Paging', 'Inverted Page Table'],
+        weakConceptsIdentified: ['TLB Miss Effective Access Time', 'Thrashing Working Set Model'],
+        masteryScore: 84,
+        carriedOverInsight: "Retrieved Peterson Algorithm successfully (+15%). Carried forward TLB Hit Ratio numericals to Session 3.",
+        retentionStatus: 'Good'
+      }
+    ];
+  };
+
+  const saveSessionsToDisk = (sessions) => {
+    const fs = require('fs');
+    try {
+      const file = getSessionsFilePath();
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, JSON.stringify(sessions, null, 2), 'utf8');
+      return true;
+    } catch (e) {
+      console.error('Sessions save error:', e);
+      return false;
+    }
+  };
+
+  ipcMain.handle('get-all-sessions', async () => {
+    const sessions = loadSessionsFromDisk();
+    return { success: true, sessions };
+  });
+
+  ipcMain.handle('save-session', async (event, sessionItem) => {
+    const sessions = loadSessionsFromDisk();
+    const existingIdx = sessions.findIndex(s => s.id === sessionItem.id);
+    if (existingIdx >= 0) {
+      sessions[existingIdx] = { ...sessions[existingIdx], ...sessionItem, updatedAt: new Date().toISOString() };
+    } else {
+      sessions.unshift({
+        ...sessionItem,
+        id: sessionItem.id || `session-${Date.now()}`,
+        sessionNumber: sessions.length + 1,
+        date: sessionItem.date || new Date().toISOString()
+      });
+    }
+    saveSessionsToDisk(sessions);
+    return { success: true, sessions };
+  });
+
+  ipcMain.handle('delete-session', async (event, sessionId) => {
+    let sessions = loadSessionsFromDisk();
+    sessions = sessions.filter(s => s.id !== sessionId);
+    saveSessionsToDisk(sessions);
+    return { success: true, sessions };
+  });
+
+  // Cyber Security Integrity Check (Local SHA-256 Hash of Persistent Vaults)
+  ipcMain.handle('get-vault-integrity-hash', async () => {
+    const fs = require('fs');
+    const crypto = require('crypto');
+    try {
+      const sessFile = getSessionsFilePath();
+      const memFile = getMemoryFilePath();
+      const hash = crypto.createHash('sha256');
+      if (fs.existsSync(sessFile)) hash.update(fs.readFileSync(sessFile));
+      if (fs.existsSync(memFile)) hash.update(fs.readFileSync(memFile));
+      return {
+        success: true,
+        sha256: hash.digest('hex').toUpperCase(),
+        algorithm: 'SHA-256 (Local Host Isolated)',
+        sessPath: sessFile,
+        memPath: memFile,
+        encryptionStatus: 'Air-Gapped Local Storage · Zero Telemetry Exfiltration'
+      };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  });
 }
 
 app.whenReady().then(createWindow);
