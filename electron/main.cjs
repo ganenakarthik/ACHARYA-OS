@@ -1182,93 +1182,14 @@ function createWindow() {
     return { success: true };
   });
 
-  // Automated OS Clipboard & Code Sentry (Detects errors & flawed code in background)
-  let lastSeenClip = '';
-  let startupGracePeriod = true;
-  setTimeout(() => { startupGracePeriod = false; }, 2000);
-
-  setInterval(() => {
-    if (!mainWindow || mainWindow.isDestroyed() || startupGracePeriod) return;
+  // Get current clipboard text safely on demand
+  ipcMain.handle('get-clipboard-code', async () => {
     try {
-      const clipText = clipboard.readText();
-      if (clipText && clipText !== lastSeenClip && clipText.length > 8) {
-        lastSeenClip = clipText;
-
-        // 1. If it looks like code, run multi-language comprehension FIRST!
-        const isCodeSnippet = clipText.includes('def ') || clipText.includes('class ') || clipText.includes('public ') || clipText.includes('#include') || clipText.includes('function ') || clipText.includes('import ') || clipText.includes('for ') || clipText.includes('if ');
-        if (isCodeSnippet) {
-          const codeAnalysis = analyzeSourceCodeUnderstanding(clipText);
-          if (codeAnalysis.isError) {
-            mainWindow.webContents.send('live-code-issue-detected', codeAnalysis);
-          } else {
-            mainWindow.webContents.send('live-code-clean', codeAnalysis);
-          }
-          return;
-        }
-
-        // 2. Otherwise check if it's an error stack trace from terminal
-        const errAnalysis = classifyExceptionTrace(clipText);
-        if (errAnalysis.isError) {
-          mainWindow.webContents.send('os-runtime-error-detected', errAnalysis);
-          mainWindow.webContents.send('live-code-issue-detected', {
-            fileName: 'Console / Terminal',
-            ...errAnalysis,
-            hint: errAnalysis.socraticHint
-          });
-          return;
-        }
-      }
-    } catch (_) {}
-  }, 1000);
-
-  // Real-Time Workspace File Watcher (Instant On-Save in VS Code or Notepad)
-  try {
-    const fs = require('fs');
-    const watchDirs = new Set([process.cwd()]);
-    
-    // Add all common locations where student might create or edit code files
-    const candidateDirs = [
-      path.join(os.homedir(), 'OneDrive', 'Desktop'),
-      path.join(os.homedir(), 'Desktop'),
-      path.join(os.homedir(), 'OneDrive', 'Documents'),
-      path.join(os.homedir(), 'Documents'),
-      path.dirname(process.cwd()),
-    ];
-    candidateDirs.forEach(d => {
-      if (d && fs.existsSync(d)) watchDirs.add(d);
-    });
-
-    let debounceTimer = null;
-    watchDirs.forEach(dir => {
-      try {
-        fs.watch(dir, { recursive: false }, (eventType, filename) => {
-          if (!filename) return;
-          const lower = filename.toLowerCase();
-          if (lower.endsWith('.py') || lower.endsWith('.java') || lower.endsWith('.c') || lower.endsWith('.cpp') || lower.endsWith('.js') || lower.endsWith('.jsx') || lower.endsWith('.ts') || lower.endsWith('.txt')) {
-            if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-              if (!mainWindow || mainWindow.isDestroyed()) return;
-              const fullPath = path.join(dir, filename);
-              try {
-                if (fs.existsSync(fullPath)) {
-                  const stats = fs.statSync(fullPath);
-                  if (stats.size > 0 && stats.size < 500000) {
-                    const content = fs.readFileSync(fullPath, 'utf8');
-                    const analysis = analyzeSourceCodeUnderstanding(content, filename);
-                    if (analysis.isError) {
-                      mainWindow.webContents.send('live-code-issue-detected', analysis);
-                    } else {
-                      mainWindow.webContents.send('live-code-clean', analysis);
-                    }
-                  }
-                }
-              } catch (_) {}
-            }, 300);
-          }
-        });
-      } catch (_) {}
-    });
-  } catch (_) {}
+      return clipboard.readText() || '';
+    } catch (_) {
+      return '';
+    }
+  });
 
   // Cyber Security Integrity Check (Local SHA-256 Hash of Persistent Vaults)
   ipcMain.handle('get-vault-integrity-hash', async () => {
