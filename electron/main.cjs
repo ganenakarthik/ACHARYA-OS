@@ -1118,38 +1118,49 @@ function createWindow() {
   // Real-Time Workspace File Watcher (Instant On-Save in VS Code or Notepad)
   try {
     const fs = require('fs');
-    const watchDirs = [process.cwd()];
-    const desktopPath = path.join(os.homedir(), 'Desktop');
-    if (fs.existsSync(desktopPath)) watchDirs.push(desktopPath);
+    const watchDirs = new Set([process.cwd()]);
+    
+    // Add all common locations where student might create or edit code files
+    const candidateDirs = [
+      path.join(os.homedir(), 'OneDrive', 'Desktop'),
+      path.join(os.homedir(), 'Desktop'),
+      path.join(os.homedir(), 'OneDrive', 'Documents'),
+      path.join(os.homedir(), 'Documents'),
+      path.dirname(process.cwd()),
+    ];
+    candidateDirs.forEach(d => {
+      if (d && fs.existsSync(d)) watchDirs.add(d);
+    });
 
     let debounceTimer = null;
     watchDirs.forEach(dir => {
-      if (!fs.existsSync(dir)) return;
-      fs.watch(dir, { recursive: false }, (eventType, filename) => {
-        if (!filename) return;
-        const lower = filename.toLowerCase();
-        if (lower.endsWith('.py') || lower.endsWith('.java') || lower.endsWith('.c') || lower.endsWith('.cpp') || lower.endsWith('.js') || lower.endsWith('.jsx') || lower.endsWith('.ts') || lower.endsWith('.txt')) {
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => {
-            if (!mainWindow || mainWindow.isDestroyed()) return;
-            const fullPath = path.join(dir, filename);
-            try {
-              if (fs.existsSync(fullPath)) {
-                const stats = fs.statSync(fullPath);
-                if (stats.size > 0 && stats.size < 500000) {
-                  const content = fs.readFileSync(fullPath, 'utf8');
-                  const analysis = analyzeSourceCodeUnderstanding(content, filename);
-                  if (analysis.isError) {
-                    mainWindow.webContents.send('live-code-issue-detected', analysis);
-                  } else {
-                    mainWindow.webContents.send('live-code-clean', analysis);
+      try {
+        fs.watch(dir, { recursive: false }, (eventType, filename) => {
+          if (!filename) return;
+          const lower = filename.toLowerCase();
+          if (lower.endsWith('.py') || lower.endsWith('.java') || lower.endsWith('.c') || lower.endsWith('.cpp') || lower.endsWith('.js') || lower.endsWith('.jsx') || lower.endsWith('.ts') || lower.endsWith('.txt')) {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+              if (!mainWindow || mainWindow.isDestroyed()) return;
+              const fullPath = path.join(dir, filename);
+              try {
+                if (fs.existsSync(fullPath)) {
+                  const stats = fs.statSync(fullPath);
+                  if (stats.size > 0 && stats.size < 500000) {
+                    const content = fs.readFileSync(fullPath, 'utf8');
+                    const analysis = analyzeSourceCodeUnderstanding(content, filename);
+                    if (analysis.isError) {
+                      mainWindow.webContents.send('live-code-issue-detected', analysis);
+                    } else {
+                      mainWindow.webContents.send('live-code-clean', analysis);
+                    }
                   }
                 }
-              }
-            } catch (_) {}
-          }, 350);
-        }
-      });
+              } catch (_) {}
+            }, 300);
+          }
+        });
+      } catch (_) {}
     });
   } catch (_) {}
 
