@@ -1082,12 +1082,16 @@ export default function DesktopHUD() {
             <span className="tag-text">ACHARYA</span>
 
             {/* Real-time Code Issue Badge in Collapsed Pill */}
-            {activeCodeIssue ? (
-              <span className="pill-event-badge-glow" style={{ background: 'rgba(255, 77, 109, 0.28)', border: '1px solid #ff4d6d', color: '#ff7b72', whiteSpace: 'nowrap' }} title={`Error on Line ${activeCodeIssue.line}: ${activeCodeIssue.errorType}`}>
-                <span className="event-pulse-dot" style={{ background: '#ff4d6d', boxShadow: '0 0 10px #ff4d6d' }} />
-                🚨 Line {activeCodeIssue.line}
-              </span>
-            ) : (liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? (
+            {(activeCodeIssue || activeSocraticIntervention) ? (() => {
+              const current = activeCodeIssue || activeSocraticIntervention;
+              const lineStr = current.line ? `Line ${current.line}` : 'Alert';
+              return (
+                <span className="pill-event-badge-glow" style={{ background: 'rgba(255, 77, 109, 0.28)', border: '1px solid #ff4d6d', color: '#ff7b72', whiteSpace: 'nowrap' }} title={`Error on Line ${current.line || 'Active'}: ${current.errorType}`}>
+                  <span className="event-pulse-dot" style={{ background: '#ff4d6d', boxShadow: '0 0 10px #ff4d6d' }} />
+                  🚨 {lineStr}
+                </span>
+              );
+            })() : (liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? (
               <span className="pill-event-badge-glow cyan" title={`Clean Code Flow: ${liveCodeStatus.fileName || 'Active File'}`}>
                 <span className="event-pulse-dot cyan" style={{ background: '#00ff9d', boxShadow: '0 0 8px #00ff9d' }} />
                 ✍️ {liveCodeStatus.fileName ? liveCodeStatus.fileName.slice(0, 12) : 'Clean Code'}
@@ -1131,108 +1135,113 @@ export default function DesktopHUD() {
           </button>
 
           {/* Real-time Code Issue Popout Toast attached to Pill */}
-          {activeCodeIssue && (
-            <div 
-              className="pill-event-popout-toast"
-              style={{
-                border: '1.5px solid #ff4d6d',
-                background: 'linear-gradient(135deg, rgba(18, 4, 12, 0.98), rgba(35, 8, 20, 0.98))',
-                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.9), 0 0 35px rgba(255, 77, 109, 0.55)',
-                minWidth: '280px',
-                maxWidth: '340px',
-                padding: '12px 14px',
-                borderRadius: '12px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                whiteSpace: 'normal',
-                zIndex: 300
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Top Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '15px' }}>🚨</span>
-                  <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#ff4d6d', letterSpacing: '0.5px' }}>
-                    {activeCodeIssue.language} FLAW · LINE {activeCodeIssue.line}
+          {(activeCodeIssue || activeSocraticIntervention) && (() => {
+            const currentIssue = activeCodeIssue || activeSocraticIntervention;
+            return (
+              <div 
+                className="pill-event-popout-toast"
+                style={{
+                  border: '1.5px solid #ff4d6d',
+                  background: 'linear-gradient(135deg, rgba(18, 4, 12, 0.98), rgba(35, 8, 20, 0.98))',
+                  boxShadow: '0 12px 40px rgba(0, 0, 0, 0.9), 0 0 35px rgba(255, 77, 109, 0.55)',
+                  minWidth: '280px',
+                  maxWidth: '340px',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  whiteSpace: 'normal',
+                  zIndex: 300
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Top Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '15px' }}>🚨</span>
+                    <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#ff4d6d', letterSpacing: '0.5px' }}>
+                      {currentIssue.language} FLAW · LINE {currentIssue.line || 'ACTIVE'}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '8px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(255, 77, 109, 0.25)', color: '#ff7b72', border: '1px solid #ff4d6d', fontFamily: 'monospace' }}>
+                    {currentIssue.fileName || 'active_code'}
                   </span>
                 </div>
-                <span style={{ fontSize: '8px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(255, 77, 109, 0.25)', color: '#ff7b72', border: '1px solid #ff4d6d', fontFamily: 'monospace' }}>
-                  {activeCodeIssue.fileName || 'active_code'}
-                </span>
-              </div>
 
-              {/* Error Title & Code Snippet */}
-              <div>
-                <div style={{ color: '#ffffff', fontSize: '11px', fontWeight: 'bold' }}>
-                  {activeCodeIssue.errorType}
-                </div>
-                {activeCodeIssue.codeSnippet && (
-                  <div style={{ fontSize: '8.5px', fontFamily: 'monospace', color: '#ff7b72', background: 'rgba(0,0,0,0.5)', padding: '3px 6px', borderRadius: '4px', marginTop: '4px', borderLeft: '2px solid #ff4d6d' }}>
-                    &gt; {activeCodeIssue.codeSnippet}
+                {/* Error Title & Code Snippet */}
+                <div>
+                  <div style={{ color: '#ffffff', fontSize: '11px', fontWeight: 'bold' }}>
+                    {currentIssue.errorType}
                   </div>
-                )}
-                <div style={{ color: '#ffd166', fontSize: '9px', marginTop: '4px', lineHeight: '1.3' }}>
-                  💡 {activeCodeIssue.hint}
+                  {(currentIssue.codeSnippet || currentIssue.rawSample) && (
+                    <div style={{ fontSize: '8.5px', fontFamily: 'monospace', color: '#ff7b72', background: 'rgba(0,0,0,0.5)', padding: '3px 6px', borderRadius: '4px', marginTop: '4px', borderLeft: '2px solid #ff4d6d', wordBreak: 'break-all' }}>
+                      &gt; {(currentIssue.codeSnippet || currentIssue.rawSample || '').slice(0, 90)}
+                    </div>
+                  )}
+                  <div style={{ color: '#ffd166', fontSize: '9px', marginTop: '4px', lineHeight: '1.3' }}>
+                    💡 {currentIssue.hint || currentIssue.socraticHint}
+                  </div>
+                </div>
+
+                {/* Two Side-by-Side Action Buttons: Fix on Left, Ignore on Right */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setCodeSnippet(currentIssue.suggestedFix || currentIssue.codeSnippet || currentIssue.rawSample || '')
+                      setActiveModal('code')
+                      handleExpandHUD()
+                      if (activeCodeIssue) dismissActiveCodeIssue()
+                      if (activeSocraticIntervention) dismissSocraticIntervention()
+                      playCyberChime('affirm')
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #00f0ff, #00ff9d)',
+                      border: 'none',
+                      color: '#000',
+                      fontWeight: '900',
+                      fontSize: '9.5px',
+                      padding: '6px 10px',
+                      borderRadius: '5px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                      boxShadow: '0 0 12px rgba(0, 240, 255, 0.4)'
+                    }}
+                  >
+                    ⚡ Fix in HUD
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (activeCodeIssue) dismissActiveCodeIssue()
+                      if (activeSocraticIntervention) dismissSocraticIntervention()
+                      playCyberChime('scan')
+                    }}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.25)',
+                      color: '#ffffff',
+                      fontWeight: 'bold',
+                      fontSize: '9.5px',
+                      padding: '6px 10px',
+                      borderRadius: '5px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    ✕ Ignore
+                  </button>
                 </div>
               </div>
-
-              {/* Two Side-by-Side Action Buttons: Fix on Left, Ignore on Right */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setCodeSnippet(activeCodeIssue.suggestedFix || activeCodeIssue.codeSnippet || '')
-                    setActiveModal('code')
-                    handleExpandHUD()
-                    dismissActiveCodeIssue()
-                    playCyberChime('affirm')
-                  }}
-                  style={{
-                    background: 'linear-gradient(135deg, #00f0ff, #00ff9d)',
-                    border: 'none',
-                    color: '#000',
-                    fontWeight: '900',
-                    fontSize: '9.5px',
-                    padding: '6px 10px',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px',
-                    boxShadow: '0 0 12px rgba(0, 240, 255, 0.4)'
-                  }}
-                >
-                  ⚡ Fix in HUD
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    dismissActiveCodeIssue()
-                    playCyberChime('scan')
-                  }}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.25)',
-                    color: '#ffffff',
-                    fontWeight: 'bold',
-                    fontSize: '9.5px',
-                    padding: '6px 10px',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  ✕ Ignore
-                </button>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Floating Popout Notification Toast attached to Pill */}
           {pillEventNotification && !pillEventNotification.isDismissedToast && (
@@ -1366,7 +1375,7 @@ export default function DesktopHUD() {
             const currentIssue = activeCodeIssue || activeSocraticIntervention;
             return (
               <div style={{
-                margin: '0 24px 10px',
+                margin: '72px 24px 10px',
                 background: 'linear-gradient(135deg, rgba(255, 77, 109, 0.22), rgba(255, 184, 0, 0.16))',
                 border: '1.5px solid #ff4d6d',
                 borderRadius: '8px',

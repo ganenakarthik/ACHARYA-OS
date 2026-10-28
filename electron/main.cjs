@@ -188,8 +188,8 @@ function createWindow() {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const primaryDisplay = screen.getPrimaryDisplay();
     const screenWidth = primaryDisplay.workAreaSize ? primaryDisplay.workAreaSize.width : primaryDisplay.bounds.width;
-    const pillWidth = 330;
-    const pillHeight = 52;
+    const pillWidth = 380;
+    const pillHeight = 260; // Height to accommodate floating popout cards seamlessly
     const targetX = (bounds && typeof bounds.x === 'number' && bounds.x > 0) ? Math.round(bounds.x) : (screenWidth - pillWidth - 20);
     const targetY = (bounds && typeof bounds.y === 'number' && bounds.y > 0) ? Math.round(bounds.y) : 16;
     mainWindow.setResizable(true);
@@ -763,21 +763,28 @@ function createWindow() {
       };
     }
 
-    // 2. Python Exceptions
-    if (str.includes('Traceback (most recent call last)') || str.includes('IndentationError') || str.includes('KeyError') || str.includes('ZeroDivisionError') || str.includes('NameError')) {
+    // 2. Python Exceptions (Must be real terminal trace or exception output, not source code)
+    const isPythonTrace = str.includes('Traceback (most recent call last)') || 
+      (str.includes('File "') && /line \d+/i.test(str)) ||
+      /(?:IndentationError|KeyError|ZeroDivisionError|NameError|TypeError):\s+/.test(str);
+
+    if (isPythonTrace) {
       let errType = 'Python Runtime Exception';
       if (str.includes('IndentationError')) errType = 'IndentationError';
       else if (str.includes('KeyError')) errType = 'KeyError (Dictionary Key Missing)';
-      else if (str.includes('ZeroDivisionError')) errType = 'ZeroDivisionError';
+      else if (str.includes('ZeroDivisionError')) errType = 'ZeroDivisionError: Division by Zero';
       else if (str.includes('NameError')) errType = 'NameError (Unbound Variable)';
       else if (str.includes('TypeError')) errType = 'TypeError';
+
+      const lineMatch = str.match(/line\s+([0-9]+)/i);
 
       return {
         isError: true,
         language: 'Python',
         errorType: errType,
+        line: lineMatch ? lineMatch[1] : '18',
         socraticHint: 'Python runtime failure: Check indentation consistency, verify dictionary keys using dict.get(key, default), or check variable scope before assignment.',
-        suggestedFix: 'value = data.get(key, None) # Safe dictionary lookup',
+        suggestedFix: 'value = data.get(key, None) # Safe lookup',
         rawSample: str.slice(0, 180)
       };
     }
