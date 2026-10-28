@@ -13,7 +13,7 @@ const DEFAULT_PROFILE = {
   apiKey: '',
   aiProvider: 'ollama', // 'ollama' | 'openai' | 'hybrid'
   ollamaUrl: 'http://localhost:11434',
-  ollamaModel: 'llama3',
+  ollamaModel: 'qwen2.5:3b',
 }
 
 const DEFAULT_STATS = {

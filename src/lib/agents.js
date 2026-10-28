@@ -59,7 +59,7 @@ export async function fetchOllamaModels(ollamaUrl = 'http://localhost:11434') {
 }
 
 /* ── Query Local Ollama API (Optimized for Fast CPU/GPU Execution) ── */
-async function callOllama(messages, profile, memories = [], sensory = {}) {
+export async function callOllama(messages, profile = {}, memories = [], sensory = {}) {
   const ollamaUrl = profile.ollamaUrl || 'http://localhost:11434'
   let model = profile.ollamaModel || 'qwen2.5:3b'
 
@@ -72,7 +72,8 @@ async function callOllama(messages, profile, memories = [], sensory = {}) {
   ]
 
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 2000)
+  // High-performance CPU/GPU execution timeout (25 seconds)
+  const timeoutId = setTimeout(() => controller.abort(), 25000)
 
   try {
     const response = await fetch(`${ollamaUrl}/api/chat`, {
@@ -86,7 +87,7 @@ async function callOllama(messages, profile, memories = [], sensory = {}) {
         options: {
           temperature: 0.7,
           num_ctx: 2048,
-          num_predict: 800
+          num_predict: 400
         }
       }),
     })
@@ -100,6 +101,29 @@ async function callOllama(messages, profile, memories = [], sensory = {}) {
     }
   } catch (err) {
     clearTimeout(timeoutId)
+    // Quick fallback to qwen2.5:3b if llama3 was too heavy
+    if (model !== 'qwen2.5:3b') {
+      try {
+        const fbController = new AbortController()
+        const fbTimeout = setTimeout(() => fbController.abort(), 12000)
+        const fbRes = await fetch(`${ollamaUrl}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: fbController.signal,
+          body: JSON.stringify({
+            model: 'qwen2.5:3b',
+            messages: formattedMessages,
+            stream: false,
+            options: { temperature: 0.7, num_ctx: 2048, num_predict: 350 }
+          })
+        })
+        clearTimeout(fbTimeout)
+        if (fbRes.ok) {
+          const fbData = await fbRes.json()
+          if (fbData.message?.content) return fbData.message.content
+        }
+      } catch (_) {}
+    }
     throw err
   }
   throw new Error(`Ollama model ${model} failed to respond`)
@@ -310,7 +334,159 @@ When implementing this system at production scale, the foundational bottleneck i
 What subsystem or concept would you like to deep-dive into next?`
   }
 
-  // 7. General Knowledge, Algorithms, or Conceptual Inquiries
+  // 7. Data Structures & Algorithms: Quicksort, Mergesort, Trees, Graphs, Dijkstra
+  if (low.includes('quicksort') || low.includes('merge sort') || low.includes('mergesort') || low.includes('binary search') || low.includes('sorting')) {
+    return `[MOOD: DEEP_FOCUS]
+[THOUGHT: Synthesizing algorithmic time complexities, divide-and-conquer recurrence relations, and partition mechanics.]
+[SPOKEN: Quicksort and Mergesort both use divide-and-conquer, but Quicksort partitions in-place with average O(N log N) time, while Mergesort guarantees O(N log N) worst-case using O(N) auxiliary memory.]
+
+### ⚡ ALGORITHMS: DIVIDE-AND-CONQUER SORTING INVARIANTS
+
+#### 1. Quicksort Architecture:
+• **Mechanism**: Selects a **Pivot** element; partitions array such that elements $\\le \\text{pivot}$ are to the left, and elements $> \\text{pivot}$ are to the right. Recursively sorts subarrays.
+• **Partition Schemes**:
+  - **Lomuto Partition**: Simpler, uses single index pointer, slower on duplicates.
+  - **Hoare Partition**: Two pointers moving inward; does 3x fewer swaps on average.
+• **Complexity**:
+  - Average Case: $\\mathcal{O}(N \\log N)$
+  - Worst Case: $\\mathcal{O}(N^2)$ (occurs when pivot is smallest/largest in already sorted array; prevented via Randomized Pivot or Median-of-Three).
+  - Space: $\\mathcal{O}(\\log N)$ auxiliary stack frames (In-Place).
+
+\`\`\`
+[ 38, 27, 43, 3, 9, 82, 10 ]  ──(Pivot: 43)
+          │
+[ 38, 27, 3, 9, 10 ]  [ 43 ]  [ 82 ]  ──(Partition Invariant)
+\`\`\`
+
+#### 2. Mergesort vs Quicksort Comparison:
+| Metric | Quicksort | Mergesort |
+| :--- | :--- | :--- |
+| **Worst-case Time** | $\\mathcal{O}(N^2)$ | $\\mathcal{O}(N \\log N)$ (Guaranteed) |
+| **Space Complexity** | $\\mathcal{O}(\\log N)$ (In-place) | $\\mathcal{O}(N)$ (Requires scratch buffer) |
+| **Stability** | Unstable | **Stable** (Preserves relative order) |
+| **Best Used For** | In-memory RAM arrays, system standard libraries | Linked lists, External sorting on large disk files |
+
+💡 *Viva Defense Tip: When asked "Why does Java use Dual-Pivot Quicksort for primitives but TimSort (Mergesort variant) for objects?", answer: "Object sorting strictly requires stability so equal keys retain their relative order."*`
+  }
+
+  // 8. Data Structures: Binary Search Tree, AVL, Trees, Graphs & Dijkstra
+  if (low.includes('binary search tree') || low.includes('bst') || low.includes('avl') || low.includes('dijkstra') || low.includes('graph') || low.includes('tree') || low.includes('bfs') || low.includes('dfs')) {
+    return `[MOOD: DEEP_FOCUS]
+[THOUGHT: Analyzing hierarchical data structures, binary search tree invariants, and graph shortest path algorithms.]
+[SPOKEN: In a Binary Search Tree, the left subtree contains strictly smaller keys and the right contains larger keys, yielding logarithmic search time when balanced.]
+
+### 🌲 DATA STRUCTURES & GRAPH ALGORITHMS
+
+#### 1. Binary Search Tree (BST) Invariant:
+For every node $X$:
+• $\\text{All keys in Left Subtree}(X) < \\text{Key}(X)$
+• $\\text{All keys in Right Subtree}(X) > \\text{Key}(X)$
+• **In-Order Traversal** (Left $\\rightarrow$ Root $\\rightarrow$ Right) of a BST always yields keys in **Strictly Sorted Ascending Order**.
+• Search / Insert / Delete: Average $\\mathcal{O}(\\log N)$, Worst-case $\\mathcal{O}(N)$ (skewed tree).
+
+\`\`\`
+        [ 50 ]
+       /      \\
+    [ 30 ]    [ 70 ]
+    /    \\    /    \\
+  [20]  [40] [60]  [80]
+\`\`\`
+
+#### 2. Self-Balancing Trees (AVL vs Red-Black):
+• **AVL Tree**: Stricter balance. Balance Factor $\\text{BF} = |h_L - h_R| \\le 1$. Requires LL, RR, LR, RL tree rotations. Best for lookup-intensive workloads.
+• **Red-Black Tree**: Looser balance with node color invariants (root is black, no two adjacent red nodes, equal black-height). Faster insertions and deletions; used in C++ \`std::map\` and Java \`TreeMap\`.
+
+#### 3. Dijkstra's Shortest Path Algorithm:
+• Finds the shortest path from a single source node to all other nodes in a weighted graph with **Non-Negative Edge Weights**.
+• **Data Structure**: Min-Priority Queue (Binary Heap or Fibonacci Heap).
+• **Time Complexity**: $\\mathcal{O}((V + E) \\log V)$ with standard min-heap.
+• *Failure Mode*: Dijkstra fails on negative edge weights (requires Bellman-Ford algorithm, $\\mathcal{O}(V \\cdot E)$).`
+  }
+
+  // 9. Object Oriented Programming: Polymorphism, Inheritance, Encapsulation, SOLID
+  if (low.includes('polymorphism') || low.includes('inheritance') || low.includes('encapsulation') || low.includes('solid') || low.includes('oop') || low.includes('object oriented')) {
+    return `[MOOD: STRATEGIC]
+[THOUGHT: Structuring Object-Oriented principles, dynamic dispatch vtables, and SOLID software engineering invariants.]
+[SPOKEN: Polymorphism allows objects of different concrete types to be manipulated through a unified interface, resolved at compile-time via overloading or runtime via virtual method tables.]
+
+### 🏛️ OBJECT-ORIENTED PROGRAMMING & SOLID PRINCIPLES
+
+#### 1. Polymorphism (The Two Types):
+1. **Compile-Time (Static) Polymorphism**:
+   - **Method Overloading**: Multiple functions in the same class with identical names but differing parameter signatures.
+   - Resolved at compile time by compiler symbol mangling. Zero runtime overhead.
+2. **Run-Time (Dynamic) Polymorphism**:
+   - **Method Overriding**: Derived class provides a specific implementation of a virtual method declared in base class.
+   - Resolved at runtime via a **vtable (Virtual Method Table)** and **vptr (Virtual Pointer)**.
+
+\`\`\`
+[ Base Pointer: Shape* s ]
+         │
+         ▼ (vptr lookup in runtime vtable)
+   [ Circle::draw() ]  or  [ Square::draw() ]
+\`\`\`
+
+#### 2. The 5 SOLID Design Principles:
+• **S — Single Responsibility**: A class should have one, and only one, reason to change.
+• **O — Open/Closed**: Open for extension, closed for modification (use abstract interfaces).
+• **L — Liskov Substitution**: Subtypes must be substitutable for their base types without altering program correctness.
+• **I — Interface Segregation**: Clients should not be forced to depend on interfaces they do not use.
+• **D — Dependency Inversion**: High-level modules should not depend on low-level modules; both should depend on abstractions.`
+  }
+
+  // 10. Web & Frontend: React 19, Virtual DOM, Hooks, Event Loop
+  if (low.includes('react') || low.includes('virtual dom') || low.includes('hook') || low.includes('useeffect') || low.includes('event loop') || low.includes('javascript') || low.includes('promise')) {
+    return `[MOOD: DEEP_FOCUS]
+[THOUGHT: Unpacking React reconciliation, Fiber architecture, and the JavaScript non-blocking event loop.]
+[SPOKEN: React creates an in-memory Virtual DOM tree representation, diffing changes via Fiber reconciliation before executing minimal batch mutations to the physical browser DOM.]
+
+### ⚛️ REACT 19 & JAVASCRIPT RUNTIME ARCHITECTURE
+
+#### 1. Virtual DOM & Fiber Reconciliation:
+• The **Virtual DOM** is a lightweight JavaScript object tree mirroring the actual DOM.
+• **Diffing Heuristics ($\\mathcal{O}(N)$ complexity)**:
+  1. Two elements of different types produce different trees.
+  2. Developers provide a stable \`key\` prop to preserve identity across list re-renders.
+• **React Fiber**: Incremental rendering engine that splits component rendering into interruptible work units prioritized by scheduler lanes.
+
+#### 2. JavaScript Event Loop Runtime:
+JavaScript is single-threaded with a non-blocking asynchronous I/O concurrency model:
+\`\`\`
+[ Call Stack (Sync Code) ] ──(Pushes async tasks)──► [ Web APIs / Node.js I/O ]
+           ▲                                                    │
+           │                                                    ▼
+           │  ◄── Microtask Queue (Promises, queueMicrotask) ◄──┘
+           │  ◄── Macrotask Queue (setTimeout, setInterval, I/O)
+\`\`\`
+• **Priority Rule**: The Call Stack executes all synchronous code. Once empty, the engine drains the entire **Microtask Queue** before picking the oldest task from the Macrotask Queue.`
+  }
+
+  // 11. Computer Networks: OSI Model, TCP vs UDP, Handshake
+  if (low.includes('tcp') || low.includes('udp') || low.includes('osi') || low.includes('network') || low.includes('handshake') || low.includes('http')) {
+    return `[MOOD: STRATEGIC]
+[THOUGHT: Structuring network transport layer reliability, TCP sliding window, and OSI protocol stack.]
+[SPOKEN: TCP provides reliable, ordered, byte-stream delivery using a three-way handshake and sliding window flow control, whereas UDP provides lightweight, connectionless datagram transmission.]
+
+### 🌐 COMPUTER NETWORKS: TRANSPORT & PROTOCOL ARCHITECTURE
+
+#### 1. TCP vs UDP:
+| Characteristic | TCP (Transmission Control Protocol) | UDP (User Datagram Protocol) |
+| :--- | :--- | :--- |
+| **Connection** | Connection-Oriented (3-Way Handshake) | Connectionless (Fire and Forget) |
+| **Reliability** | Guaranteed delivery (Retransmission on loss) | Best-Effort (Packets may drop or reorder) |
+| **Ordering** | In-Order sequence numbers | Unordered |
+| **Header Size** | 20 – 60 bytes | 8 bytes (Ultra lightweight) |
+| **Use Cases** | Web (HTTP/HTTPS), SSH, Database connections | Video Streaming (WebRTC), DNS, Real-time Gaming |
+
+#### 2. TCP 3-Way Handshake Invariant:
+\`\`\`
+[ Client ] ──────── SYN (seq = x) ───────► [ Server ]
+[ Client ] ◄── SYN-ACK (seq = y, ack = x+1) ── [ Server ]
+[ Client ] ──────── ACK (ack = y+1) ─────► [ Server ] (Connection Established)
+\`\`\``
+  }
+
+  // 12. General Knowledge, Algorithms, or Conceptual Inquiries
   return `[MOOD: CURIOUS]
 [THOUGHT: Engaging operator inquiry with rigorous analytical depth, first-principles breakdown, and actionable synthesis.]
 [SPOKEN: Here is an in-depth Socratic breakdown of your question.]
@@ -318,36 +494,37 @@ What subsystem or concept would you like to deep-dive into next?`
 ### 🧠 ACHARYA SOCRATIC PERSPECTIVE: ${q.toUpperCase()}
 
 #### 1. First Principles Definition
-To understand **"${q}"**, we must strip away superficial terminology and examine its fundamental core invariant:
-• **The Core Problem**: Systems and concepts in computer science emerge to solve tradeoffs between **Time Complexity ($O$)**, **Space/Memory Overhead**, and **Fault Tolerance**.
-• **The Mechanism**: It establishes a deterministic contract where inputs transition through structured states to produce predictable, verifiable outputs.
+To understand **"${q}"**, we must examine its foundational computer science invariants:
+• **The Core Problem**: Systems and algorithms emerge to resolve fundamental trade-offs between **Time Complexity ($\\mathcal{O}$)**, **Space/Memory Footprint**, and **Fault Tolerance**.
+• **The Mechanism**: It establishes a deterministic state contract where inputs transition through structured transformations to produce predictable, verifiable outputs.
 
 #### 2. Key Architectural Invariants & Tradeoffs:
-1. **Efficiency vs Complexity**: Abstracting details simplifies user development but introduces runtime overhead (e.g. Garbage Collection vs Manual Pointer Management).
-2. **Consistency vs Availability**: As demonstrated in CAP theorem and distributed systems, you cannot achieve linearizable consistency and 100% availability during network splits.
-3. **Deterministic State Transitions**: Every robust system requires idempotent handlers so repeated events don't corrupt state.
+1. **Abstraction vs Performance**: High-level abstractions accelerate productivity but introduce runtime overhead (e.g. Garbage Collection vs Manual Pointer Management).
+2. **Consistency vs Latency**: In distributed architectures (CAP theorem), ensuring absolute immediate consistency across replicas requires synchronous cross-network locking.
+3. **Deterministic State Transitions**: Robust engineering requires idempotent operations so that repeated requests do not corrupt shared state.
 
-#### 3. How to Apply This in Your Studies & Code:
-• Identify the **bottleneck** before optimizing.
-• Write executable tests for failure modes rather than just the happy path.
-• Ask: *"What invariant must remain true at every step of this algorithm?"*
-
-What specific aspect or scenario would you like to analyze further?`
+#### 3. How to Apply This in Your Engineering Practice:
+• Identify the **bottleneck** before attempting micro-optimizations.
+• Write executable unit tests verifying failure modes and boundary conditions.
+• Ask: *"What invariant must remain true at every single step of this algorithm?"*`
 }
 
 /* ── Primary AI Mentor Message Router ── */
 export async function sendMentorMessage(messages, profile = {}, memories = [], sensory = {}) {
   const userMsg = messages[messages.length - 1]?.content || ''
-  const provider = profile.aiProvider || 'hybrid'
-  const low = userMsg.toLowerCase()
 
-  // 1. Instant Fast-Path: High-yield CS concepts, Viva & System questions respond in <50ms
-  if (low.includes('deadlock') || low.includes('acid') || low.includes('operating system') || low.includes('what is os') || low.includes('normalization') || low.includes('acharya') || low.includes('review') || low.includes('viva') || low.includes('dbms') || low.includes('database') || low.includes('b+ tree') || low.includes('exam') || low.includes('schedule') || low.includes('study')) {
-    return synthesizeDynamicResponse(userMsg, profile, memories, sensory)
+  // 1. First Priority: Try Local Ollama (Real Neural AI running natively on student's machine)
+  try {
+    const ollamaReply = await callOllama(messages, profile, memories, sensory)
+    if (ollamaReply && ollamaReply.trim() && ollamaReply.trim().length > 10) {
+      return ollamaReply
+    }
+  } catch (ollamaErr) {
+    console.warn('Ollama attempt note:', ollamaErr.message)
   }
 
   // 2. Try OpenAI if API key configured
-  if ((provider === 'openai' || provider === 'hybrid') && profile.apiKey && profile.apiKey.startsWith('sk-')) {
+  if (profile.apiKey && profile.apiKey.startsWith('sk-')) {
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -366,30 +543,16 @@ export async function sendMentorMessage(messages, profile = {}, memories = [], s
       })
       if (response.ok) {
         const data = await response.json()
-        return data.choices[0].message.content
+        if (data.choices?.[0]?.message?.content) {
+          return data.choices[0].message.content
+        }
       }
     } catch (openAiErr) {
       console.warn('OpenAI request notice:', openAiErr.message)
     }
   }
 
-  // 3. Local Ollama (Only if explicitly set to ollama)
-  if (provider === 'ollama') {
-    try {
-      return await callOllama(messages, profile, memories, sensory)
-    } catch (ollamaErr) {
-      console.warn('Ollama local notice:', ollamaErr.message)
-    }
-  }
-
-  // 4. Fast Neural Cloud LLM (Max 3s timeout)
-  try {
-    return await callNeuralLLM(messages, profile, memories, sensory)
-  } catch (neuralErr) {
-    console.warn('Neural stream notice:', neuralErr.message)
-  }
-
-  // 5. Dynamic Cognitive Synthesizer Fallback
+  // 3. High-Yield CS Technical Knowledge Synthesizer (Instant 0ms Verified Knowledge Base)
   return synthesizeDynamicResponse(userMsg, profile, memories, sensory)
 }
 
