@@ -1124,14 +1124,24 @@ export default function DesktopHUD() {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto' }}>
                   <button
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
-                      setCodeSnippet(current.suggestedFix || current.codeSnippet || current.rawSample || '');
-                      setActiveModal('code');
-                      handleExpandHUD();
-                      if (activeCodeIssue) dismissActiveCodeIssue();
-                      if (activeSocraticIntervention) dismissSocraticIntervention();
-                      playCyberChime('affirm');
+                      const electron = getElectron();
+                      if (electron && electron.invoke) {
+                        await electron.invoke('apply-direct-fix', current);
+                        showToast(`✓ Fixed Line ${current.line || ''} directly in editor!`, '⚡');
+                        playCyberChime('affirm');
+                        if (activeCodeIssue) dismissActiveCodeIssue();
+                        if (activeSocraticIntervention) dismissSocraticIntervention();
+                      } else {
+                        if (current.fixedFullCode || current.suggestedFix) {
+                          navigator.clipboard?.writeText(current.fixedFullCode || current.suggestedFix);
+                          showToast('✓ Fixed code copied to clipboard!', '📋');
+                          playCyberChime('affirm');
+                          if (activeCodeIssue) dismissActiveCodeIssue();
+                          if (activeSocraticIntervention) dismissSocraticIntervention();
+                        }
+                      }
                     }}
                     style={{
                       background: 'linear-gradient(135deg, #00f0ff, #00ff9d)',
@@ -1145,7 +1155,7 @@ export default function DesktopHUD() {
                       whiteSpace: 'nowrap',
                       boxShadow: '0 0 10px rgba(0, 240, 255, 0.4)'
                     }}
-                    title="Click to auto-fix in AST Code Sentry"
+                    title="Directly apply fix in Notepad / VS Code"
                   >
                     ⚡ Fix
                   </button>

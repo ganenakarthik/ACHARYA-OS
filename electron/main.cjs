@@ -895,11 +895,13 @@ function createWindow() {
 
         // Check for missing colon after control flow
         const controlKeywords = ['if', 'elif', 'else', 'for', 'while', 'def', 'class', 'try', 'except', 'finally', 'with'];
-        for (const kw of controlKeywords) {
+          for (const kw of controlKeywords) {
           const regex = new RegExp(`^${kw}\\b.*[^:]$`);
           if (regex.test(trimmed) && !trimmed.endsWith('\\') && !trimmed.endsWith(',')) {
             // Make sure it's not a multiline header
             if (!rawLine.includes('(') || (rawLine.includes('(') && rawLine.includes(')'))) {
+              const fixedLines = [...lines];
+              fixedLines[i] = `${rawLine}:`;
               return {
                 isError: true,
                 language: 'Python',
@@ -909,6 +911,8 @@ function createWindow() {
                 hint: `In Python, all block headers (${kw}) must terminate with a colon ':'. Check line ${lineNum}.`,
                 suggestedFix: `${rawLine}:`,
                 codeSnippet: rawLine,
+                fullCode: code,
+                fixedFullCode: fixedLines.join('\n'),
                 totalLines: lines.length
               };
             }
@@ -917,6 +921,8 @@ function createWindow() {
 
         // Check for single '=' inside 'if' or 'elif' condition
         if (/^(if|elif)\s+[^=!<>]=[^=]/.test(trimmed)) {
+          const fixedLines = [...lines];
+          fixedLines[i] = rawLine.replace(/=([^=])/, '==$1');
           return {
             isError: true,
             language: 'Python',
@@ -924,8 +930,10 @@ function createWindow() {
             line: lineNum,
             errorType: "SyntaxError: Assignment '=' in conditional statement",
             hint: `Found assignment operator '=' in condition on line ${lineNum}. Use '==' for equality comparison.`,
-            suggestedFix: rawLine.replace(/=([^=])/, '==$1'),
+            suggestedFix: fixedLines[i],
             codeSnippet: rawLine,
+            fullCode: code,
+            fixedFullCode: fixedLines.join('\n'),
             totalLines: lines.length
           };
         }
@@ -1103,6 +1111,44 @@ function createWindow() {
 
   ipcMain.handle('analyze-source-code', async (event, { code, fileName, language }) => {
     return analyzeSourceCodeUnderstanding(code, fileName, language);
+  });
+
+  // Direct Auto-Fix in External Editor (Notepad / VS Code) without expanding HUD
+  ipcMain.handle('apply-direct-fix', async (event, issue) => {
+    if (!issue) return { success: false };
+    const fs = require('fs');
+
+    // 1. If file exists on disk, update file directly
+    if (issue.fullPath && fs.existsSync(issue.fullPath) && issue.fixedFullCode) {
+      try {
+        fs.writeFileSync(issue.fullPath, issue.fixedFullCode, 'utf8');
+      } catch (_) {}
+    }
+
+    // 2. Put the fixed code into the Windows clipboard
+    const textToPaste = issue.fixedFullCode || issue.suggestedFix || '';
+    if (textToPaste) {
+      clipboard.writeText(textToPaste);
+    }
+
+    // 3. Directly paste into the active editor (Notepad or VS Code)
+    const { exec } = require('child_process');
+    const psCmd = `
+      Add-Type -AssemblyName System.Windows.Forms;
+      $procs = Get-Process -Name notepad, Code -ErrorAction SilentlyContinue | Sort-Object -Property StartTime -Descending | Select-Object -First 1;
+      if ($procs) {
+        $wshell = New-Object -ComObject WScript.Shell;
+        $wshell.AppActivate($procs.Id);
+        Start-Sleep -Milliseconds 80;
+        [System.Windows.Forms.SendKeys]::SendWait('^a');
+        Start-Sleep -Milliseconds 40;
+        [System.Windows.Forms.SendKeys]::SendWait('^v');
+      }
+    `;
+
+    exec(`powershell -NoProfile -Command "${psCmd.replace(/\n/g, ' ')}"`, () => {});
+
+    return { success: true };
   });
 
   // Automated OS Clipboard & Code Sentry (Detects errors & flawed code in background)
