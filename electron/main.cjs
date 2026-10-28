@@ -1195,6 +1195,37 @@ function createWindow() {
     return { success: true };
   });
 
+  // Get code from active editor (Notepad or VS Code) or clipboard automatically
+  ipcMain.handle('get-active-editor-code', async () => {
+    return new Promise((resolve) => {
+      const { exec } = require('child_process');
+      const psCmd = `
+        Add-Type -AssemblyName System.Windows.Forms;
+        $procs = Get-Process -Name notepad, Code -ErrorAction SilentlyContinue | Sort-Object -Property StartTime -Descending | Select-Object -First 1;
+        if ($procs) {
+          $wshell = New-Object -ComObject WScript.Shell;
+          $wshell.AppActivate($procs.Id);
+          Start-Sleep -Milliseconds 80;
+          [System.Windows.Forms.SendKeys]::SendWait('^a');
+          Start-Sleep -Milliseconds 60;
+          [System.Windows.Forms.SendKeys]::SendWait('^c');
+          Start-Sleep -Milliseconds 60;
+          [System.Windows.Forms.SendKeys]::SendWait('{RIGHT}');
+        }
+      `;
+      exec(`powershell -NoProfile -Command "${psCmd.replace(/\n/g, ' ')}"`, () => {
+        setTimeout(() => {
+          try {
+            const text = clipboard.readText();
+            resolve(text || '');
+          } catch (_) {
+            resolve('');
+          }
+        }, 150);
+      });
+    });
+  });
+
   // Get current clipboard text safely on demand
   ipcMain.handle('get-clipboard-code', async () => {
     try {

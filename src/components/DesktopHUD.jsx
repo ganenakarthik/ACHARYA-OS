@@ -158,8 +158,12 @@ export default function DesktopHUD() {
     let codeToAnalyze = ''
     if (electron && electron.invoke) {
       try {
-        codeToAnalyze = await electron.invoke('get-clipboard-code')
-      } catch (_) {}
+        codeToAnalyze = await electron.invoke('get-active-editor-code')
+      } catch (_) {
+        try {
+          codeToAnalyze = await electron.invoke('get-clipboard-code')
+        } catch (_) {}
+      }
     }
     if (!codeToAnalyze && navigator.clipboard) {
       try {
