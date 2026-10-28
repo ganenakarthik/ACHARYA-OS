@@ -337,6 +337,67 @@ export const useStore = create(
         })
       },
 
+      /* ── Novel Capability 1: Cryptographic Block-Chained Session Ledger (Cyber Security) ── */
+      sessionChainLedger: null,
+      verifySessionLedger: async () => {
+        if (typeof window !== 'undefined' && window.electronAPI) {
+          try {
+            const res = await window.electronAPI.invoke('verify-session-ledger-integrity')
+            if (res && res.success && res.ledger) {
+              set({ sessionChainLedger: res.ledger })
+              return res.ledger
+            }
+          } catch (_) {}
+        }
+        return null
+      },
+
+      /* ── Novel Capability 2: Zero-Touch Socratic Error Interceptor (Win32 Context Hook) ── */
+      activeSocraticIntervention: null,
+      setSocraticIntervention: (intervention) => set({ activeSocraticIntervention: intervention }),
+      dismissSocraticIntervention: () => set({ activeSocraticIntervention: null }),
+      simulateErrorIntervention: (type = 'java') => {
+        const samples = {
+          java: {
+            isError: true,
+            language: 'Java',
+            errorType: 'NullPointerException',
+            line: '42',
+            socraticHint: 'Attempted to invoke a method on an uninitialized reference (null). Socratic guidance: Check if user.profile is initialized before accessing .getName().',
+            suggestedFix: 'if (user?.getProfile() != null) { ... } // Or Optional.ofNullable(user)',
+            rawSample: 'Exception in thread "main" java.lang.NullPointerException: Cannot invoke "Profile.getName()" because "user.profile" is null at UserService.java:42'
+          },
+          python: {
+            isError: true,
+            language: 'Python',
+            errorType: 'KeyError (Missing Dictionary Key)',
+            line: '18',
+            socraticHint: 'Python dictionary key lookup failed. Socratic guidance: Avoid direct bracket index data["token"]; use data.get("token", None) for safe traversal.',
+            suggestedFix: 'token = payload.get("auth_token", None)',
+            rawSample: 'Traceback (most recent call last):\n  File "auth.py", line 18, in authenticate\nKeyError: "auth_token"'
+          },
+          cpp: {
+            isError: true,
+            language: 'C / C++',
+            errorType: 'Segmentation Fault (SIGSEGV / Memory Violation)',
+            line: '88',
+            socraticHint: 'Dereferenced an unallocated or freed virtual memory address. Socratic guidance: Verify that malloc() returned non-null before pointer arithmetic.',
+            suggestedFix: 'char* buf = malloc(size); if (!buf) return -1;',
+            rawSample: 'Process terminated with signal SIGSEGV, Segmentation fault (core dumped) at 0x00007fff5fbff8b0'
+          }
+        }
+        set({ activeSocraticIntervention: samples[type] || samples.java })
+      },
+
+      /* ── Novel Capability 3: Spaced Retrieval Drill Across Learning Sessions ── */
+      retrievalDrillActive: false,
+      retrievalDrillSolved: false,
+      setRetrievalDrillActive: (active) => set({ retrievalDrillActive: active }),
+      solveRetrievalDrill: () => set((s) => ({
+        retrievalDrillSolved: true,
+        xp: s.xp + 50
+      })),
+
       /* ── Chat & Memory ── */
       chatHistory: [],
       addMessage: (msg) => set((s) => ({
