@@ -1,0 +1,48 @@
+/* Exam Overlay */
+.exam-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 8px 20px;
+  background: rgba(255,45,106,0.06);
+  border-bottom: 1px solid rgba(255,45,106,0.4);
+  backdrop-filter: blur(4px);
+}
+.exam-overlay-border {
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgba(255,45,106,0.3);
+  pointer-events: none;
+  animation: flicker 3s infinite;
+}
+.exam-overlay-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: #ff2d6a;
+  font-weight: 600;
+}
+.exam-overlay-icon { font-size: 14px; animation: pulse-glow 1.5s ease infinite; }
+.exam-overlay-skip {
+  pointer-events: all;
+  padding: 4px 12px;
+  background: rgba(255,45,106,0.1);
+  border: 1px solid rgba(255,45,106,0.4);
+  border-radius: 3px;
+  color: #ff2d6a;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.exam-overlay-skip:hover { background: rgba(255,45,106,0.2); }

@@ -1,0 +1,69 @@
+/* Settings */
+.settings-root {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto;
+}
+.settings-panel { max-width: 600px; width: 100%; height: fit-content; }
+.settings-body { padding: 20px; display: flex; flex-direction: column; gap: 0; }
+.settings-section { padding: 16px 0; }
+.settings-section-title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--cyan);
+  margin-bottom: 14px;
+}
+.settings-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.settings-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+.settings-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.settings-textarea { resize: vertical; min-height: 70px; }
+.settings-mono { font-family: var(--font-mono); }
+.settings-hint { font-size: 11px; color: var(--text-muted); line-height: 1.5; margin-top: 2px; }
+.settings-link { color: var(--cyan); }
+.settings-key-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(100,150,200,0.04);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.settings-key-status.active { border-color: var(--border-green); background: rgba(0,255,157,0.04); color: var(--green-neon); }
+.settings-key-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
+.settings-key-dot.active { background: var(--green-neon); box-shadow: 0 0 6px var(--green-neon); animation: pulse-dot 2s infinite; }
+.settings-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-dim), transparent);
+  margin: 4px 0;
+}
+.settings-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.settings-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  background: rgba(0,240,255,0.03);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--r-sm);
+}
+.settings-stat-val { font-family: var(--font-mono); font-size: 20px; font-weight: 700; color: var(--cyan); }
+.settings-stat-label { font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); }
+.settings-actions { display: flex; gap: 10px; padding-top: 8px; }
+select.hud-input option { background: var(--bg-dark); }

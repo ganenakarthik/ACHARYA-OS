@@ -1,0 +1,257 @@
+/* HUD Layout Styles */
+.hud-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg-void);
+  position: relative;
+}
+
+/* ── Background ── */
+.hud-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.hud-bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,240,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,240,255,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.hud-bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+}
+.hud-glow-1 {
+  width: 500px; height: 500px;
+  background: rgba(0, 240, 255, 0.04);
+  top: -200px; left: -100px;
+}
+.hud-glow-2 {
+  width: 400px; height: 400px;
+  background: rgba(123, 47, 255, 0.05);
+  bottom: -100px; right: -100px;
+}
+.hud-glow-3 {
+  width: 300px; height: 300px;
+  background: rgba(0, 255, 157, 0.03);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* ── Topbar ── */
+.hud-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 52px;
+  background: rgba(5, 10, 18, 0.95);
+  border-bottom: 1px solid var(--border-cyan);
+  position: relative;
+  z-index: 50;
+  flex-shrink: 0;
+}
+.hud-topbar::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0.3;
+}
+
+.hud-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.hud-topbar-divider {
+  width: 1px; height: 20px;
+  background: var(--border-dim);
+}
+
+/* Logo */
+.hud-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.hud-logo-hex {
+  width: 32px; height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse-glow 3s ease infinite;
+}
+.hud-logo-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+.hud-logo-main {
+  font-family: var(--font-hud);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: 0.15em;
+}
+.hud-logo-sub {
+  font-family: var(--font-hud);
+  font-size: 8px;
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: 0.2em;
+}
+
+/* Agent indicator */
+.hud-agent-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hud-agent-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+.hud-agent-dot.active {
+  background: var(--green-neon);
+  box-shadow: 0 0 6px var(--green-neon);
+  animation: pulse-dot 2s infinite;
+}
+.hud-agent-text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+}
+.hud-agent-dot.active + .hud-agent-text { color: var(--green-neon); }
+
+/* Nav */
+.hud-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.hud-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: all var(--t-base);
+}
+.hud-nav-icon { font-size: 12px; }
+.hud-nav-btn:hover { color: var(--cyan); border-color: var(--border-cyan); background: var(--cyan-glow); }
+.hud-nav-btn.active {
+  color: var(--cyan);
+  border-color: var(--border-cyan);
+  background: rgba(0,240,255,0.06);
+  box-shadow: 0 0 12px rgba(0,240,255,0.06);
+}
+
+/* Right side */
+.hud-topbar-right { display: flex; align-items: center; gap: 12px; }
+.hud-system-info { display: flex; gap: 12px; }
+.hud-info-item { display: flex; flex-direction: column; align-items: flex-end; }
+.hud-info-label { font-family: var(--font-mono); font-size: 8px; color: var(--text-muted); letter-spacing: 0.1em; }
+.hud-info-val { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.hud-info-val.cyan { color: var(--cyan); text-shadow: 0 0 8px rgba(0,240,255,0.5); }
+.hud-info-val.amber { color: var(--amber-neon); }
+
+.hud-clock { text-align: right; }
+.hud-clock-time {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.1em;
+}
+
+.hud-loop-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border-cyan);
+  background: rgba(0,240,255,0.06);
+  color: var(--cyan);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--t-base);
+}
+.hud-loop-btn:hover { background: rgba(0,240,255,0.15); box-shadow: 0 0 12px rgba(0,240,255,0.2); }
+.hud-loop-btn.running { border-color: var(--border-green); background: rgba(0,255,157,0.06); color: var(--green-neon); }
+
+/* ── Status Bar ── */
+.hud-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 4px 20px;
+  height: 28px;
+  background: rgba(2,4,8,0.9);
+  border-bottom: 1px solid rgba(0,240,255,0.08);
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+  z-index: 49;
+}
+.hud-status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.hud-status-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+}
+.hud-status-val {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+}
+.hud-status-val.cyan { color: var(--cyan); }
+.hud-status-val.green { color: var(--green-neon); }
+.hud-status-val.amber { color: var(--amber-neon); }
+.hud-status-val.muted { color: var(--text-muted); }
+.hud-status-sep {
+  width: 1px; height: 12px;
+  background: var(--border-dim);
+  margin: 0 12px;
+  flex-shrink: 0;
+}
+.hud-status-ticker { flex: 1; overflow: hidden; }
+.hud-status-ticker .hud-status-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+
+/* ── Main ── */
+.hud-main {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  z-index: 10;
+}

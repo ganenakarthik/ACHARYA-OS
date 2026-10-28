@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      window.addEventListener('error', function(e) {
+        console.error('GLOBAL_ERROR_OCCURRED:', e.message, e.filename, e.lineno, e.colno, e.error ? e.error.stack : 'no-stack');
+      });
+    </script>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Agentic AI Mentor – Your autonomous AI-powered learning companion that observes, reasons, plans, and acts to help you achieve your learning goals." />
+    <meta name="keywords" content="AI mentor, autonomous learning, agentic AI, personalized education, study assistant" />
+    <title>Agentic AI Mentor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
