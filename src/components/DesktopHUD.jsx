@@ -81,7 +81,15 @@ export default function DesktopHUD() {
           if (issue && issue.isError) {
             setActiveCodeIssue(issue)
             playCyberChime('alarm')
-            showToast(`🚨 Issue on Line ${issue.line} in ${issue.fileName || 'file'}: ${issue.errorType}`, '⚠️')
+            showToast(`🚨 ${issue.errorType} (Line ${issue.line})`, '⚠️')
+            if (ttsEnabled && issue.mentorSpeech) {
+              setIsSpeaking(true)
+              speakText(issue.mentorSpeech, {
+                persona: voicePersona,
+                onStart: () => setIsSpeaking(true),
+                onEnd: () => setIsSpeaking(false)
+              })
+            }
           }
         })
         electron.on('live-code-clean', (info) => {
@@ -1108,17 +1116,17 @@ export default function DesktopHUD() {
             const shortErr = (current.errorType || 'Syntax / Logic Flaw').replace(/SyntaxError:\s*/i, '').replace(/Logic Flaw:\s*/i, '');
             return (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', maxWidth: '290px', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', maxWidth: '320px', overflow: 'hidden' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <span style={{ fontSize: '9px', fontWeight: '900', color: '#ff4d6d', letterSpacing: '0.4px', whiteSpace: 'nowrap' }}>
-                      🚨 {lineStr}: {shortErr.slice(0, 22)}
+                      🚨 {current.programDomain ? `${current.programDomain.replace(' Program', '')} · ` : ''}{lineStr}: {shortErr.replace(/^[^:]+:\s*/, '').slice(0, 22)}
                     </span>
                     <span style={{ fontSize: '7.5px', padding: '1px 4px', borderRadius: '3px', background: 'rgba(255, 77, 109, 0.3)', color: '#ff7b72', border: '1px solid #ff4d6d', fontWeight: 'bold' }}>
                       {current.language || 'Python'}
                     </span>
                   </div>
                   <div style={{ fontSize: '8px', color: '#ffd166', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    💡 {(current.hint || current.socraticHint || 'Check syntax invariant').slice(0, 48)}...
+                    💡 {(current.hint || current.socraticHint || 'Check syntax invariant').slice(0, 52)}...
                   </div>
                 </div>
 
