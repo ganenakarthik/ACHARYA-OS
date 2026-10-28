@@ -52,6 +52,7 @@ export default function DesktopHUD() {
     memories, addMemory, removeMemory, loadMemoriesFromDisk,
     learningSessions, currentLiveSession, concludeAndSaveCurrentSession, loadSessionsFromDisk, vaultIntegrity,
     sessionChainLedger, verifySessionLedger, activeSocraticIntervention, setSocraticIntervention, dismissSocraticIntervention, simulateErrorIntervention, retrievalDrillActive, retrievalDrillSolved, setRetrievalDrillActive, solveRetrievalDrill,
+    liveCodeStatus, activeCodeIssue, setActiveCodeIssue, setLiveCodeClean, dismissActiveCodeIssue, simulateLiveCodeTyping,
     thoughtStream, addThoughtStep, actionQueue, enqueueAction, updateActionStatus,
     memoryConstellation, updateMemoryConstellation, systemStatus, setSystemStatus,
   } = useStore()
@@ -75,6 +76,16 @@ export default function DesktopHUD() {
             playCyberChime('alarm')
             showToast(`⚡ Zero-Touch Sentry: Intercepted ${errorData.errorType} in OS`, '⚠️')
           }
+        })
+        electron.on('live-code-issue-detected', (issue) => {
+          if (issue && issue.isError) {
+            setActiveCodeIssue(issue)
+            playCyberChime('alarm')
+            showToast(`🚨 Issue on Line ${issue.line} in ${issue.fileName || 'file'}: ${issue.errorType}`, '⚠️')
+          }
+        })
+        electron.on('live-code-clean', (info) => {
+          setLiveCodeClean(info)
         })
       }
       // Guarantee fullscreen display bounds on startup
@@ -1050,17 +1061,38 @@ export default function DesktopHUD() {
           onDoubleClick={() => handleExpandHUD()}
           onDragStart={(e) => e.preventDefault()}
         >
-          <div className="orb-circle-body">
-            <div className="orb-inner-core" />
-            <div className="orb-spin-ring ring-primary" />
-            <div className="orb-spin-ring ring-secondary" />
+          <div className="orb-circle-body" style={{
+            boxShadow: activeCodeIssue ? '0 0 25px #ff4d6d, inset 0 0 15px #ff4d6d' : (liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? '0 0 20px #00ff9d' : undefined
+          }}>
+            <div className="orb-inner-core" style={{
+              background: activeCodeIssue ? 'radial-gradient(circle, #ff4d6d 0%, #800020 80%)' : (liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? 'radial-gradient(circle, #00ff9d 0%, #007755 80%)' : undefined
+            }} />
+            <div className="orb-spin-ring ring-primary" style={{
+              borderColor: activeCodeIssue ? '#ff4d6d transparent #ff4d6d transparent' : undefined
+            }} />
+            <div className="orb-spin-ring ring-secondary" style={{
+              borderColor: activeCodeIssue ? '#ff7b72 transparent #ff7b72 transparent' : undefined
+            }} />
           </div>
           <div className="orb-pill-tag">
-            <div className={`tag-status-dot ${isListening ? 'listening' : ''}`} />
+            <div className={`tag-status-dot ${isListening ? 'listening' : ''}`} style={{
+              background: activeCodeIssue ? '#ff4d6d' : (liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? '#00ff9d' : undefined,
+              boxShadow: activeCodeIssue ? '0 0 8px #ff4d6d' : undefined
+            }} />
             <span className="tag-text">ACHARYA</span>
 
-            {/* Event Notification Badge in Collapsed Pill */}
-            {pillEventNotification ? (
+            {/* Real-time Code Issue Badge in Collapsed Pill */}
+            {activeCodeIssue ? (
+              <span className="pill-event-badge-glow" style={{ background: 'rgba(255, 77, 109, 0.28)', border: '1px solid #ff4d6d', color: '#ff7b72' }} title={`Error on Line ${activeCodeIssue.line}: ${activeCodeIssue.errorType}`}>
+                <span className="event-pulse-dot" style={{ background: '#ff4d6d', boxShadow: '0 0 10px #ff4d6d' }} />
+                🚨 L{activeCodeIssue.line} · {activeCodeIssue.errorType.slice(0, 14)}
+              </span>
+            ) : (liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? (
+              <span className="pill-event-badge-glow cyan" title={`Clean Code Flow: ${liveCodeStatus.fileName || 'Active File'}`}>
+                <span className="event-pulse-dot cyan" style={{ background: '#00ff9d', boxShadow: '0 0 8px #00ff9d' }} />
+                ✍️ {liveCodeStatus.fileName ? liveCodeStatus.fileName.slice(0, 12) : 'Clean Code'}
+              </span>
+            ) : pillEventNotification ? (
               <span className={`pill-event-badge-glow ${pillEventNotification.type === 'EXAM' ? '' : 'cyan'}`} title={`Event Active: ${pillEventNotification.title}`}>
                 <span className={`event-pulse-dot ${pillEventNotification.type === 'EXAM' ? '' : 'cyan'}`} />
                 🔔 {pillEventNotification.title.slice(0, 18)} {pillEventNotification.detail ? `· ${pillEventNotification.detail.slice(0, 12)}` : ''}
@@ -1097,6 +1129,60 @@ export default function DesktopHUD() {
           >
             ✕
           </button>
+
+          {/* Real-time Code Issue Popout Toast attached to Pill */}
+          {activeCodeIssue && (
+            <div 
+              className="pill-event-popout-toast"
+              style={{
+                border: '1.5px solid #ff4d6d',
+                background: 'linear-gradient(135deg, rgba(25, 0, 10, 0.96), rgba(45, 10, 20, 0.98))',
+                boxShadow: '0 0 35px rgba(255, 77, 109, 0.65)',
+                maxWidth: '320px',
+                cursor: 'pointer'
+              }}
+              onClick={(e) => {
+                e.stopPropagation()
+                setCodeSnippet(activeCodeIssue.suggestedFix || activeCodeIssue.codeSnippet || '')
+                setActiveModal('code')
+                handleExpandHUD()
+              }}
+              title="Click to auto-fix in AST Code Sentry"
+            >
+              <span className="pept-icon" style={{ fontSize: '18px' }}>🚨</span>
+              <div className="pept-content">
+                <div className="pept-header">
+                  <span className="pept-type" style={{ color: '#ff4d6d', fontWeight: 'bold' }}>
+                    {activeCodeIssue.language} FLAW: {activeCodeIssue.fileName || 'ACTIVE CODE'}
+                  </span>
+                  <span className="pept-pulse-tag" style={{ background: 'rgba(255, 77, 109, 0.3)', color: '#ff7b72', border: '1px solid #ff4d6d' }}>
+                    LINE {activeCodeIssue.line}
+                  </span>
+                </div>
+                <div className="pept-title" style={{ color: '#ffffff', fontSize: '11px', fontWeight: 'bold' }}>
+                  {activeCodeIssue.errorType}
+                </div>
+                <div className="pept-detail" style={{ color: '#ffd166', fontSize: '9px', marginTop: '3px', lineHeight: '1.3' }}>
+                  💡 {activeCodeIssue.hint}
+                </div>
+                <div style={{ marginTop: '5px', display: 'flex', gap: '6px' }}>
+                  <span style={{ fontSize: '8px', background: 'rgba(0, 240, 255, 0.2)', color: 'var(--neon-cyan)', border: '1px solid var(--neon-cyan)', padding: '2px 7px', borderRadius: '3px', fontWeight: 'bold' }}>
+                    ⚡ Click to Fix in HUD
+                  </span>
+                </div>
+              </div>
+              <button 
+                className="pept-close-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  dismissActiveCodeIssue()
+                }}
+                title="Dismiss warning"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           {/* Floating Popout Notification Toast attached to Pill */}
           {pillEventNotification && !pillEventNotification.isDismissedToast && (
@@ -1226,82 +1312,87 @@ export default function DesktopHUD() {
           </header>
 
           {/* Autonomous Zero-Touch Socratic Error Interceptor Banner */}
-          {activeSocraticIntervention && (
-            <div style={{
-              margin: '0 24px 10px',
-              background: 'linear-gradient(135deg, rgba(255, 77, 109, 0.22), rgba(255, 184, 0, 0.16))',
-              border: '1.5px solid #ff4d6d',
-              borderRadius: '8px',
-              padding: '10px 14px',
-              boxShadow: '0 0 24px rgba(255, 77, 109, 0.45)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: '12px',
-              zIndex: 100
-            }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '14px' }}>🚨</span>
-                  <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#ff4d6d', letterSpacing: '0.8px' }}>
-                    ZERO-TOUCH SENTRY INTERCEPTED RUNTIME EXCEPTION ({activeSocraticIntervention.language})
-                  </span>
-                  <span style={{ fontSize: '8px', padding: '1px 6px', borderRadius: '3px', background: 'rgba(255, 77, 109, 0.25)', color: '#ff7b72', border: '1px solid #ff4d6d', fontWeight: 'bold' }}>
-                    LINE {activeSocraticIntervention.line || 'ACTIVE'}
-                  </span>
+          {(activeCodeIssue || activeSocraticIntervention) && (() => {
+            const currentIssue = activeCodeIssue || activeSocraticIntervention;
+            return (
+              <div style={{
+                margin: '0 24px 10px',
+                background: 'linear-gradient(135deg, rgba(255, 77, 109, 0.22), rgba(255, 184, 0, 0.16))',
+                border: '1.5px solid #ff4d6d',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                boxShadow: '0 0 24px rgba(255, 77, 109, 0.45)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '12px',
+                zIndex: 100
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '14px' }}>🚨</span>
+                    <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#ff4d6d', letterSpacing: '0.8px' }}>
+                      ZERO-TOUCH SENTRY: {currentIssue.fileName ? `${currentIssue.fileName} · ` : ''}{currentIssue.language} DETECTED IN WORKSPACE
+                    </span>
+                    <span style={{ fontSize: '8px', padding: '1px 6px', borderRadius: '3px', background: 'rgba(255, 77, 109, 0.25)', color: '#ff7b72', border: '1px solid #ff4d6d', fontWeight: 'bold' }}>
+                      LINE {currentIssue.line || 'ACTIVE'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '11.5px', fontWeight: 'bold', color: '#ffffff', marginTop: '3px' }}>
+                    {currentIssue.errorType}
+                  </div>
+                  <div style={{ fontSize: '9.5px', color: '#ffe6a7', marginTop: '3px', lineHeight: '1.3' }}>
+                    💡 <b>Socratic Guidance:</b> {currentIssue.hint || currentIssue.socraticHint}
+                  </div>
+                  <div style={{ fontSize: '8.5px', color: '#6df9ff', fontFamily: 'monospace', background: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: '4px', marginTop: '4px' }}>
+                    Suggested Fix: {currentIssue.suggestedFix}
+                  </div>
                 </div>
-                <div style={{ fontSize: '11.5px', fontWeight: 'bold', color: '#ffffff', marginTop: '3px' }}>
-                  {activeSocraticIntervention.errorType}
-                </div>
-                <div style={{ fontSize: '9.5px', color: '#ffe6a7', marginTop: '3px', lineHeight: '1.3' }}>
-                  💡 <b>Socratic Guidance:</b> {activeSocraticIntervention.socraticHint}
-                </div>
-                <div style={{ fontSize: '8.5px', color: '#6df9ff', fontFamily: 'monospace', background: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: '4px', marginTop: '4px' }}>
-                  Suggested Fix: {activeSocraticIntervention.suggestedFix}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <button
+                    onClick={() => {
+                      setCodeSnippet(currentIssue.suggestedFix || currentIssue.codeSnippet || currentIssue.rawSample || '')
+                      setActiveModal('code')
+                      if (activeCodeIssue) dismissActiveCodeIssue()
+                      if (activeSocraticIntervention) dismissSocraticIntervention()
+                      playCyberChime('affirm')
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #00f0ff, #00ff9d)',
+                      border: 'none',
+                      color: '#000',
+                      fontWeight: '900',
+                      fontSize: '10px',
+                      padding: '6px 14px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    ⚡ Open in AST Sentry
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (activeCodeIssue) dismissActiveCodeIssue()
+                      if (activeSocraticIntervention) dismissSocraticIntervention()
+                      playCyberChime('scan')
+                    }}
+                    style={{
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      color: '#fff',
+                      fontSize: '9px',
+                      padding: '3px 8px',
+                      borderRadius: '3px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Dismiss
+                  </button>
                 </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <button
-                  onClick={() => {
-                    setCodeSnippet(activeSocraticIntervention.suggestedFix || activeSocraticIntervention.rawSample)
-                    setActiveModal('code')
-                    dismissSocraticIntervention()
-                    playCyberChime('affirm')
-                  }}
-                  style={{
-                    background: 'linear-gradient(135deg, #00f0ff, #00ff9d)',
-                    border: 'none',
-                    color: '#000',
-                    fontWeight: '900',
-                    fontSize: '10px',
-                    padding: '6px 14px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  ⚡ Open in AST Sentry
-                </button>
-                <button
-                  onClick={() => {
-                    dismissSocraticIntervention()
-                    playCyberChime('scan')
-                  }}
-                  style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    color: '#fff',
-                    fontSize: '9px',
-                    padding: '3px 8px',
-                    borderRadius: '3px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Center 3D Gyro Orb Stage & Acharya Neural Core */}
           <div className="hud-center-stage-container">
@@ -1829,45 +1920,59 @@ export default function DesktopHUD() {
                             background: 'rgba(255, 77, 109, 0.08)',
                             border: '1px dashed rgba(255, 77, 109, 0.4)',
                             borderRadius: '6px',
-                            padding: '6px 10px',
+                            padding: '7px 10px',
                             display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: '8px'
+                            flexDirection: 'column',
+                            gap: '6px'
                           }}>
-                            <span style={{ fontSize: '9px', fontWeight: 'bold', color: '#ff4d6d' }}>
-                              ⚡ TEST ZERO-TOUCH OS SENTRY INTERCEPT:
-                            </span>
-                            <div style={{ display: 'flex', gap: '5px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '9px', fontWeight: 'bold', color: '#ff4d6d' }}>
+                                ⚡ TEST REAL-TIME CODE SENTRY & PILL TRANSFORMATION:
+                              </span>
+                              <span style={{ fontSize: '7.5px', color: 'rgba(255,255,255,0.6)' }}>
+                                (Works live when typing in VS Code, Notepad, or test triggers)
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                              <button
+                                onClick={() => {
+                                  simulateLiveCodeTyping('python', true)
+                                  playCyberChime('alarm')
+                                  showToast('🚨 Pill Alert: Python SyntaxError (Missing Colon)', '⚡')
+                                }}
+                                style={{ background: 'rgba(255,77,109,0.18)', border: '1px solid #ff4d6d', color: '#ff7b72', padding: '3px 8px', borderRadius: '3px', fontSize: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                              >
+                                Test Python Missing Colon (Pill Alert)
+                              </button>
+                              <button
+                                onClick={() => {
+                                  simulateLiveCodeTyping('java', true)
+                                  playCyberChime('alarm')
+                                  showToast('🚨 Pill Alert: Java SyntaxError (Missing Semicolon)', '⚡')
+                                }}
+                                style={{ background: 'rgba(255,184,0,0.18)', border: '1px solid #ffb800', color: '#ffdd55', padding: '3px 8px', borderRadius: '3px', fontSize: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                              >
+                                Test Java Missing Semicolon (Pill Alert)
+                              </button>
+                              <button
+                                onClick={() => {
+                                  simulateLiveCodeTyping('python', false)
+                                  playCyberChime('affirm')
+                                  showToast('✨ Clean Code Flow: Pill Orb Glows Green', '✍️')
+                                }}
+                                style={{ background: 'rgba(0,255,157,0.15)', border: '1px solid var(--neon-green)', color: 'var(--neon-green)', padding: '3px 8px', borderRadius: '3px', fontSize: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                              >
+                                Test Clean Code Flow (Green Orb)
+                              </button>
                               <button
                                 onClick={() => {
                                   simulateErrorIntervention('java')
                                   playCyberChime('alarm')
                                   showToast('🚨 Intercepted Java NullPointerException in OS', '⚡')
                                 }}
-                                style={{ background: 'rgba(255,77,109,0.15)', border: '1px solid #ff4d6d', color: '#ff7b72', padding: '3px 8px', borderRadius: '3px', fontSize: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-                              >
-                                Test Java NullPointer
-                              </button>
-                              <button
-                                onClick={() => {
-                                  simulateErrorIntervention('python')
-                                  playCyberChime('alarm')
-                                  showToast('🚨 Intercepted Python KeyError in OS', '⚡')
-                                }}
-                                style={{ background: 'rgba(255,184,0,0.15)', border: '1px solid #ffb800', color: '#ffdd55', padding: '3px 8px', borderRadius: '3px', fontSize: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-                              >
-                                Test Python KeyError
-                              </button>
-                              <button
-                                onClick={() => {
-                                  simulateErrorIntervention('cpp')
-                                  playCyberChime('alarm')
-                                  showToast('🚨 Intercepted C++ SegFault in OS', '⚡')
-                                }}
                                 style={{ background: 'rgba(0,240,255,0.15)', border: '1px solid var(--neon-cyan)', color: 'var(--neon-cyan)', padding: '3px 8px', borderRadius: '3px', fontSize: '8px', cursor: 'pointer', fontWeight: 'bold' }}
                               >
-                                Test C++ SegFault
+                                Test OS NullPointer Trace
                               </button>
                             </div>
                           </div>

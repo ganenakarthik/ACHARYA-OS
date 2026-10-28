@@ -398,6 +398,78 @@ export const useStore = create(
         xp: s.xp + 50
       })),
 
+      /* ── Novel Capability 4: Real-Time Live Code Comprehension & Reactive Pill Sentry ── */
+      liveCodeStatus: { isActive: false, fileName: '', language: '', status: 'IDLE' },
+      activeCodeIssue: null,
+      setActiveCodeIssue: (issue) => set({ activeCodeIssue: issue }),
+      setLiveCodeClean: (cleanInfo) => set({
+        liveCodeStatus: { isActive: true, status: 'CLEAN', ...(cleanInfo || {}) },
+        activeCodeIssue: null
+      }),
+      dismissActiveCodeIssue: () => set({ activeCodeIssue: null }),
+      simulateLiveCodeTyping: (lang = 'python', hasError = true) => {
+        if (!hasError) {
+          set({
+            liveCodeStatus: { isActive: true, fileName: `script.${lang === 'python' ? 'py' : lang === 'java' ? 'java' : 'cpp'}`, language: lang, status: 'CLEAN' },
+            activeCodeIssue: null
+          });
+          return;
+        }
+
+        const presets = {
+          python: {
+            isError: true,
+            language: 'Python',
+            fileName: 'auth_handler.py',
+            line: 14,
+            errorType: "SyntaxError: Missing Colon ':' in 'def' statement",
+            hint: "In Python, function declarations must terminate with a colon ':'. Check line 14.",
+            suggestedFix: "def authenticate_user(token):",
+            codeSnippet: "def authenticate_user(token)",
+            totalLines: 32
+          },
+          java: {
+            isError: true,
+            language: 'Java',
+            fileName: 'UserService.java',
+            line: 28,
+            errorType: "SyntaxError: Missing Semicolon ';'",
+            hint: "Java statements must terminate with a semicolon ';'. Add ';' at the end of line 28.",
+            suggestedFix: "int maxRetryCount = 5;",
+            codeSnippet: "int maxRetryCount = 5",
+            totalLines: 64
+          },
+          cpp: {
+            isError: true,
+            language: 'C / C++',
+            fileName: 'network_daemon.c',
+            line: 42,
+            errorType: "SyntaxError: Missing Semicolon ';'",
+            hint: "C/C++ statements must terminate with ';'. Check line 42.",
+            suggestedFix: 'printf("Initializing sockets...\\n");',
+            codeSnippet: 'printf("Initializing sockets...\\n")',
+            totalLines: 85
+          },
+          javascript: {
+            isError: true,
+            language: 'JavaScript',
+            fileName: 'UserProfile.jsx',
+            line: 19,
+            errorType: 'Logic Flaw: Unhandled TypeError on Nested Property',
+            hint: "Accessing user.profile.address.city without optional chaining (?.) will crash if profile is undefined. Use user?.profile?.address?.city.",
+            suggestedFix: "const city = user?.profile?.address?.city;",
+            codeSnippet: "const city = user.profile.address.city;",
+            totalLines: 40
+          }
+        };
+
+        const chosen = presets[lang.toLowerCase()] || presets.python;
+        set({
+          activeCodeIssue: chosen,
+          liveCodeStatus: { isActive: true, fileName: chosen.fileName, language: chosen.language, status: 'ERROR' }
+        });
+      },
+
       /* ── Chat & Memory ── */
       chatHistory: [],
       addMessage: (msg) => set((s) => ({

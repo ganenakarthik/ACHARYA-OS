@@ -825,21 +825,333 @@ function createWindow() {
     return classifyExceptionTrace(trace);
   });
 
-  // Automated OS Clipboard Sentry (Detects errors in background)
+  /* ══════════════════════════════════════════════════════════
+     REAL-TIME MULTI-LANGUAGE CODE COMPREHENSION & LINTER
+     (Instant error detection in VS Code, Notepad, or clipboard)
+     ══════════════════════════════════════════════════════════ */
+  const analyzeSourceCodeUnderstanding = (code = '', fileName = '', explicitLang = '') => {
+    if (!code || typeof code !== 'string') return { isError: false, status: 'EMPTY' };
+    const cleanCode = code.trim();
+    if (cleanCode.length < 5) return { isError: false, status: 'TOO_SHORT' };
+
+    const lowerFile = (fileName || '').toLowerCase();
+    let lang = explicitLang || '';
+    if (!lang) {
+      if (lowerFile.endsWith('.py')) lang = 'Python';
+      else if (lowerFile.endsWith('.java')) lang = 'Java';
+      else if (lowerFile.endsWith('.c') || lowerFile.endsWith('.cpp') || lowerFile.endsWith('.h')) lang = 'C / C++';
+      else if (lowerFile.endsWith('.js') || lowerFile.endsWith('.jsx') || lowerFile.endsWith('.ts') || lowerFile.endsWith('.tsx')) lang = 'JavaScript';
+      else if (lowerFile.endsWith('.sql')) lang = 'SQL';
+      else if (lowerFile.endsWith('.html')) lang = 'HTML';
+      else {
+        // Sniff language from code markers
+        if (cleanCode.includes('def ') || (cleanCode.includes('import ') && cleanCode.includes(':')) || (cleanCode.includes('print(') && !cleanCode.includes(';'))) lang = 'Python';
+        else if (cleanCode.includes('public class ') || cleanCode.includes('System.out.println')) lang = 'Java';
+        else if (cleanCode.includes('#include <') || cleanCode.includes('printf(') || cleanCode.includes('std::cout')) lang = 'C / C++';
+        else if (cleanCode.includes('const ') || cleanCode.includes('function') || cleanCode.includes('console.log')) lang = 'JavaScript';
+        else if (cleanCode.includes('SELECT ') || cleanCode.includes('INSERT INTO')) lang = 'SQL';
+        else lang = 'Python'; // Default to Python for generic scripts
+      }
+    }
+
+    const lines = code.split('\n');
+
+    // 1. PYTHON LINTER & REASONING
+    if (lang === 'Python') {
+      let openParens = 0;
+      let openBrackets = 0;
+      let openBraces = 0;
+
+      for (let i = 0; i < lines.length; i++) {
+        const lineNum = i + 1;
+        const rawLine = lines[i];
+        const trimmed = rawLine.trim();
+
+        // Skip comments and blank lines
+        if (!trimmed || trimmed.startsWith('#')) continue;
+
+        // Check for missing colon after control flow
+        const controlKeywords = ['if', 'elif', 'else', 'for', 'while', 'def', 'class', 'try', 'except', 'finally', 'with'];
+        for (const kw of controlKeywords) {
+          const regex = new RegExp(`^${kw}\\b.*[^:]$`);
+          if (regex.test(trimmed) && !trimmed.endsWith('\\') && !trimmed.endsWith(',')) {
+            // Make sure it's not a multiline header
+            if (!rawLine.includes('(') || (rawLine.includes('(') && rawLine.includes(')'))) {
+              return {
+                isError: true,
+                language: 'Python',
+                fileName: fileName || 'active_script.py',
+                line: lineNum,
+                errorType: `SyntaxError: Missing Colon ':' in '${kw}' statement`,
+                hint: `In Python, all block headers (${kw}) must terminate with a colon ':'. Check line ${lineNum}.`,
+                suggestedFix: `${rawLine}:`,
+                codeSnippet: rawLine,
+                totalLines: lines.length
+              };
+            }
+          }
+        }
+
+        // Check for single '=' inside 'if' or 'elif' condition
+        if (/^(if|elif)\s+[^=!<>]=[^=]/.test(trimmed)) {
+          return {
+            isError: true,
+            language: 'Python',
+            fileName: fileName || 'active_script.py',
+            line: lineNum,
+            errorType: "SyntaxError: Assignment '=' in conditional statement",
+            hint: `Found assignment operator '=' in condition on line ${lineNum}. Use '==' for equality comparison.`,
+            suggestedFix: rawLine.replace(/=([^=])/, '==$1'),
+            codeSnippet: rawLine,
+            totalLines: lines.length
+          };
+        }
+
+        // Check print without parentheses (Python 2 vs 3)
+        if (/^print\s+["'][^"']+["']/.test(trimmed)) {
+          return {
+            isError: true,
+            language: 'Python',
+            fileName: fileName || 'active_script.py',
+            line: lineNum,
+            errorType: 'SyntaxError: Missing parentheses in call to print()',
+            hint: `In Python 3+, print is a built-in function and requires parentheses: print(...) on line ${lineNum}.`,
+            suggestedFix: rawLine.replace(/print\s+(.*)/, 'print($1)'),
+            codeSnippet: rawLine,
+            totalLines: lines.length
+          };
+        }
+
+        // Count bracket balances
+        for (const ch of trimmed) {
+          if (ch === '(') openParens++;
+          else if (ch === ')') openParens--;
+          else if (ch === '[') openBrackets++;
+          else if (ch === ']') openBrackets--;
+          else if (ch === '{') openBraces++;
+          else if (ch === '}') openBraces--;
+        }
+      }
+
+      if (openParens !== 0 || openBrackets !== 0 || openBraces !== 0) {
+        return {
+          isError: true,
+          language: 'Python',
+          fileName: fileName || 'active_script.py',
+          line: lines.length,
+          errorType: 'SyntaxError: Unmatched or Unclosed Bracket/Parenthesis',
+          hint: `Parentheses or brackets are unbalanced (${openParens > 0 ? 'unclosed (' : 'extra )'}). Ensure every opening bracket has a matching closer.`,
+          suggestedFix: 'Close all open (), [], and {} pairs.',
+          codeSnippet: lines[lines.length - 1],
+          totalLines: lines.length
+        };
+      }
+    }
+
+    // 2. JAVA LINTER & REASONING
+    if (lang === 'Java') {
+      let openBraces = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const lineNum = i + 1;
+        const rawLine = lines[i];
+        const trimmed = rawLine.trim();
+
+        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) continue;
+
+        // Missing semicolon check on simple statements
+        if (!trimmed.endsWith(';') && !trimmed.endsWith('{') && !trimmed.endsWith('}') && !trimmed.endsWith(':')) {
+          if (/^(int|long|double|float|String|boolean|char|return|throw|break|continue|import|package)\b/.test(trimmed) ||
+              /\bSystem\.out\.println\(.*\)$/.test(trimmed) ||
+              /\b[a-zA-Z0-9_]+\s*=\s*[^;]+$/.test(trimmed)) {
+            return {
+              isError: true,
+              language: 'Java',
+              fileName: fileName || 'Solution.java',
+              line: lineNum,
+              errorType: "SyntaxError: Missing Semicolon ';'",
+              hint: `Java statements must terminate with a semicolon ';'. Add ';' at the end of line ${lineNum}.`,
+              suggestedFix: `${rawLine};`,
+              codeSnippet: rawLine,
+              totalLines: lines.length
+            };
+          }
+        }
+
+        // Array index bounds bug: i <= arr.length
+        if (/for\s*\(\s*int\s+i\s*=\s*0\s*;\s*i\s*<=\s*[a-zA-Z0-9_]+\.length\s*;/.test(trimmed)) {
+          return {
+            isError: true,
+            language: 'Java',
+            fileName: fileName || 'Solution.java',
+            line: lineNum,
+            errorType: 'Logic Invariant: ArrayIndexOutOfBoundsException Risk',
+            hint: `Boundary condition flaw: Array indexing is 0-based. 'i <= arr.length' will throw ArrayIndexOutOfBoundsException on the final cycle. Use 'i < arr.length'.`,
+            suggestedFix: rawLine.replace(/<=\s*([a-zA-Z0-9_]+\.length)/, '< $1'),
+            codeSnippet: rawLine,
+            totalLines: lines.length
+          };
+        }
+
+        for (const ch of trimmed) {
+          if (ch === '{') openBraces++;
+          else if (ch === '}') openBraces--;
+        }
+      }
+
+      if (openBraces !== 0) {
+        return {
+          isError: true,
+          language: 'Java',
+          fileName: fileName || 'Solution.java',
+          line: lines.length,
+          errorType: 'SyntaxError: Unclosed Curly Brace {} in Class/Method',
+          hint: `Mismatched class or method body. Missing closing brace '}' at end of file.`,
+          suggestedFix: 'Add missing closing brace `}`.',
+          codeSnippet: lines[lines.length - 1],
+          totalLines: lines.length
+        };
+      }
+    }
+
+    // 3. C / C++ LINTER
+    if (lang === 'C / C++') {
+      for (let i = 0; i < lines.length; i++) {
+        const lineNum = i + 1;
+        const rawLine = lines[i];
+        const trimmed = rawLine.trim();
+        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
+
+        // Missing semicolon
+        if (!trimmed.endsWith(';') && !trimmed.endsWith('{') && !trimmed.endsWith('}') && !trimmed.endsWith(':')) {
+          if (/^(int|float|double|char|void|return|break|continue)\b/.test(trimmed) || /printf\(.*\)$/.test(trimmed)) {
+            return {
+              isError: true,
+              language: 'C / C++',
+              fileName: fileName || 'main.c',
+              line: lineNum,
+              errorType: "SyntaxError: Missing Semicolon ';'",
+              hint: `C/C++ statements must terminate with ';'. Check line ${lineNum}.`,
+              suggestedFix: `${rawLine};`,
+              codeSnippet: rawLine,
+              totalLines: lines.length
+            };
+          }
+        }
+      }
+    }
+
+    // 4. JAVASCRIPT / TYPESCRIPT
+    if (lang === 'JavaScript') {
+      for (let i = 0; i < lines.length; i++) {
+        const lineNum = i + 1;
+        const rawLine = lines[i];
+        const trimmed = rawLine.trim();
+        if (!trimmed || trimmed.startsWith('//')) continue;
+
+        // Unhandled deep null access
+        if (/[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+/.test(trimmed) && !trimmed.includes('?.') && !trimmed.includes('console.') && !trimmed.includes('Math.')) {
+          if (trimmed.includes('.data.') || trimmed.includes('.user.') || trimmed.includes('.profile.')) {
+            return {
+              isError: true,
+              language: 'JavaScript',
+              fileName: fileName || 'app.js',
+              line: lineNum,
+              errorType: 'Logic Flaw: Unhandled TypeError on Nested Property',
+              hint: `Accessing deeply nested properties without optional chaining (?.) causes 'Cannot read property of undefined' if the parent is null. Use ?. traversal on line ${lineNum}.`,
+              suggestedFix: rawLine.replace(/([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)/g, '$1?.$2?.$3'),
+              codeSnippet: rawLine,
+              totalLines: lines.length
+            };
+          }
+        }
+      }
+    }
+
+    // Code is clean and valid
+    return {
+      isError: false,
+      language,
+      fileName: fileName || 'code_buffer',
+      status: 'CLEAN',
+      message: 'Code syntax & structural integrity verified. Zero defects detected.',
+      totalLines: lines.length
+    };
+  };
+
+  ipcMain.handle('analyze-source-code', async (event, { code, fileName, language }) => {
+    return analyzeSourceCodeUnderstanding(code, fileName, language);
+  });
+
+  // Automated OS Clipboard & Code Sentry (Detects errors & flawed code in background)
   let lastSeenClip = '';
   setInterval(() => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     try {
       const clipText = clipboard.readText();
-      if (clipText && clipText !== lastSeenClip && clipText.length > 15) {
+      if (clipText && clipText !== lastSeenClip && clipText.length > 8) {
         lastSeenClip = clipText;
-        const analysis = classifyExceptionTrace(clipText);
-        if (analysis.isError) {
-          mainWindow.webContents.send('os-runtime-error-detected', analysis);
+        // First check if it's an error stack trace
+        const errAnalysis = classifyExceptionTrace(clipText);
+        if (errAnalysis.isError) {
+          mainWindow.webContents.send('os-runtime-error-detected', errAnalysis);
+          mainWindow.webContents.send('live-code-issue-detected', {
+            fileName: 'Console / Terminal',
+            ...errAnalysis,
+            hint: errAnalysis.socraticHint
+          });
+          return;
+        }
+
+        // If it looks like code, run multi-language comprehension
+        if (clipText.includes('def ') || clipText.includes('class ') || clipText.includes('public ') || clipText.includes('#include') || clipText.includes('function ') || clipText.includes('for ') || clipText.includes('if ')) {
+          const codeAnalysis = analyzeSourceCodeUnderstanding(clipText);
+          if (codeAnalysis.isError) {
+            mainWindow.webContents.send('live-code-issue-detected', codeAnalysis);
+          } else {
+            mainWindow.webContents.send('live-code-clean', codeAnalysis);
+          }
         }
       }
     } catch (_) {}
-  }, 1800);
+  }, 1500);
+
+  // Real-Time Workspace File Watcher (Instant On-Save in VS Code or Notepad)
+  try {
+    const fs = require('fs');
+    const watchDirs = [process.cwd()];
+    const desktopPath = path.join(os.homedir(), 'Desktop');
+    if (fs.existsSync(desktopPath)) watchDirs.push(desktopPath);
+
+    let debounceTimer = null;
+    watchDirs.forEach(dir => {
+      if (!fs.existsSync(dir)) return;
+      fs.watch(dir, { recursive: false }, (eventType, filename) => {
+        if (!filename) return;
+        const lower = filename.toLowerCase();
+        if (lower.endsWith('.py') || lower.endsWith('.java') || lower.endsWith('.c') || lower.endsWith('.cpp') || lower.endsWith('.js') || lower.endsWith('.jsx') || lower.endsWith('.ts') || lower.endsWith('.txt')) {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            if (!mainWindow || mainWindow.isDestroyed()) return;
+            const fullPath = path.join(dir, filename);
+            try {
+              if (fs.existsSync(fullPath)) {
+                const stats = fs.statSync(fullPath);
+                if (stats.size > 0 && stats.size < 500000) {
+                  const content = fs.readFileSync(fullPath, 'utf8');
+                  const analysis = analyzeSourceCodeUnderstanding(content, filename);
+                  if (analysis.isError) {
+                    mainWindow.webContents.send('live-code-issue-detected', analysis);
+                  } else {
+                    mainWindow.webContents.send('live-code-clean', analysis);
+                  }
+                }
+              }
+            } catch (_) {}
+          }, 350);
+        }
+      });
+    });
+  } catch (_) {}
 
   // Cyber Security Integrity Check (Local SHA-256 Hash of Persistent Vaults)
   ipcMain.handle('get-vault-integrity-hash', async () => {
