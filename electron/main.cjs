@@ -854,6 +854,22 @@ function createWindow() {
       }
     }
 
+    // Code intention / goal comprehension
+    let codeIntent = 'Active Code Flow';
+    if (/def\s+([a-zA-Z0-9_]+)/.test(cleanCode)) {
+      const match = cleanCode.match(/def\s+([a-zA-Z0-9_]+)/);
+      codeIntent = `Function '${match[1]}'`;
+    } else if (/class\s+([a-zA-Z0-9_]+)/.test(cleanCode)) {
+      const match = cleanCode.match(/class\s+([a-zA-Z0-9_]+)/);
+      codeIntent = `Class '${match[1]}'`;
+    } else if (/public\s+class\s+([a-zA-Z0-9_]+)/.test(cleanCode)) {
+      const match = cleanCode.match(/public\s+class\s+([a-zA-Z0-9_]+)/);
+      codeIntent = `Java Class '${match[1]}'`;
+    } else if (/function\s+([a-zA-Z0-9_]+)/.test(cleanCode)) {
+      const match = cleanCode.match(/function\s+([a-zA-Z0-9_]+)/);
+      codeIntent = `Function '${match[1]}'`;
+    }
+
     const lines = code.split('\n');
 
     // 1. PYTHON LINTER & REASONING
@@ -1084,6 +1100,9 @@ function createWindow() {
 
   // Automated OS Clipboard & Code Sentry (Detects errors & flawed code in background)
   let lastSeenClip = '';
+  try {
+    lastSeenClip = clipboard.readText() || '';
+  } catch (_) {}
   setInterval(() => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     try {

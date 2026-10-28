@@ -1083,9 +1083,9 @@ export default function DesktopHUD() {
 
             {/* Real-time Code Issue Badge in Collapsed Pill */}
             {activeCodeIssue ? (
-              <span className="pill-event-badge-glow" style={{ background: 'rgba(255, 77, 109, 0.28)', border: '1px solid #ff4d6d', color: '#ff7b72' }} title={`Error on Line ${activeCodeIssue.line}: ${activeCodeIssue.errorType}`}>
+              <span className="pill-event-badge-glow" style={{ background: 'rgba(255, 77, 109, 0.28)', border: '1px solid #ff4d6d', color: '#ff7b72', whiteSpace: 'nowrap' }} title={`Error on Line ${activeCodeIssue.line}: ${activeCodeIssue.errorType}`}>
                 <span className="event-pulse-dot" style={{ background: '#ff4d6d', boxShadow: '0 0 10px #ff4d6d' }} />
-                🚨 L{activeCodeIssue.line} · {activeCodeIssue.errorType.slice(0, 14)}
+                🚨 Line {activeCodeIssue.line}
               </span>
             ) : (liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? (
               <span className="pill-event-badge-glow cyan" title={`Clean Code Flow: ${liveCodeStatus.fileName || 'Active File'}`}>
@@ -1136,51 +1136,101 @@ export default function DesktopHUD() {
               className="pill-event-popout-toast"
               style={{
                 border: '1.5px solid #ff4d6d',
-                background: 'linear-gradient(135deg, rgba(25, 0, 10, 0.96), rgba(45, 10, 20, 0.98))',
-                boxShadow: '0 0 35px rgba(255, 77, 109, 0.65)',
-                maxWidth: '320px',
-                cursor: 'pointer'
+                background: 'linear-gradient(135deg, rgba(18, 4, 12, 0.98), rgba(35, 8, 20, 0.98))',
+                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.9), 0 0 35px rgba(255, 77, 109, 0.55)',
+                minWidth: '280px',
+                maxWidth: '340px',
+                padding: '12px 14px',
+                borderRadius: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                whiteSpace: 'normal',
+                zIndex: 300
               }}
-              onClick={(e) => {
-                e.stopPropagation()
-                setCodeSnippet(activeCodeIssue.suggestedFix || activeCodeIssue.codeSnippet || '')
-                setActiveModal('code')
-                handleExpandHUD()
-              }}
-              title="Click to auto-fix in AST Code Sentry"
+              onClick={(e) => e.stopPropagation()}
             >
-              <span className="pept-icon" style={{ fontSize: '18px' }}>🚨</span>
-              <div className="pept-content">
-                <div className="pept-header">
-                  <span className="pept-type" style={{ color: '#ff4d6d', fontWeight: 'bold' }}>
-                    {activeCodeIssue.language} FLAW: {activeCodeIssue.fileName || 'ACTIVE CODE'}
-                  </span>
-                  <span className="pept-pulse-tag" style={{ background: 'rgba(255, 77, 109, 0.3)', color: '#ff7b72', border: '1px solid #ff4d6d' }}>
-                    LINE {activeCodeIssue.line}
+              {/* Top Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '15px' }}>🚨</span>
+                  <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#ff4d6d', letterSpacing: '0.5px' }}>
+                    {activeCodeIssue.language} FLAW · LINE {activeCodeIssue.line}
                   </span>
                 </div>
-                <div className="pept-title" style={{ color: '#ffffff', fontSize: '11px', fontWeight: 'bold' }}>
+                <span style={{ fontSize: '8px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(255, 77, 109, 0.25)', color: '#ff7b72', border: '1px solid #ff4d6d', fontFamily: 'monospace' }}>
+                  {activeCodeIssue.fileName || 'active_code'}
+                </span>
+              </div>
+
+              {/* Error Title & Code Snippet */}
+              <div>
+                <div style={{ color: '#ffffff', fontSize: '11px', fontWeight: 'bold' }}>
                   {activeCodeIssue.errorType}
                 </div>
-                <div className="pept-detail" style={{ color: '#ffd166', fontSize: '9px', marginTop: '3px', lineHeight: '1.3' }}>
+                {activeCodeIssue.codeSnippet && (
+                  <div style={{ fontSize: '8.5px', fontFamily: 'monospace', color: '#ff7b72', background: 'rgba(0,0,0,0.5)', padding: '3px 6px', borderRadius: '4px', marginTop: '4px', borderLeft: '2px solid #ff4d6d' }}>
+                    &gt; {activeCodeIssue.codeSnippet}
+                  </div>
+                )}
+                <div style={{ color: '#ffd166', fontSize: '9px', marginTop: '4px', lineHeight: '1.3' }}>
                   💡 {activeCodeIssue.hint}
                 </div>
-                <div style={{ marginTop: '5px', display: 'flex', gap: '6px' }}>
-                  <span style={{ fontSize: '8px', background: 'rgba(0, 240, 255, 0.2)', color: 'var(--neon-cyan)', border: '1px solid var(--neon-cyan)', padding: '2px 7px', borderRadius: '3px', fontWeight: 'bold' }}>
-                    ⚡ Click to Fix in HUD
-                  </span>
-                </div>
               </div>
-              <button 
-                className="pept-close-btn"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  dismissActiveCodeIssue()
-                }}
-                title="Dismiss warning"
-              >
-                ✕
-              </button>
+
+              {/* Two Side-by-Side Action Buttons: Fix on Left, Ignore on Right */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCodeSnippet(activeCodeIssue.suggestedFix || activeCodeIssue.codeSnippet || '')
+                    setActiveModal('code')
+                    handleExpandHUD()
+                    dismissActiveCodeIssue()
+                    playCyberChime('affirm')
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, #00f0ff, #00ff9d)',
+                    border: 'none',
+                    color: '#000',
+                    fontWeight: '900',
+                    fontSize: '9.5px',
+                    padding: '6px 10px',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                    boxShadow: '0 0 12px rgba(0, 240, 255, 0.4)'
+                  }}
+                >
+                  ⚡ Fix in HUD
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    dismissActiveCodeIssue()
+                    playCyberChime('scan')
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    color: '#ffffff',
+                    fontWeight: 'bold',
+                    fontSize: '9.5px',
+                    padding: '6px 10px',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  ✕ Ignore
+                </button>
+              </div>
             </div>
           )}
 
