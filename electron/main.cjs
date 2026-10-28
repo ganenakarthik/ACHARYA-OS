@@ -1100,11 +1100,11 @@ function createWindow() {
 
   // Automated OS Clipboard & Code Sentry (Detects errors & flawed code in background)
   let lastSeenClip = '';
-  try {
-    lastSeenClip = clipboard.readText() || '';
-  } catch (_) {}
+  let startupGracePeriod = true;
+  setTimeout(() => { startupGracePeriod = false; }, 2000);
+
   setInterval(() => {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (!mainWindow || mainWindow.isDestroyed() || startupGracePeriod) return;
     try {
       const clipText = clipboard.readText();
       if (clipText && clipText !== lastSeenClip && clipText.length > 8) {
@@ -1132,7 +1132,7 @@ function createWindow() {
         }
       }
     } catch (_) {}
-  }, 1500);
+  }, 1000);
 
   // Real-Time Workspace File Watcher (Instant On-Save in VS Code or Notepad)
   try {
