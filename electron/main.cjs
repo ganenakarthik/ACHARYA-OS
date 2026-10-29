@@ -424,6 +424,39 @@ function createWindow() {
     }
   });
 
+  // Native Multimodal Screen Vision & OCR Engine (Zero Focus-Stealing, Zero Keystrokes)
+  ipcMain.handle('recognize-screen-vision', async () => {
+    try {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: 1920, height: 1080 }
+      });
+      if (sources && sources.length > 0) {
+        const thumb = sources[0].thumbnail;
+        const imgBuffer = thumb.toPNG();
+        const tmpFile = path.join(os.tmpdir(), `acharya_ocr_${Date.now()}.png`);
+        fs.writeFileSync(tmpFile, imgBuffer);
+
+        const ocrScript = path.join(__dirname, 'screen-ocr.ps1');
+        const { execFile } = require('child_process');
+        return new Promise((resolve) => {
+          execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ocrScript, '-ImagePath', tmpFile], { windowsHide: true }, (err, stdout) => {
+            try { fs.unlinkSync(tmpFile); } catch (_) {}
+            try {
+              const res = JSON.parse((stdout || '').trim());
+              resolve(res);
+            } catch (e) {
+              resolve({ success: false, error: err ? err.message : 'OCR parse failure' });
+            }
+          });
+        });
+      }
+      return { success: false, error: 'No screen capture source available' };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  });
+
   /* ══════════════════════════════════════════════════════════
      REAL TERMINAL COMMAND EXECUTION (PowerShell / Native OS)
      ══════════════════════════════════════════════════════════ */

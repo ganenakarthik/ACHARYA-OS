@@ -236,40 +236,53 @@ export default function DesktopHUD() {
   const [fixedCodePreview, setFixedCodePreview] = useState(null)
   const [isAutoFixingCode, setIsAutoFixingCode] = useState(false)
 
-  // Autonomous Ambient Code Observer Loop (Acharya's Brain - Zero Button Clicking Needed)
+  // Autonomous Multimodal Screen Vision & Code Observer Loop (Acharya's Eye & Brain - Zero Keystrokes)
   useEffect(() => {
-    let lastCheckedCode = ''
+    let lastSeenHash = ''
     let isAnalyzing = false
 
-    const observerTimer = setInterval(async () => {
+    const visionTimer = setInterval(async () => {
       if (isAnalyzing) return
       const electron = getElectron()
       if (!electron || !electron.invoke) return
 
       try {
         isAnalyzing = true
-        const currentCode = await electron.invoke('get-active-editor-code')
-        if (currentCode && currentCode.trim().length >= 8 && currentCode !== lastCheckedCode) {
-          lastCheckedCode = currentCode
-          const result = await analyzeCodeWithAI(currentCode, '', userProfile)
-          if (result && result.isError) {
-            setActiveCodeIssue({
-              ...result,
-              programDomain: result.projectIntent || result.language || 'Code Flow',
-              fileName: result.fileName || 'active_editor'
-            })
-            playCyberChime('alarm')
-            if (ttsEnabled && result.mentorSpeech) {
-              setIsSpeaking(true)
-              speakText(result.mentorSpeech, {
-                persona: voicePersona,
-                onStart: () => setIsSpeaking(true),
-                onEnd: () => setIsSpeaking(false)
+        // 1. Visually read the screen via native Windows WinRT OCR
+        const visionResult = await electron.invoke('recognize-screen-vision')
+        if (visionResult && visionResult.success && visionResult.text) {
+          const rawText = visionResult.text.trim()
+          const hasCodeOnScreen = rawText.includes('def ') || rawText.includes('class ') || rawText.includes('return ') || rawText.includes('int ') || rawText.includes('function ') || rawText.includes('divide') || rawText.includes('num1')
+
+          if (hasCodeOnScreen && rawText !== lastSeenHash) {
+            lastSeenHash = rawText
+
+            // Extract code lines from OCR stream
+            const codeLines = (visionResult.lines || [])
+              .filter(l => /^(def|class|if|elif|else|for|while|return|import|print|int|double|float|public|private)\b|[\+\-\*\/\=\(\)\{\}]/.test(l.trim()))
+              .join('\n')
+
+            const targetCode = codeLines.length >= 15 ? codeLines : rawText
+            const aiRes = await analyzeCodeWithAI(targetCode, '', userProfile)
+
+            if (aiRes && aiRes.isError) {
+              setActiveCodeIssue({
+                ...aiRes,
+                programDomain: aiRes.projectIntent || aiRes.language || 'Code Flow',
+                fileName: 'Screen Vision Stream'
               })
-            }
-          } else if (result && !result.isError) {
-            if (activeCodeIssue) {
+              playCyberChime('alarm')
+              if (ttsEnabled && aiRes.mentorSpeech) {
+                setIsSpeaking(true)
+                speakText(aiRes.mentorSpeech, {
+                  persona: voicePersona,
+                  onStart: () => setIsSpeaking(true),
+                  onEnd: () => setIsSpeaking(false)
+                })
+              }
+            } else if (aiRes && !aiRes.isError && activeCodeIssue) {
               dismissActiveCodeIssue()
+              playCyberChime('affirm')
             }
           }
         }
@@ -277,9 +290,9 @@ export default function DesktopHUD() {
       } finally {
         isAnalyzing = false
       }
-    }, 3500)
+    }, 4500)
 
-    return () => clearInterval(observerTimer)
+    return () => clearInterval(visionTimer)
   }, [ttsEnabled, voicePersona, userProfile, activeCodeIssue])
 
   // Document & PDF Active Flashcards & Guide
@@ -1271,8 +1284,8 @@ export default function DesktopHUD() {
                       {current.language || 'Python'}
                     </span>
                   </div>
-                  <div style={{ fontSize: '8px', color: '#ffd166', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    💡 {(current.hint || current.socraticHint || 'Check syntax invariant').slice(0, 52)}...
+                  <div style={{ fontSize: '8px', color: '#ffd166', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={current.socraticQuestion || current.hint}>
+                    💡 {(current.socraticQuestion || current.hint || current.socraticHint || 'Check syntax invariant').slice(0, 56)}...
                   </div>
                 </div>
 

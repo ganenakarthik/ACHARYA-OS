@@ -641,7 +641,7 @@ export async function analyzeCodeWithAI(code, lang = '', profile = {}) {
     return { isError: false, status: 'CLEAN', message: 'Buffer empty. Ready for source code inspection.' }
   }
 
-  const prompt = `You are Acharya, an expert AI programming mentor and compiler diagnostic engine.
+  const prompt = `You are Acharya, an expert university computer science professor and autonomous AI mentor.
 Inspect the following source code in any programming language (Python, C, C++, Java, JavaScript, TypeScript, Rust, Go, SQL, HTML, etc.).
 Determine whether it contains ANY syntax errors, logical bugs, missing colons, missing semicolons, unclosed brackets, unhandled exceptions, type errors, or runtime crash risks.
 
@@ -657,8 +657,10 @@ You must respond with ONLY a single valid JSON object in the exact following sch
   "projectIntent": "1-3 word description of what the code is doing (e.g. Binary Search, Matrix Multiplication, Calculator, REST Endpoint, etc.)",
   "line": integer or null (the line number of the first critical error, 1-indexed, or null if clean),
   "errorType": "concise technical error name or 'Clean Code Flow'",
+  "socraticQuestion": "a thought-provoking Socratic question a professor would ask the student to guide them toward discovering the mistake",
+  "conceptualInsight": "the compiler / CS architectural reason why this rule exists",
   "hint": "one clear, pedagogical sentence explaining why the error happens and how to resolve it",
-  "mentorSpeech": "a natural 1-sentence spoken explanation suitable for text-to-speech audio",
+  "mentorSpeech": "a natural 1-2 sentence spoken Socratic audio dialogue suitable for text-to-speech audio (warm, authoritative, professor-like)",
   "suggestedFix": "the single corrected line of code, or empty string",
   "fixedFullCode": "the complete corrected code with the fix applied"
 }`
@@ -703,7 +705,7 @@ You must respond with ONLY a single valid JSON object in the exact following sch
     }
   } catch (_) {}
 
-  // 3. Fallback: Resilient Structural Parser (Guarantees 100% demo success during offline review)
+  // 3. Fallback: Resilient Structural & Socratic Parser (Guarantees 100% demo success during offline review)
   const lines = code.split('\n')
   for (let i = 0; i < lines.length; i++) {
     const rawLine = lines[i]
@@ -718,14 +720,18 @@ You must respond with ONLY a single valid JSON object in the exact following sch
         const kw = trimmed.split(/\s+/)[0]
         const isCalc = code.toLowerCase().includes('add') || code.toLowerCase().includes('calc') || code.toLowerCase().includes('subtract') || code.toLowerCase().includes('divide')
         const intent = isCalc ? 'Calculator Flow' : 'Program Flow'
+        const socraticQuestion = `How does the Python interpreter distinguish between a header declaration and the executable block suite?`
+        const mentorSpeech = `I notice you are writing a ${kw} statement on line ${i + 1}. In Python, how do we signal to the interpreter that a new block of code is beginning? Take a look at the end of line ${i + 1}.`
         return {
           isError: true,
           language: 'Python',
           projectIntent: intent,
           line: i + 1,
-          errorType: `Missing Colon ':' in '${kw}'`,
+          errorType: `Missing Colon ':' in '${kw}' statement`,
+          socraticQuestion,
+          conceptualInsight: `In Python grammar, compound statements require a colon to transition into the indented block suite.`,
           hint: `In Python, '${kw}' block definitions must terminate with a colon ':'. Check line ${i + 1}.`,
-          mentorSpeech: `I noticed on line ${i + 1}, your ${kw} statement is missing a colon. I have the correction ready for you.`,
+          mentorSpeech,
           suggestedFix: `${rawLine}:`,
           fixedFullCode: fixedLines.join('\n'),
           codeSnippet: rawLine,
