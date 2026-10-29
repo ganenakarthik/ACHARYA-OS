@@ -112,14 +112,13 @@ function createWindow() {
   const startUrl = process.env.ELECTRON_START_URL;
 
   const loadWithRetry = (url, retries = 15) => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
     mainWindow.loadURL(url).catch((err) => {
       if (retries > 0) {
         setTimeout(() => loadWithRetry(url, retries - 1), 1000);
       } else if (fs.existsSync(distPath)) {
-        console.warn('Dev server URL failed, falling back to dist/index.html...');
-        mainWindow.loadFile(distPath).catch((loadErr) => {
-          console.error('Failed to load file fallback:', loadErr);
-        });
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+        mainWindow.loadFile(distPath).catch(() => {});
       }
     });
   };
