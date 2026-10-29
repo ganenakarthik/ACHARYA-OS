@@ -111,28 +111,31 @@ function createWindow() {
   const distPath = path.join(__dirname, '../dist/index.html');
   const startUrl = process.env.ELECTRON_START_URL;
 
-  const loadWithRetry = (url, retries = 15) => {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    mainWindow.loadURL(url).catch((err) => {
-      if (retries > 0) {
-        setTimeout(() => loadWithRetry(url, retries - 1), 1000);
-      } else if (fs.existsSync(distPath)) {
-        if (!mainWindow || mainWindow.isDestroyed()) return;
-        mainWindow.loadFile(distPath).catch(() => {});
-      }
-    });
-  };
+  console.log('Loading Acharya frontend from:', startUrl || distPath);
 
   if (startUrl) {
-    loadWithRetry(startUrl);
+    mainWindow.loadURL(startUrl).catch((err) => {
+      console.warn('Failed loading startUrl, fallback to distPath:', err);
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.loadFile(distPath);
+    });
   } else if (fs.existsSync(distPath)) {
-    // Ultra-fast instant startup (<300ms)
-    mainWindow.loadFile(distPath).catch(() => {
-      loadWithRetry('http://127.0.0.1:5174');
+    mainWindow.loadFile(distPath).catch((err) => {
+      console.error('Failed to load distPath:', err);
     });
   } else {
-    loadWithRetry('http://127.0.0.1:5174');
+    mainWindow.loadURL('http://127.0.0.1:5174').catch((err) => {
+      console.error('Failed to load dev server:', err);
+    });
   }
+
+  // Handle load errors
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('Frontend failed to load:', errorCode, errorDescription);
+  });
+
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[Renderer]: ${message} (${sourceId}:${line})`);
+  });
 
   mainWindow.webContents.on('render-process-gone', (event, detailed) => {
     console.warn('Renderer process gone:', detailed.reason);

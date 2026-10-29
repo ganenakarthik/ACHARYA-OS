@@ -98,7 +98,7 @@ export default function DesktopHUD() {
         electron.on('clipboard-code-received', async (codeText) => {
           if (!codeText || codeText.trim().length < 8) return
           try {
-            const aiRes = await analyzeCodeWithAI(codeText, '', userProfile)
+            const aiRes = await analyzeCodeWithAI(codeText, '', profile)
             if (aiRes && aiRes.isError) {
               setActiveCodeIssue({
                 ...aiRes,
@@ -202,7 +202,7 @@ export default function DesktopHUD() {
     }
 
     try {
-      const aiResult = await analyzeCodeWithAI(codeToAnalyze, '', userProfile)
+      const aiResult = await analyzeCodeWithAI(codeToAnalyze, '', profile)
       if (aiResult && aiResult.isError) {
         setActiveCodeIssue({
           ...aiResult,
@@ -273,7 +273,7 @@ export default function DesktopHUD() {
           const targetCode = (visionResult.lines || []).join('\n') || rawText
           if (targetCode.trim().length < 8) return // genuinely empty screen — skip
 
-          const aiRes = await analyzeCodeWithAI(targetCode, '', userProfile)
+          const aiRes = await analyzeCodeWithAI(targetCode, '', profile)
 
           if (aiRes && aiRes.isError) {
             setActiveCodeIssue({
@@ -303,7 +303,7 @@ export default function DesktopHUD() {
     }, 5000)
 
     return () => clearInterval(visionTimer)
-  }, [ttsEnabled, voicePersona, userProfile, activeCodeIssue])
+  }, [ttsEnabled, voicePersona, profile, activeCodeIssue])
 
   // Document & PDF Active Flashcards & Guide
   const [activePdfGuide, setActivePdfGuide] = useState(null)
