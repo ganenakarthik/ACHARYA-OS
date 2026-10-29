@@ -424,37 +424,103 @@ function createWindow() {
     }
   });
 
-  // Native Multimodal Screen Vision & OCR Engine (Zero Focus-Stealing, Zero Keystrokes)
+  // Native Multimodal Screen Vision & OCR Engine — Window-Cropped (Zero Focus-Stealing)
+  // Automatically crops to the active editor/Notepad window so only student code is read
   ipcMain.handle('recognize-screen-vision', async () => {
     try {
+      const { execFile } = require('child_process');
+
+      // Step 1: Get the foreground editor window bounds
+      const boundsScript = path.join(__dirname, 'get-window-bounds.ps1');
+      const boundsJson = await new Promise((res) => {
+        execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', boundsScript],
+          { windowsHide: true }, (err, stdout) => {
+            try { res(JSON.parse((stdout || '').trim())); } catch { res({ Found: false }); }
+          });
+      });
+
+      // Step 2: Capture full screen at native resolution
       const sources = await desktopCapturer.getSources({
         types: ['screen'],
         thumbnailSize: { width: 1920, height: 1080 }
       });
-      if (sources && sources.length > 0) {
-        const thumb = sources[0].thumbnail;
-        const imgBuffer = thumb.toPNG();
-        const tmpFile = path.join(os.tmpdir(), `acharya_ocr_${Date.now()}.png`);
-        fs.writeFileSync(tmpFile, imgBuffer);
+      if (!sources || sources.length === 0) return { success: false, error: 'No screen source' };
 
-        const ocrScript = path.join(__dirname, 'screen-ocr.ps1');
-        const { execFile } = require('child_process');
-        return new Promise((resolve) => {
-          execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ocrScript, '-ImagePath', tmpFile], { windowsHide: true }, (err, stdout) => {
-            try { fs.unlinkSync(tmpFile); } catch (_) {}
+      const thumb = sources[0].thumbnail;
+      const screenW = thumb.getSize().width;
+      const screenH = thumb.getSize().height;
+      const imgBuffer = thumb.toPNG();
+      const fullTmp = path.join(os.tmpdir(), `acharya_full_${Date.now()}.png`);
+      fs.writeFileSync(fullTmp, imgBuffer);
+
+      // Step 3: Crop to active window region if bounds are valid, else use center 60% of screen
+      let cropTmp = fullTmp;
+      let windowTitle = boundsJson.Title || '';
+      let windowProcess = boundsJson.Process || '';
+
+      if (boundsJson.Found && boundsJson.Width > 100 && boundsJson.Height > 100) {
+        // Scale from physical pixels to capture resolution
+        const scaleX = screenW / (require('electron').screen.getPrimaryDisplay().bounds.width);
+        const scaleY = screenH / (require('electron').screen.getPrimaryDisplay().bounds.height);
+
+        const cropL = Math.max(0, Math.round(boundsJson.Left * scaleX));
+        const cropT = Math.max(0, Math.round(boundsJson.Top * scaleY));
+        const cropW = Math.min(screenW - cropL, Math.round(boundsJson.Width * scaleX));
+        const cropH = Math.min(screenH - cropT, Math.round(boundsJson.Height * scaleY));
+
+        if (cropW > 100 && cropH > 100) {
+          const cropTmpPath = path.join(os.tmpdir(), `acharya_crop_${Date.now()}.png`);
+          // Use System.Drawing to crop the PNG
+          const cropPs = `
+Add-Type -AssemblyName System.Drawing
+$src = [System.Drawing.Image]::FromFile('${fullTmp.replace(/\\/g, '\\\\')}')
+$rect = New-Object System.Drawing.Rectangle(${cropL}, ${cropT}, ${cropW}, ${cropH})
+$bmp = $src.Clone($rect, $src.PixelFormat)
+$bmp.Save('${cropTmpPath.replace(/\\/g, '\\\\')}', [System.Drawing.Imaging.ImageFormat]::Png)
+$src.Dispose(); $bmp.Dispose()
+Write-Output 'ok'
+`.trim();
+          const cropResult = await new Promise((res) => {
+            execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', cropPs],
+              { windowsHide: true }, (err, stdout) => {
+                res((stdout || '').trim() === 'ok' && fs.existsSync(cropTmpPath) ? cropTmpPath : null);
+              });
+          });
+          if (cropResult) cropTmp = cropResult;
+        }
+      }
+
+      // Step 4: Run WinRT OCR on the (possibly cropped) image
+      const ocrScript = path.join(__dirname, 'screen-ocr.ps1');
+      return new Promise((resolve) => {
+        execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ocrScript, '-ImagePath', cropTmp],
+          { windowsHide: true, timeout: 15000 }, (err, stdout) => {
+            // Cleanup temp files
+            try { if (cropTmp !== fullTmp) fs.unlinkSync(cropTmp); } catch (_) {}
+            try { fs.unlinkSync(fullTmp); } catch (_) {}
             try {
               const res = JSON.parse((stdout || '').trim());
-              resolve(res);
+              resolve({ ...res, windowTitle, windowProcess });
             } catch (e) {
               resolve({ success: false, error: err ? err.message : 'OCR parse failure' });
             }
           });
-        });
-      }
-      return { success: false, error: 'No screen capture source available' };
+      });
     } catch (e) {
       return { success: false, error: e.message };
     }
+  });
+
+  // Expose window bounds for the Pill indicator
+  ipcMain.handle('get-window-bounds', async () => {
+    const { execFile } = require('child_process');
+    const boundsScript = path.join(__dirname, 'get-window-bounds.ps1');
+    return new Promise((res) => {
+      execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', boundsScript],
+        { windowsHide: true }, (err, stdout) => {
+          try { res(JSON.parse((stdout || '').trim())); } catch { res({ Found: false }); }
+        });
+    });
   });
 
   /* ══════════════════════════════════════════════════════════

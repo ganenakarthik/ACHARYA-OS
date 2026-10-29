@@ -236,7 +236,12 @@ export default function DesktopHUD() {
   const [fixedCodePreview, setFixedCodePreview] = useState(null)
   const [isAutoFixingCode, setIsAutoFixingCode] = useState(false)
 
-  // Autonomous Multimodal Screen Vision & Code Observer Loop (Acharya's Eye & Brain - Zero Keystrokes)
+  // 👁 Acharya Screen Vision State — shows scanning indicator on Pill
+  const [visionScanning, setVisionScanning] = useState(false)
+  const [visionTarget, setVisionTarget] = useState('') // name of window being watched
+
+  // Autonomous Multimodal Screen Vision & Code Observer Loop
+  // Crops to active editor window — no rule-based filters — pure neural AI
   useEffect(() => {
     let lastSeenHash = ''
     let isAnalyzing = false
@@ -248,49 +253,54 @@ export default function DesktopHUD() {
 
       try {
         isAnalyzing = true
-        // 1. Visually read the screen via native Windows WinRT OCR
+        setVisionScanning(true)
+
+        // 1. Read the ACTIVE EDITOR WINDOW only (window-cropped OCR — zero false positives)
         const visionResult = await electron.invoke('recognize-screen-vision')
+
         if (visionResult && visionResult.success && visionResult.text) {
           const rawText = visionResult.text.trim()
-          const hasCodeOnScreen = rawText.includes('def ') || rawText.includes('class ') || rawText.includes('return ') || rawText.includes('int ') || rawText.includes('function ') || rawText.includes('divide') || rawText.includes('num1')
+          if (visionResult.windowProcess) setVisionTarget(visionResult.windowProcess)
 
-          if (hasCodeOnScreen && rawText !== lastSeenHash) {
-            lastSeenHash = rawText
+          // Only analyze if text changed meaningfully (avoid redundant AI calls)
+          // Simple hash: first 200 chars of stripped text
+          const contentHash = rawText.replace(/\s+/g, ' ').slice(0, 200)
+          if (contentHash === lastSeenHash) return
+          lastSeenHash = contentHash
 
-            // Extract code lines from OCR stream
-            const codeLines = (visionResult.lines || [])
-              .filter(l => /^(def|class|if|elif|else|for|while|return|import|print|int|double|float|public|private)\b|[\+\-\*\/\=\(\)\{\}]/.test(l.trim()))
-              .join('\n')
+          // Pass entire OCR output to neural AI — no rule-based pre-filtering
+          // The AI decides: is this code? does it have errors?
+          const targetCode = (visionResult.lines || []).join('\n') || rawText
+          if (targetCode.trim().length < 8) return // genuinely empty screen — skip
 
-            const targetCode = codeLines.length >= 15 ? codeLines : rawText
-            const aiRes = await analyzeCodeWithAI(targetCode, '', userProfile)
+          const aiRes = await analyzeCodeWithAI(targetCode, '', userProfile)
 
-            if (aiRes && aiRes.isError) {
-              setActiveCodeIssue({
-                ...aiRes,
-                programDomain: aiRes.projectIntent || aiRes.language || 'Code Flow',
-                fileName: 'Screen Vision Stream'
+          if (aiRes && aiRes.isError) {
+            setActiveCodeIssue({
+              ...aiRes,
+              programDomain: aiRes.projectIntent || aiRes.language || 'Code',
+              fileName: visionResult.windowTitle || 'Screen Vision'
+            })
+            playCyberChime('alarm')
+            if (ttsEnabled && aiRes.mentorSpeech) {
+              setIsSpeaking(true)
+              speakText(aiRes.mentorSpeech, {
+                persona: voicePersona,
+                onStart: () => setIsSpeaking(true),
+                onEnd: () => setIsSpeaking(false)
               })
-              playCyberChime('alarm')
-              if (ttsEnabled && aiRes.mentorSpeech) {
-                setIsSpeaking(true)
-                speakText(aiRes.mentorSpeech, {
-                  persona: voicePersona,
-                  onStart: () => setIsSpeaking(true),
-                  onEnd: () => setIsSpeaking(false)
-                })
-              }
-            } else if (aiRes && !aiRes.isError && activeCodeIssue) {
-              dismissActiveCodeIssue()
-              playCyberChime('affirm')
             }
+          } else if (aiRes && !aiRes.isError && activeCodeIssue) {
+            dismissActiveCodeIssue()
+            playCyberChime('affirm')
           }
         }
       } catch (_) {
       } finally {
         isAnalyzing = false
+        setVisionScanning(false)
       }
-    }, 4500)
+    }, 5000)
 
     return () => clearInterval(visionTimer)
   }, [ttsEnabled, voicePersona, userProfile, activeCodeIssue])
@@ -1238,7 +1248,14 @@ export default function DesktopHUD() {
                   📅 {nearestDeadline.title.slice(0, 16)} · {nearestDeadline.days}d
                 </span>
               ) : (
-                <span className="tag-model-badge">ONLINE</span>
+                visionScanning ? (
+                  <span className="pill-event-badge-glow cyan" title={visionTarget ? `Acharya observing: ${visionTarget}` : 'Scanning active window...'} style={{ animation: 'pulse 1s infinite' }}>
+                    <span className="event-pulse-dot cyan" style={{ background: '#00f0ff', boxShadow: '0 0 8px #00f0ff' }} />
+                    👁 {visionTarget ? visionTarget.slice(0, 12) : 'Observing...'}
+                  </span>
+                ) : (
+                  <span className="tag-model-badge">ONLINE</span>
+                )
               )}
 
               {readingAlarm?.active && (
