@@ -636,6 +636,48 @@ ${code}`
 }
 
 /* ── True Neural AI Code Diagnostic & Mentorship Engine (Zero Rule-Based) ── */
+
+/* ── Persistent Error Pattern Memory — Acharya remembers student's repeated mistakes ── */
+// Reads/writes to localStorage under key 'acharya_error_patterns'
+export function trackStudentError(errorType, language, projectIntent) {
+  try {
+    const raw = localStorage.getItem('acharya_error_patterns') || '{}'
+    const patterns = JSON.parse(raw)
+    const key = `${language}::${errorType}`.toLowerCase().replace(/\s+/g, '_').slice(0, 60)
+    if (!patterns[key]) {
+      patterns[key] = { count: 0, language, errorType, projectIntent, firstSeen: Date.now(), lastSeen: Date.now() }
+    }
+    patterns[key].count += 1
+    patterns[key].lastSeen = Date.now()
+    patterns[key].projectIntent = projectIntent || patterns[key].projectIntent
+    localStorage.setItem('acharya_error_patterns', JSON.stringify(patterns))
+    return patterns[key]
+  } catch (_) { return null }
+}
+
+export function getStudentWeakSpots() {
+  try {
+    const raw = localStorage.getItem('acharya_error_patterns') || '{}'
+    const patterns = JSON.parse(raw)
+    return Object.values(patterns)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5) // top 5 recurring mistakes
+  } catch (_) { return [] }
+}
+
+export function getRecurringErrorWarning(language, errorType) {
+  try {
+    const raw = localStorage.getItem('acharya_error_patterns') || '{}'
+    const patterns = JSON.parse(raw)
+    const key = `${language}::${errorType}`.toLowerCase().replace(/\s+/g, '_').slice(0, 60)
+    const rec = patterns[key]
+    if (rec && rec.count >= 2) {
+      return `This is a recurring pattern — you have made this ${errorType} mistake ${rec.count} times before. Let's build a stronger mental model around this concept.`
+    }
+    return null
+  } catch (_) { return null }
+}
+
 export async function analyzeCodeWithAI(code, lang = '', profile = {}) {
   if (!code || !code.trim() || code.trim().length < 5) {
     return { isError: false, status: 'CLEAN', message: 'Buffer empty. Ready for source code inspection.' }
@@ -674,6 +716,15 @@ You must respond with ONLY a single valid JSON object in the exact following sch
         const parsed = JSON.parse(jsonMatch[0])
         const lines = code.split('\n')
         const lineIdx = parsed.line && parsed.line > 0 && parsed.line <= lines.length ? parsed.line - 1 : 0
+        // Track error pattern in persistent memory
+        if (parsed.isError && parsed.errorType && parsed.language) {
+          trackStudentError(parsed.errorType, parsed.language, parsed.projectIntent)
+          const recurringWarning = getRecurringErrorWarning(parsed.language, parsed.errorType)
+          if (recurringWarning && parsed.mentorSpeech) {
+            parsed.mentorSpeech = parsed.mentorSpeech + ' ' + recurringWarning
+            parsed.isRecurring = true
+          }
+        }
         return {
           ...parsed,
           codeSnippet: lines[lineIdx] || '',
@@ -695,6 +746,14 @@ You must respond with ONLY a single valid JSON object in the exact following sch
         const parsed = JSON.parse(jsonMatch[0])
         const lines = code.split('\n')
         const lineIdx = parsed.line && parsed.line > 0 && parsed.line <= lines.length ? parsed.line - 1 : 0
+        if (parsed.isError && parsed.errorType && parsed.language) {
+          trackStudentError(parsed.errorType, parsed.language, parsed.projectIntent)
+          const recurringWarning = getRecurringErrorWarning(parsed.language, parsed.errorType)
+          if (recurringWarning && parsed.mentorSpeech) {
+            parsed.mentorSpeech = parsed.mentorSpeech + ' ' + recurringWarning
+            parsed.isRecurring = true
+          }
+        }
         return {
           ...parsed,
           codeSnippet: lines[lineIdx] || '',
@@ -721,17 +780,23 @@ You must respond with ONLY a single valid JSON object in the exact following sch
         const isCalc = code.toLowerCase().includes('add') || code.toLowerCase().includes('calc') || code.toLowerCase().includes('subtract') || code.toLowerCase().includes('divide')
         const intent = isCalc ? 'Calculator Flow' : 'Program Flow'
         const socraticQuestion = `How does the Python interpreter distinguish between a header declaration and the executable block suite?`
-        const mentorSpeech = `I notice you are writing a ${kw} statement on line ${i + 1}. In Python, how do we signal to the interpreter that a new block of code is beginning? Take a look at the end of line ${i + 1}.`
+        const errorType = `Missing Colon ':' in '${kw}' statement`
+        // Track in persistent memory
+        trackStudentError(errorType, 'Python', intent)
+        const recurringWarning = getRecurringErrorWarning('Python', errorType)
+        const baseSpeech = `I notice you are writing a ${kw} statement on line ${i + 1}. In Python, how do we signal to the interpreter that a new block of code is beginning? Take a look at the end of line ${i + 1}.`
+        const mentorSpeech = recurringWarning ? baseSpeech + ' ' + recurringWarning : baseSpeech
         return {
           isError: true,
           language: 'Python',
           projectIntent: intent,
           line: i + 1,
-          errorType: `Missing Colon ':' in '${kw}' statement`,
+          errorType,
           socraticQuestion,
           conceptualInsight: `In Python grammar, compound statements require a colon to transition into the indented block suite.`,
           hint: `In Python, '${kw}' block definitions must terminate with a colon ':'. Check line ${i + 1}.`,
           mentorSpeech,
+          isRecurring: !!recurringWarning,
           suggestedFix: `${rawLine}:`,
           fixedFullCode: fixedLines.join('\n'),
           codeSnippet: rawLine,

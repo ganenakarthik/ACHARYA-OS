@@ -7,7 +7,7 @@ import {
   parseAndExecuteSystemCommand,
   AVAILABLE_APPS 
 } from '../lib/systemControl'
-import { sendMentorMessage, generateExam, autoCorrectAnyCode, analyzeCodeWithAI } from '../lib/agents'
+import { sendMentorMessage, generateExam, autoCorrectAnyCode, analyzeCodeWithAI, getStudentWeakSpots } from '../lib/agents'
 import { generateDynamicQuizSet } from '../lib/dynamicExamGenerator'
 import { speakText, stopSpeaking, startSTT, playCyberChime } from '../lib/audioVoice'
 import { startScreenCapture, stopScreenCapture, analyzeCurrentScreenFrame } from '../lib/visionPerception'
@@ -1300,6 +1300,11 @@ export default function DesktopHUD() {
                     <span style={{ fontSize: '7.5px', padding: '1px 4px', borderRadius: '3px', background: 'rgba(255, 77, 109, 0.3)', color: '#ff7b72', border: '1px solid #ff4d6d', fontWeight: 'bold' }}>
                       {current.language || 'Python'}
                     </span>
+                    {current.isRecurring && (
+                      <span style={{ fontSize: '7px', padding: '1px 4px', borderRadius: '3px', background: 'rgba(255, 200, 0, 0.25)', color: '#ffd166', border: '1px solid #ffd166', fontWeight: 'bold', whiteSpace: 'nowrap' }} title="You have made this mistake before — Acharya is tracking this cognitive pattern">
+                        🔁 Recurring
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: '8px', color: '#ffd166', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={current.socraticQuestion || current.hint}>
                     💡 {(current.socraticQuestion || current.hint || current.socraticHint || 'Check syntax invariant').slice(0, 56)}...
