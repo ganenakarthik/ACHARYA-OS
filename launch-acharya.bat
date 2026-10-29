@@ -1,5 +1,6 @@
 @echo off
-title ACHARYA AI OS
+title ACHARYA AI OS Launcher
 cd /d "%~dp0"
-start "" "node_modules\electron\dist\electron.exe" .
+taskkill /F /IM electron.exe >nul 2>&1
+call npx electron .
 exit
