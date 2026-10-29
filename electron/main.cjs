@@ -56,7 +56,7 @@ function createWindow() {
     hasShadow: false,
     resizable: true,
     skipTaskbar: false,
-    show: false,
+    show: true,
     focusable: true,
     backgroundColor: '#00000000',
     webPreferences: {
@@ -78,10 +78,15 @@ function createWindow() {
     });
   };
 
+  mainWindow.show();
+  mainWindow.setAlwaysOnTop(true, 'screen-saver');
+  mainWindow.moveTop();
+  mainWindow.focus();
+
   mainWindow.once('ready-to-show', () => {
     enforceFullscreen();
     mainWindow.show();
-    mainWindow.setAlwaysOnTop(true);
+    mainWindow.setAlwaysOnTop(true, 'screen-saver');
     mainWindow.moveTop();
     mainWindow.focus();
     mainWindow.setIgnoreMouseEvents(false);
@@ -90,6 +95,8 @@ function createWindow() {
   mainWindow.webContents.on('did-finish-load', () => {
     enforceFullscreen();
     mainWindow.show();
+    mainWindow.setAlwaysOnTop(true, 'screen-saver');
+    mainWindow.moveTop();
     mainWindow.focus();
   });
 
