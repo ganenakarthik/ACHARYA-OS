@@ -121,6 +121,29 @@ export default function DesktopHUD() {
             }
           } catch (_) {}
         })
+
+        // Hands-Free Auto-Capture for YouTube Lecture URLs
+        electron.on('youtube-url-detected', async (ytUrl) => {
+          showToast(`📺 Detected YouTube Lecture URL. Auto-generating notes...`, '⚡')
+          playCyberChime('scan')
+          try {
+            const notes = await synthesizeLectureNotes(ytUrl, `Extracted educational stream: ${ytUrl}`)
+            if (notes) {
+              setActiveLectureNote(notes)
+              addPdfDocument({
+                name: `YouTube Lecture: ${notes.topic}`,
+                summary: notes.executiveSummary,
+                parsedText: JSON.stringify(notes.keyTakeaways),
+                flashcards: notes.retrievalDrillCards || []
+              })
+              playCyberChime('success')
+              showToast(`✓ Hands-Free: Generated notes for ${notes.topic}!`, '✨')
+              if (ttsEnabled) {
+                speakText(`I noticed you copied a YouTube lecture on ${notes.topic}. I have automatically synthesized your study notes, predicted viva questions, and saved flashcards to your vault.`)
+              }
+            }
+          } catch (_) {}
+        })
       }
       // Guarantee fullscreen display bounds on startup
       if (electron.send) {

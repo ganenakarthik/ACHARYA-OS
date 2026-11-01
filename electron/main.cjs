@@ -1363,7 +1363,7 @@ Write-Output 'ok'
     });
   });
 
-  // Background Clipboard Sentry (Instant Auto-Detection when code is copied - Zero Buttons Needed)
+  // Background OS Sentry (Zero-Click Auto-Detection for Code & YouTube URLs)
   let lastSeenClipText = '';
   let clipGracePeriod = true;
   setTimeout(() => { clipGracePeriod = false; }, 2500);
@@ -1374,8 +1374,14 @@ Write-Output 'ok'
       const txt = clipboard.readText();
       if (txt && txt !== lastSeenClipText && txt.trim().length >= 8) {
         lastSeenClipText = txt;
-        // Notify renderer to run AI Model on newly copied code
-        mainWindow.webContents.send('clipboard-code-received', txt);
+        
+        // 1. YouTube Video / Lecture Link Detection (Hands-Free Post-Class Notes)
+        if (txt.includes('youtube.com/watch') || txt.includes('youtu.be/')) {
+          mainWindow.webContents.send('youtube-url-detected', txt.trim());
+        } else {
+          // 2. Code Snippet Detection (Hands-Free Code Sentry)
+          mainWindow.webContents.send('clipboard-code-received', txt);
+        }
       }
     } catch (_) {}
   }, 1200);
