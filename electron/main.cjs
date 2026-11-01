@@ -490,11 +490,18 @@ function createWindow() {
           });
       });
 
-      // Step 2: Capture full screen at native resolution
-      const sources = await desktopCapturer.getSources({
+      // Step 2: Capture screen with fallback and safe dimensions
+      let sources = await desktopCapturer.getSources({
         types: ['screen'],
-        thumbnailSize: { width: 1920, height: 1080 }
+        thumbnailSize: { width: 1280, height: 720 }
       });
+      if (!sources || sources.length === 0) {
+        await new Promise(r => setTimeout(r, 120));
+        sources = await desktopCapturer.getSources({
+          types: ['screen'],
+          thumbnailSize: { width: 1280, height: 720 }
+        });
+      }
       if (!sources || sources.length === 0) return { success: false, error: 'No screen source' };
 
       const thumb = sources[0].thumbnail;

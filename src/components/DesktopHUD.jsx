@@ -545,12 +545,50 @@ export default function DesktopHUD() {
         // Check active foreground application
         const winInfo = await electron.invoke('get-active-window-awareness')
         const activeApp = (winInfo?.focusApp || '').toLowerCase()
-        const winTitle = (winInfo?.windowTitle || '').toLowerCase()
-        const isCodeEditor = activeApp.includes('code') || activeApp.includes('notepad') || activeApp.includes('terminal') || activeApp.includes('devenv')
-        const isBrowser = activeApp.includes('browser') || activeApp.includes('edge') || activeApp.includes('chrome') || activeApp.includes('brave')
+        const rawWinTitle = winInfo?.windowTitle || ''
+        const winTitle = rawWinTitle.toLowerCase()
+        const isCodeEditor = activeApp.includes('code') || activeApp.includes('notepad') || activeApp.includes('terminal') || activeApp.includes('devenv') || winTitle.includes('notepad') || winTitle.includes('visual studio code')
+        const isBrowser = activeApp.includes('browser') || activeApp.includes('edge') || activeApp.includes('chrome') || activeApp.includes('brave') || winTitle.includes('edge') || winTitle.includes('chrome') || winTitle.includes('youtube')
 
         if (!isCodeEditor && !isBrowser) {
           return
+        }
+
+        // 1. FAST BROWSER DETECTION: Instant title-based lecture recognition
+        if (isBrowser && islandStatus === 'idle') {
+          const isEducationalTitle = (
+            winTitle.includes('youtube') || winTitle.includes('course') || winTitle.includes('phy') ||
+            winTitle.includes('python') || winTitle.includes('lecture') || winTitle.includes('tutorial') ||
+            winTitle.includes('class') || winTitle.includes('khan academy') || winTitle.includes('coursera') ||
+            winTitle.includes('nptel') || winTitle.includes('udemy') || winTitle.includes('mit') ||
+            winTitle.includes('math') || winTitle.includes('science') || winTitle.includes('engineering')
+          )
+          if (isEducationalTitle) {
+            let cleanTopic = rawWinTitle
+              .replace(/\s*-\s*YouTube.*$/i, '')
+              .replace(/\s*-\s*(?:Microsoft Edge|Google Chrome|Brave|Firefox).*$/i, '')
+              .replace(/\s*-\s*Personal.*$/i, '')
+              .trim()
+
+            if (!cleanTopic || cleanTopic.length < 3 || cleanTopic.toLowerCase() === 'youtube') {
+              cleanTopic = winTitle.includes('phy') ? 'Physics & Engineering Science' : 'Computer Science Lecture'
+            }
+
+            let detectedTopic = cleanTopic
+            if (winTitle.includes('phy') && !cleanTopic.toLowerCase().includes('physics') && !cleanTopic.toLowerCase().includes('phy')) {
+              detectedTopic = `Physics: ${cleanTopic}`
+            }
+
+            triggerIslandPromptRef.current?.({
+              type: 'note',
+              title: 'Educational Lecture Spotted on Screen',
+              subtitle: detectedTopic.slice(0, 42),
+              question: 'Should Acharya synthesize revision notes?',
+              topic: detectedTopic,
+              data: rawWinTitle || detectedTopic
+            })
+            return
+          }
         }
 
         // Multimodal Vision Sensor - Window Cropped OCR
@@ -561,23 +599,19 @@ export default function DesktopHUD() {
           const lowText = rawText.toLowerCase()
           if (visionResult.windowProcess) setVisionTarget(visionResult.windowProcess)
 
-          // 1. In Browser: Detect educational course / YouTube stream
+          // 2. Multimodal OCR Browser Fallback (if window title was generic)
           if (isBrowser && islandStatus === 'idle') {
-            const isEducational = (
-              winTitle.includes('youtube') || winTitle.includes('course') || winTitle.includes('python') || winTitle.includes('lecture') || winTitle.includes('tutorial') ||
-              lowText.includes('youtube') || lowText.includes('subscribe') || lowText.includes('python') || lowText.includes('course') || lowText.includes('tutorial') || lowText.includes('lecture') || lowText.includes('views') || lowText.includes('class')
+            const isEducationalOcr = (
+              lowText.includes('youtube') || lowText.includes('subscribe') || lowText.includes('python') ||
+              lowText.includes('physics') || lowText.includes('course') || lowText.includes('tutorial') ||
+              lowText.includes('lecture') || lowText.includes('views') || lowText.includes('class') || lowText.includes('phy')
             )
-            if (isEducational) {
-              let detectedTopic = 'Python Programming & Core Architecture'
-              if (lowText.includes('deadlock') || lowText.includes('operating') || winTitle.includes('operating')) {
-                detectedTopic = 'Operating Systems: Deadlock & Concurrency'
-              } else if (lowText.includes('network') || lowText.includes('tcp') || winTitle.includes('network')) {
-                detectedTopic = 'Computer Networks & Transport Protocols'
-              } else if (lowText.includes('dbms') || lowText.includes('sql') || winTitle.includes('sql')) {
-                detectedTopic = 'Database Systems & B-Tree Indexing'
-              } else if (winTitle.length > 5 && !winTitle.includes('msedge') && !winTitle.includes('chrome')) {
-                detectedTopic = winTitle.replace(/\s*-\s*(?:YouTube|Microsoft Edge|Google Chrome).*/i, '').trim() || detectedTopic
-              }
+            if (isEducationalOcr) {
+              let detectedTopic = 'Physics & Science Architecture'
+              if (lowText.includes('python')) detectedTopic = 'Python Programming & Architecture'
+              else if (lowText.includes('deadlock') || lowText.includes('operating')) detectedTopic = 'Operating Systems: Deadlock & Concurrency'
+              else if (lowText.includes('network')) detectedTopic = 'Computer Networks & Transport Protocols'
+              else if (lowText.includes('dbms') || lowText.includes('sql')) detectedTopic = 'Database Systems & SQL'
 
               triggerIslandPromptRef.current?.({
                 type: 'note',
