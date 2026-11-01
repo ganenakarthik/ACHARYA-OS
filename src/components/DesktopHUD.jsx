@@ -557,77 +557,93 @@ export default function DesktopHUD() {
         isAnalyzing = true
         setVisionScanning(true)
 
-        // Only trigger OCR inspection if window is a developer code editor or educational browser
+        // Check active foreground application
         const winInfo = await electron.invoke('get-active-window-awareness')
         const activeApp = (winInfo?.focusApp || '').toLowerCase()
         const winTitle = (winInfo?.windowTitle || '').toLowerCase()
         const isCodeEditor = activeApp.includes('code') || activeApp.includes('notepad') || activeApp.includes('terminal') || activeApp.includes('devenv')
-        const isEducationalBrowser = (activeApp.includes('browser') || activeApp.includes('edge') || activeApp.includes('chrome')) && (winTitle.includes('youtube') || winTitle.includes('course') || winTitle.includes('lecture') || winTitle.includes('tutorial') || winTitle.includes('python') || winTitle.includes('algorithm') || winTitle.includes('class'))
+        const isBrowser = activeApp.includes('browser') || activeApp.includes('edge') || activeApp.includes('chrome') || activeApp.includes('brave')
 
-        // Autonomous Lecture Detection on Screen -> Triggers Dynamic Island Prompt
-        if (isEducationalBrowser && islandStatus === 'idle') {
-          const cleanTopic = (winInfo.windowTitle || 'Python Programming').replace(/ - (YouTube|Edge|Google Chrome|Brave)/gi, '').trim()
-          triggerIslandPromptRef.current?.({
-            type: 'note',
-            title: 'Educational Stream Spotted on Screen',
-            subtitle: cleanTopic.slice(0, 42),
-            question: 'Should Acharya synthesize revision notes?',
-            topic: cleanTopic || 'Python Programming',
-            data: winInfo.windowTitle
-          })
+        if (!isCodeEditor && !isBrowser) {
           return
         }
 
-        if (!isCodeEditor) {
-          return
-        }
-
-        // 1. Read the ACTIVE EDITOR WINDOW only (window-cropped OCR — zero false positives)
+        // Multimodal Vision Sensor - Window Cropped OCR
         const visionResult = await electron.invoke('recognize-screen-vision')
 
         if (visionResult && visionResult.success && visionResult.text) {
           const rawText = visionResult.text.trim()
+          const lowText = rawText.toLowerCase()
           if (visionResult.windowProcess) setVisionTarget(visionResult.windowProcess)
 
-          // Only analyze if text changed meaningfully (avoid redundant AI calls)
-          // Simple hash: first 200 chars of stripped text
-          const contentHash = rawText.replace(/\s+/g, ' ').slice(0, 200)
-          if (contentHash === lastSeenHash) return
-          lastSeenHash = contentHash
+          // 1. In Browser: Detect educational course / YouTube stream
+          if (isBrowser && islandStatus === 'idle') {
+            const isEducational = (
+              winTitle.includes('youtube') || winTitle.includes('course') || winTitle.includes('python') || winTitle.includes('lecture') || winTitle.includes('tutorial') ||
+              lowText.includes('youtube') || lowText.includes('subscribe') || lowText.includes('python') || lowText.includes('course') || lowText.includes('tutorial') || lowText.includes('lecture') || lowText.includes('views') || lowText.includes('class')
+            )
+            if (isEducational) {
+              let detectedTopic = 'Python Programming & Core Architecture'
+              if (lowText.includes('deadlock') || lowText.includes('operating') || winTitle.includes('operating')) {
+                detectedTopic = 'Operating Systems: Deadlock & Concurrency'
+              } else if (lowText.includes('network') || lowText.includes('tcp') || winTitle.includes('network')) {
+                detectedTopic = 'Computer Networks & Transport Protocols'
+              } else if (lowText.includes('dbms') || lowText.includes('sql') || winTitle.includes('sql')) {
+                detectedTopic = 'Database Systems & B-Tree Indexing'
+              } else if (winTitle.length > 5 && !winTitle.includes('msedge') && !winTitle.includes('chrome')) {
+                detectedTopic = winTitle.replace(/\s*-\s*(?:YouTube|Microsoft Edge|Google Chrome).*/i, '').trim() || detectedTopic
+              }
 
-          // Pass entire OCR output to neural AI — no rule-based pre-filtering
-          // The AI decides: is this code? does it have errors?
-          const targetCode = (visionResult.lines || []).join('\n') || rawText
-          if (targetCode.trim().length < 8) return // genuinely empty screen — skip
-
-          const aiRes = await analyzeCodeWithAI(targetCode, '', profile)
-
-          if (aiRes && aiRes.isError) {
-            const issueData = {
-              ...aiRes,
-              programDomain: aiRes.projectIntent || aiRes.language || 'Code',
-              fileName: visionResult.windowTitle || 'Notepad'
-            }
-            setActiveCodeIssue(issueData)
-            triggerIslandPromptRef.current?.({
-              type: 'error',
-              title: (aiRes.errorType || 'Syntax / Logic Flaw').slice(0, 36),
-              subtitle: `Line ${aiRes.line || 1} in ${visionResult.windowTitle || 'Notepad'}`,
-              question: 'Should Acharya resolve it in Notepad?',
-              data: issueData
-            })
-            playCyberChime('alarm')
-            if (ttsEnabled && aiRes.mentorSpeech) {
-              setIsSpeaking(true)
-              speakText(aiRes.mentorSpeech, {
-                persona: voicePersona,
-                onStart: () => setIsSpeaking(true),
-                onEnd: () => setIsSpeaking(false)
+              triggerIslandPromptRef.current?.({
+                type: 'note',
+                title: 'Educational Lecture Spotted on Screen',
+                subtitle: detectedTopic.slice(0, 42),
+                question: 'Should Acharya synthesize revision notes?',
+                topic: detectedTopic,
+                data: winInfo.windowTitle || detectedTopic
               })
+              return
             }
-          } else if (aiRes && !aiRes.isError && activeCodeIssue) {
-            dismissActiveCodeIssue()
-            playCyberChime('affirm')
+          }
+
+          // 2. In Code Editor: Sentry for runtime errors or syntax bugs
+          if (isCodeEditor) {
+            const contentHash = rawText.replace(/\s+/g, ' ').slice(0, 200)
+            if (contentHash === lastSeenHash) return
+            lastSeenHash = contentHash
+
+            const targetCode = (visionResult.lines || []).join('\n') || rawText
+            if (targetCode.trim().length < 8) return
+
+            const aiRes = await analyzeCodeWithAI(targetCode, '', profile)
+
+            if (aiRes && aiRes.isError) {
+              const issueData = {
+                ...aiRes,
+                programDomain: aiRes.projectIntent || aiRes.language || 'Code',
+                fileName: visionResult.windowTitle || 'Notepad'
+              }
+              setActiveCodeIssue(issueData)
+              triggerIslandPromptRef.current?.({
+                type: 'error',
+                title: (aiRes.errorType || 'Syntax / Logic Flaw').slice(0, 36),
+                subtitle: `Line ${aiRes.line || 1} in ${visionResult.windowTitle || 'Notepad'}`,
+                question: 'Should Acharya resolve it in Notepad?',
+                data: issueData
+              })
+              playCyberChime('alarm')
+              if (ttsEnabled && aiRes.mentorSpeech) {
+                setIsSpeaking(true)
+                speakText(aiRes.mentorSpeech, {
+                  persona: voicePersona,
+                  onStart: () => setIsSpeaking(true),
+                  onEnd: () => setIsSpeaking(false)
+                })
+              }
+            } else if (aiRes && !aiRes.isError && activeCodeIssue) {
+              dismissActiveCodeIssue()
+              playCyberChime('affirm')
+            }
           }
         }
       } catch (_) {
@@ -635,7 +651,7 @@ export default function DesktopHUD() {
         isAnalyzing = false
         setVisionScanning(false)
       }
-    }, 20000)
+    }, 6000)
 
     return () => clearInterval(visionTimer)
   }, [screenPerceptionEnabled, ttsEnabled, voicePersona, profile, activeCodeIssue])
