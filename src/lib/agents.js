@@ -72,8 +72,8 @@ export async function callOllama(messages, profile = {}, memories = [], sensory 
   ]
 
   const controller = new AbortController()
-  // High-performance CPU/GPU execution timeout (25 seconds)
-  const timeoutId = setTimeout(() => controller.abort(), 25000)
+  // Fast responsiveness timeout (2.5 seconds max before falling back to instant knowledge synthesis)
+  const timeoutId = setTimeout(() => controller.abort(), 2500)
 
   try {
     const response = await fetch(`${ollamaUrl}/api/chat`, {
@@ -86,8 +86,8 @@ export async function callOllama(messages, profile = {}, memories = [], sensory 
         stream: false,
         options: {
           temperature: 0.7,
-          num_ctx: 2048,
-          num_predict: 400
+          num_ctx: 1024,
+          num_predict: 200
         }
       }),
     })

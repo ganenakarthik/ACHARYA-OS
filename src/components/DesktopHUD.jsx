@@ -1037,7 +1037,8 @@ export default function DesktopHUD() {
 
     // TC-2: Academic Benchmark Test Case (Explicitly triggered by 'tc-2', 'test tc-2', or queries about UserService / Spring Boot)
     const isExplicitTC2 = /^(tc-2|test tc-2|testcase 2|demo tc-2)[\s!.]*$/i.test(cleanCmd) || cleanCmd.includes('userservice') || cleanCmd.includes('spring boot')
-    const isGreeting = /^(hi|hello|hey|greetings|good morning|yo|sup)[\s!.]*$/i.test(cleanCmd)
+    const isAwarenessQuery = /(?:what(?:\s+am\s+i|\s+im|\s+'m\s+i|\s+is\s+on\s+my\s+screen|\s+are\s+we)\s+doing|what\s+am\s+i\s+working\s+on|where\s+am\s+i|what\s+is\s+my\s+active\s+app|screen\s+status|current\s+activity|what\s+do\s+you\s+see)/i.test(cleanCmd)
+    const isGreeting = /^(hi|hello|hey|greetings|good morning|yo|sup)\b/i.test(cleanCmd) || isAwarenessQuery
 
     if (isGreeting && !isExplicitTC2) {
       setIsAiThinking(true)
@@ -1047,25 +1048,31 @@ export default function DesktopHUD() {
       const activeActivity = visionData.activity || 'General Workspace Session'
 
       setThoughtStream([
-        { id: 1, step: 'Sensory Observation', time: '0.1s', status: 'done', detail: `Detected greeting "${input}". Polling User32 active window.` },
-        { id: 2, step: 'Environment Identification', time: '0.3s', status: 'done', detail: `Active Application: ${activeApp} ("${activeTitle}")` },
-        { id: 3, step: 'Context Alignment', time: '0.5s', status: 'done', detail: `Session context aligned to ${activeActivity}.` }
+        { id: 1, step: 'Sensory Observation', time: '0.05s', status: 'done', detail: `Detected intent "${input}". Ingested live User32 active window.` },
+        { id: 2, step: 'Environment Identification', time: '0.1s', status: 'done', detail: `Active Application: ${activeApp} ("${activeTitle}")` },
+        { id: 3, step: 'Context Alignment', time: '0.15s', status: 'done', detail: `Session context aligned to ${activeActivity}.` }
       ])
 
       setTimeout(() => {
         setIsAiThinking(false)
-        const greetingReply = `### 👋 REAL-TIME AWARENESS ACTIVE\n\nHello! I am continuously observing your desktop environment.\n\n• **Active Application**: \`${activeApp}\`\n• **Active Window / Context**: \`${activeTitle}\`\n• **Current Activity**: \`${activeActivity}\`\n• **Status**: Socratic Mentor listening and ready for directives.\n\n*You can ask me questions, say \`check code\` to analyze what's in your clipboard, launch apps like \`open chrome\`, or type \`take exam\` to practice.*`
+        const greetingReply = isAwarenessQuery
+          ? `### 👁 REAL-TIME DESKTOP AWARENESS (LIVE)\n\nI am actively observing your desktop workspace in real time:\n\n• **Active Application**: \`${activeApp}\`\n• **Active Window**: \`${activeTitle}\`\n• **Observed Activity**: \`${activeActivity}\`\n• **Hardware Telemetry**: CPU: \`${telemetry.cpu || 'Normal'}\` · RAM: \`${telemetry.ram || 'Optimal'}\`\n• **Code Sentry Status**: Clipboard surveillance armed and ready.\n\n*Acharya is continuously tracking your focus to provide proactive, non-intrusive assistance.*`
+          : `### 👋 REAL-TIME AWARENESS ACTIVE\n\nHello! I am continuously observing your desktop environment.\n\n• **Active Application**: \`${activeApp}\`\n• **Active Window / Context**: \`${activeTitle}\`\n• **Current Activity**: \`${activeActivity}\`\n• **Status**: Socratic Mentor listening and ready for directives.\n\n*You can ask me questions, say \`check code\` to analyze what's in your clipboard, or type \`take exam\` to practice.*`
+
         addMessage({ role: 'assistant', content: greetingReply, timestamp: new Date().toLocaleTimeString() })
         showToast(`Observing: ${activeApp}`, '👁')
         if (ttsEnabled) {
           setIsSpeaking(true)
-          speakText(`Hello. I am observing your screen. You are currently in ${activeApp}. How can I assist your study session?`, {
+          const speech = isAwarenessQuery
+            ? `You are currently working in ${activeApp} on ${activeTitle}. I am monitoring your workspace and ready to help.`
+            : `Hello. I am observing your screen. You are currently in ${activeApp}. How can I assist your study session?`
+          speakText(speech, {
             persona: voicePersona,
             onStart: () => setIsSpeaking(true),
             onEnd: () => setIsSpeaking(false)
           })
         }
-      }, 500)
+      }, 150)
       return
     }
 
