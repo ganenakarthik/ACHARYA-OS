@@ -1644,8 +1644,8 @@ Write-Output 'ok'
 app.whenReady().then(createWindow);
 
 // Keep app alive persistently in background
-app.on('window-all-closed', (e) => {
-  e.preventDefault();
+app.on('window-all-closed', () => {
+  // Prevent quitting so background ambient sentinel stays alive
 });
 
 app.on('activate', () => {
