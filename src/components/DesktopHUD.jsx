@@ -134,12 +134,21 @@ export default function DesktopHUD() {
                 name: `YouTube Lecture: ${notes.topic}`,
                 summary: notes.executiveSummary,
                 parsedText: JSON.stringify(notes.keyTakeaways),
-                flashcards: notes.retrievalDrillCards || []
+                flashcards: (notes.retrievalDrillCards || []).map(c => ({
+                  front: c.front || c.q || '',
+                  back: c.back || c.a || ''
+                }))
               })
+              if (electron.invoke) {
+                const saveRes = await electron.invoke('save-note-to-desktop', notes)
+                if (saveRes && saveRes.success) {
+                  showToast(`✓ Saved note file to Desktop: ${saveRes.filename}`, '📁')
+                }
+              }
               playCyberChime('success')
               showToast(`✓ Hands-Free: Generated notes for ${notes.topic}!`, '✨')
               if (ttsEnabled) {
-                speakText(`I noticed you copied a YouTube lecture on ${notes.topic}. I have automatically synthesized your study notes, predicted viva questions, and saved flashcards to your vault.`)
+                speakText(`I noticed you copied a YouTube lecture on ${notes.topic}. I have automatically synthesized your study notes, predicted viva questions, and saved a Markdown document to your Desktop.`)
               }
             }
           } catch (_) {}
@@ -2910,7 +2919,7 @@ export default function DesktopHUD() {
                             }}
                             disabled={isGeneratingNotes}
                             onClick={async () => {
-                              const target = ytTopicInput.trim() || 'Operating Systems: Banker Algorithm'
+                              const target = ytTopicInput.trim() || 'Operating Systems: Deadlock'
                               setIsGeneratingNotes(true)
                               showToast(`Synthesizing academic lecture notes on "${target}"...`, '🧠')
                               playCyberChime('scan')
@@ -2922,12 +2931,22 @@ export default function DesktopHUD() {
                                     name: `Lecture Notes: ${notes.topic}`,
                                     summary: notes.executiveSummary,
                                     parsedText: JSON.stringify(notes.keyTakeaways),
-                                    flashcards: notes.retrievalDrillCards || []
+                                    flashcards: (notes.retrievalDrillCards || []).map(c => ({
+                                      front: c.front || c.q || '',
+                                      back: c.back || c.a || ''
+                                    }))
                                   })
+                                  const electron = getElectron()
+                                  if (electron && electron.invoke) {
+                                    const saveRes = await electron.invoke('save-note-to-desktop', notes)
+                                    if (saveRes && saveRes.success) {
+                                      showToast(`✓ Saved file to Desktop: ${saveRes.filename}`, '📁')
+                                    }
+                                  }
                                   playCyberChime('success')
                                   showToast(`✓ Lecture notes & viva questions generated!`, '✨')
                                   if (ttsEnabled) {
-                                    speakText(`Synthesized structured lecture notes on ${notes.topic}. Created key takeaways and university viva examination questions.`)
+                                    speakText(`Synthesized structured lecture notes on ${notes.topic}. Created key takeaways, viva questions, and saved Markdown file to your Desktop.`)
                                   }
                                 }
                               } catch (e) {
