@@ -2019,7 +2019,6 @@ export default function DesktopHUD() {
             <button className="ribbon-btn" onClick={() => setActiveModal('radar')} title="Learning Radar">🌐 RADAR</button>
             <button className="ribbon-btn" onClick={() => setActiveModal('planner')} title="Cognitive Spacing & Spaced Repetition Schedule">⏳ RETENTION PACING</button>
             <button className="ribbon-btn" onClick={() => setActiveModal('pdf')} title="YouTube Lecture & Class Notes Synthesizer">🎓 LECTURE NOTES & YT</button>
-            <button className="ribbon-btn" onClick={() => handleAppLaunch('vscode', 'VS Code')} title="Launch VS Code">💻 VS CODE</button>
           </nav>
 
           {/* Left Column Glass Card */}
@@ -2306,7 +2305,7 @@ export default function DesktopHUD() {
               <input
                 type="text"
                 className="cmd-input-field"
-                placeholder="Ask Acharya or type command (e.g. 'check code', 'plan exam', 'open vs code')..."
+                placeholder="Ask Acharya or type command (e.g. 'check code', 'plan exam', 'explain concept')..."
                 value={commandInput}
                 onChange={e => setCommandInput(e.target.value)}
               />
