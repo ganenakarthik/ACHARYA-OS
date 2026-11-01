@@ -1705,193 +1705,231 @@ export default function DesktopHUD() {
             </div>
           </header>
 
-          {/* Feature #2: Zero-Click Error Doctor (Stack-Trace Autopsy Banner) */}
+          {/* Feature #2: Zero-Click Error Doctor (Stack-Trace Autopsy Modal Alert) */}
           {activeDebugReport && (
-            <div style={{
-              margin: '72px 24px 10px',
-              background: 'linear-gradient(135deg, rgba(255, 30, 86, 0.28), rgba(138, 43, 226, 0.22))',
-              border: '2px solid #ff2d6a',
-              borderRadius: '10px',
-              padding: '14px 18px',
-              boxShadow: '0 0 30px rgba(255, 45, 106, 0.5)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              zIndex: 105
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>⚡</span>
-                  <span style={{ fontSize: '12px', fontWeight: '900', color: '#ff2d6a', letterSpacing: '1px' }}>
-                    ZERO-CLICK ERROR DOCTOR: RUNTIME EXCEPTION INTERCEPTED
-                  </span>
-                  <span style={{ fontSize: '9px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255, 45, 106, 0.3)', color: '#ff9ebb', fontWeight: 'bold', border: '1px solid #ff2d6a' }}>
-                    {activeDebugReport.language} · {activeDebugReport.file} (Line: {activeDebugReport.line})
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard?.writeText(activeDebugReport.exactFixCode)
-                      showToast('Copied fix code to clipboard!', '📋')
-                      playCyberChime('affirm')
-                    }}
-                    style={{
-                      background: 'linear-gradient(135deg, #00f0ff, #00ff9d)',
-                      border: 'none',
-                      color: '#000',
-                      fontWeight: 'bold',
-                      fontSize: '10px',
-                      padding: '4px 12px',
-                      borderRadius: '4px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    📋 Copy Fix Code
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveDebugReport(null)
-                      playCyberChime('scan')
-                    }}
-                    style={{
-                      background: 'rgba(255,255,255,0.08)',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      color: '#fff',
-                      fontSize: '10px',
-                      padding: '4px 10px',
-                      borderRadius: '4px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ✕ Dismiss
-                  </button>
-                </div>
-              </div>
+            <>
+              {/* Dimmed backdrop to prevent background text bleed-through */}
+              <div
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  background: 'rgba(3, 6, 12, 0.75)',
+                  backdropFilter: 'blur(8px)',
+                  zIndex: 9998
+                }}
+                onClick={() => setActiveDebugReport(null)}
+              />
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
-                <div>
-                  <div style={{ fontSize: '12.5px', fontWeight: 'bold', color: '#ffffff' }}>
-                    {activeDebugReport.errorType}
-                  </div>
-                  <div style={{ fontSize: '10px', color: '#ffe6a7', marginTop: '4px', lineHeight: '1.4' }}>
-                    📌 <b>Root Cause:</b> {activeDebugReport.rootCause}
-                  </div>
-                  <div style={{ marginTop: '8px', fontSize: '9.5px', color: '#6df9ff' }}>
-                    🧪 <b>Preventative Test Assertion:</b>
-                    <pre style={{ background: 'rgba(0,0,0,0.6)', padding: '6px 10px', borderRadius: '4px', margin: '4px 0 0 0', overflowX: 'auto', fontFamily: 'monospace', fontSize: '9px', color: '#00ff9d' }}>
-                      {activeDebugReport.preventativeTest}
-                    </pre>
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#00f0ff', marginBottom: '4px' }}>
-                    ⚡ Exact One-Line / Drop-in Fix:
-                  </div>
-                  <pre style={{ background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(0, 240, 255, 0.3)', padding: '8px 12px', borderRadius: '6px', margin: 0, overflowX: 'auto', fontFamily: 'monospace', fontSize: '9.5px', color: '#fff' }}>
-                    {activeDebugReport.exactFixCode}
-                  </pre>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
-                    <span style={{ fontSize: '8.5px', color: '#00ff9d' }}>
-                      📁 Saved to Desktop: <b>{activeDebugReport.filename}</b>
+              <div style={{
+                position: 'fixed',
+                top: '68px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 'min(880px, calc(100vw - 48px))',
+                background: '#070a14',
+                border: '1.5px solid #ff2d6a',
+                borderRadius: '12px',
+                padding: '16px 20px',
+                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.98), 0 0 35px rgba(255, 45, 106, 0.45)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                zIndex: 9999
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '18px' }}>⚡</span>
+                    <span style={{ fontSize: '12px', fontWeight: '900', color: '#ff2d6a', letterSpacing: '1px' }}>
+                      ZERO-CLICK ERROR DOCTOR: RUNTIME EXCEPTION INTERCEPTED
                     </span>
+                    <span style={{ fontSize: '9px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255, 45, 106, 0.25)', color: '#ff9ebb', fontWeight: 'bold', border: '1px solid #ff2d6a' }}>
+                      {activeDebugReport.language} · {activeDebugReport.file} (Line: {activeDebugReport.line})
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                       onClick={() => {
-                        setCodeSnippet(activeDebugReport.exactFixCode)
-                        setActiveModal('code')
+                        navigator.clipboard?.writeText(activeDebugReport.exactFixCode)
+                        showToast('Copied fix code to clipboard!', '📋')
                         playCyberChime('affirm')
                       }}
-                      style={{ background: 'none', border: 'none', color: '#00f0ff', fontSize: '9px', cursor: 'pointer', textDecoration: 'underline' }}
+                      style={{
+                        background: 'linear-gradient(135deg, #00f0ff, #00ff9d)',
+                        border: 'none',
+                        color: '#000',
+                        fontWeight: 'bold',
+                        fontSize: '10px',
+                        padding: '5px 12px',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
                     >
-                      Open in Code Sentry →
+                      📋 Copy Fix Code
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveDebugReport(null)
+                        playCyberChime('scan')
+                      }}
+                      style={{
+                        background: 'rgba(255,255,255,0.08)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        color: '#fff',
+                        fontSize: '10px',
+                        padding: '5px 10px',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ✕ Dismiss
                     </button>
                   </div>
                 </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '14px' }}>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#ffffff' }}>
+                      {activeDebugReport.errorType}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#ffe6a7', marginTop: '5px', lineHeight: '1.4' }}>
+                      📌 <b>Root Cause:</b> {activeDebugReport.rootCause}
+                    </div>
+                    <div style={{ marginTop: '8px', fontSize: '9.5px', color: '#6df9ff' }}>
+                      🧪 <b>Preventative Test Assertion:</b>
+                      <pre style={{ background: '#020408', border: '1px solid rgba(0,255,157,0.2)', padding: '6px 10px', borderRadius: '4px', margin: '4px 0 0 0', overflowX: 'auto', fontFamily: 'monospace', fontSize: '9px', color: '#00ff9d' }}>
+                        {activeDebugReport.preventativeTest}
+                      </pre>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#00f0ff', marginBottom: '4px' }}>
+                      ⚡ Exact One-Line / Drop-in Fix:
+                    </div>
+                    <pre style={{ background: '#020408', border: '1px solid rgba(0, 240, 255, 0.3)', padding: '8px 12px', borderRadius: '6px', margin: 0, overflowX: 'auto', fontFamily: 'monospace', fontSize: '9.5px', color: '#fff' }}>
+                      {activeDebugReport.exactFixCode}
+                    </pre>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                      <span style={{ fontSize: '8.5px', color: '#00ff9d' }}>
+                        📁 Saved to Desktop: <b>{activeDebugReport.filename}</b>
+                      </span>
+                      <button
+                        onClick={() => {
+                          setCodeSnippet(activeDebugReport.exactFixCode)
+                          setActiveModal('code')
+                          setActiveDebugReport(null)
+                          playCyberChime('affirm')
+                        }}
+                        style={{ background: 'none', border: 'none', color: '#00f0ff', fontSize: '9px', cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        Open in Code Sentry →
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* Autonomous Zero-Touch Socratic Error Interceptor Banner */}
           {(activeCodeIssue || activeSocraticIntervention) && (() => {
             const currentIssue = activeCodeIssue || activeSocraticIntervention;
             return (
-              <div style={{
-                margin: '72px 24px 10px',
-                background: 'linear-gradient(135deg, rgba(255, 77, 109, 0.22), rgba(255, 184, 0, 0.16))',
-                border: '1.5px solid #ff4d6d',
-                borderRadius: '8px',
-                padding: '10px 14px',
-                boxShadow: '0 0 24px rgba(255, 77, 109, 0.45)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '12px',
-                zIndex: 100
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '14px' }}>🚨</span>
-                    <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#ff4d6d', letterSpacing: '0.8px' }}>
-                      ZERO-TOUCH SENTRY: {currentIssue.fileName ? `${currentIssue.fileName} · ` : ''}{currentIssue.language} DETECTED IN WORKSPACE
-                    </span>
-                    <span style={{ fontSize: '8px', padding: '1px 6px', borderRadius: '3px', background: 'rgba(255, 77, 109, 0.25)', color: '#ff7b72', border: '1px solid #ff4d6d', fontWeight: 'bold' }}>
-                      LINE {currentIssue.line || 'ACTIVE'}
-                    </span>
+              <>
+                <div
+                  style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(3, 6, 12, 0.75)',
+                    backdropFilter: 'blur(8px)',
+                    zIndex: 9996
+                  }}
+                  onClick={() => {
+                    if (activeCodeIssue) dismissActiveCodeIssue()
+                    if (activeSocraticIntervention) dismissSocraticIntervention()
+                  }}
+                />
+                <div style={{
+                  position: 'fixed',
+                  top: '72px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: 'min(880px, calc(100vw - 48px))',
+                  background: '#070a14',
+                  border: '1.5px solid #ff4d6d',
+                  borderRadius: '10px',
+                  padding: '12px 18px',
+                  boxShadow: '0 20px 50px rgba(0, 0, 0, 0.95), 0 0 30px rgba(255, 77, 109, 0.45)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '12px',
+                  zIndex: 9997
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '14px' }}>🚨</span>
+                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#ff4d6d', letterSpacing: '0.8px' }}>
+                        ZERO-TOUCH SENTRY: {currentIssue.fileName ? `${currentIssue.fileName} · ` : ''}{currentIssue.language} DETECTED IN WORKSPACE
+                      </span>
+                      <span style={{ fontSize: '8px', padding: '1px 6px', borderRadius: '3px', background: 'rgba(255, 77, 109, 0.25)', color: '#ff7b72', border: '1px solid #ff4d6d', fontWeight: 'bold' }}>
+                        LINE {currentIssue.line || 'ACTIVE'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '11.5px', fontWeight: 'bold', color: '#ffffff', marginTop: '3px' }}>
+                      {currentIssue.errorType}
+                    </div>
+                    <div style={{ fontSize: '9.5px', color: '#ffe6a7', marginTop: '3px', lineHeight: '1.3' }}>
+                      💡 <b>Socratic Guidance:</b> {currentIssue.hint || currentIssue.socraticHint}
+                    </div>
+                    <div style={{ fontSize: '8.5px', color: '#6df9ff', fontFamily: 'monospace', background: '#020408', padding: '4px 8px', borderRadius: '4px', marginTop: '4px' }}>
+                      Suggested Fix: {currentIssue.suggestedFix}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '11.5px', fontWeight: 'bold', color: '#ffffff', marginTop: '3px' }}>
-                    {currentIssue.errorType}
-                  </div>
-                  <div style={{ fontSize: '9.5px', color: '#ffe6a7', marginTop: '3px', lineHeight: '1.3' }}>
-                    💡 <b>Socratic Guidance:</b> {currentIssue.hint || currentIssue.socraticHint}
-                  </div>
-                  <div style={{ fontSize: '8.5px', color: '#6df9ff', fontFamily: 'monospace', background: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: '4px', marginTop: '4px' }}>
-                    Suggested Fix: {currentIssue.suggestedFix}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <button
+                      onClick={() => {
+                        setCodeSnippet(currentIssue.suggestedFix || currentIssue.codeSnippet || currentIssue.rawSample || '')
+                        setActiveModal('code')
+                        if (activeCodeIssue) dismissActiveCodeIssue()
+                        if (activeSocraticIntervention) dismissSocraticIntervention()
+                        playCyberChime('affirm')
+                      }}
+                      style={{
+                        background: 'linear-gradient(135deg, #00f0ff, #00ff9d)',
+                        border: 'none',
+                        color: '#000',
+                        fontWeight: '900',
+                        fontSize: '10px',
+                        padding: '6px 14px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      ⚡ Open in AST Sentry
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (activeCodeIssue) dismissActiveCodeIssue()
+                        if (activeSocraticIntervention) dismissSocraticIntervention()
+                        playCyberChime('scan')
+                      }}
+                      style={{
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        color: '#fff',
+                        fontSize: '9px',
+                        padding: '3px 8px',
+                        borderRadius: '3px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ✕ Dismiss
+                    </button>
                   </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <button
-                    onClick={() => {
-                      setCodeSnippet(currentIssue.suggestedFix || currentIssue.codeSnippet || currentIssue.rawSample || '')
-                      setActiveModal('code')
-                      if (activeCodeIssue) dismissActiveCodeIssue()
-                      if (activeSocraticIntervention) dismissSocraticIntervention()
-                      playCyberChime('affirm')
-                    }}
-                    style={{
-                      background: 'linear-gradient(135deg, #00f0ff, #00ff9d)',
-                      border: 'none',
-                      color: '#000',
-                      fontWeight: '900',
-                      fontSize: '10px',
-                      padding: '6px 14px',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    ⚡ Open in AST Sentry
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (activeCodeIssue) dismissActiveCodeIssue()
-                      if (activeSocraticIntervention) dismissSocraticIntervention()
-                      playCyberChime('scan')
-                    }}
-                    style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      color: '#fff',
-                      fontSize: '9px',
-                      padding: '3px 8px',
-                      borderRadius: '3px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </div>
+              </>
             );
           })()}
 
