@@ -31,20 +31,13 @@ if ($hwnd -ne [IntPtr]::Zero) {
   }
 }
 
-# If foreground is Acharya itself, check if a student editor/browser is open behind it
-if ($pName -eq "electron") {
-  $activeProcs = @("Code", "notepad", "msedge", "chrome", "brave", "WindowsTerminal", "devenv")
-  foreach ($ap in $activeProcs) {
-    $found = Get-Process -Name $ap -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 -or $_.MainWindowTitle } | Select-Object -First 1
-    if ($found) {
-      $pName = $found.ProcessName
-      $title = if ($found.MainWindowTitle) { $found.MainWindowTitle } else { $found.ProcessName }
-      break
-    }
-  }
-}
+$lowP = $pName.ToLower()
+$lowT = $title.ToLower()
 
-if ([string]::IsNullOrWhiteSpace($title)) {
+if ($lowP -match "antigravity|electron" -or $lowT -match "antigravity") {
+  $title = "Antigravity Workspace"
+  $pName = "antigravity"
+} elseif ([string]::IsNullOrWhiteSpace($title) -or $lowP -eq "explorer") {
   $title = "Active Desktop Workspace"
   $pName = "explorer"
 }

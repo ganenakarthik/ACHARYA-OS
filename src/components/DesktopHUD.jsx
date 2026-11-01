@@ -547,8 +547,14 @@ export default function DesktopHUD() {
         const activeApp = (winInfo?.focusApp || '').toLowerCase()
         const rawWinTitle = winInfo?.windowTitle || ''
         const winTitle = rawWinTitle.toLowerCase()
-        const isCodeEditor = activeApp.includes('code') || activeApp.includes('notepad') || activeApp.includes('terminal') || activeApp.includes('devenv') || winTitle.includes('notepad') || winTitle.includes('visual studio code')
-        const isBrowser = activeApp.includes('browser') || activeApp.includes('edge') || activeApp.includes('chrome') || activeApp.includes('brave') || winTitle.includes('edge') || winTitle.includes('chrome') || winTitle.includes('youtube')
+
+        // 1. ABSOLUTE EXCLUSION: Never scan or trigger inside Antigravity or Windows Desktop
+        if (activeApp.includes('antigravity') || winTitle.includes('antigravity') || activeApp.includes('explorer') || activeApp.includes('desktop')) {
+          return
+        }
+
+        const isCodeEditor = activeApp.includes('notepad') || activeApp.includes('code') || activeApp.includes('terminal') || activeApp.includes('devenv')
+        const isBrowser = activeApp.includes('browser') || activeApp.includes('edge') || activeApp.includes('chrome') || activeApp.includes('brave')
 
         if (!isCodeEditor && !isBrowser) {
           return

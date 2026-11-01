@@ -414,7 +414,11 @@ function createWindow() {
         const lowTitle = title.toLowerCase();
         const lowProc = proc.toLowerCase();
 
-        if (lowProc.includes('code') || lowTitle.includes('visual studio code') || lowTitle.includes('vscode')) {
+        if (lowProc.includes('antigravity') || lowTitle.includes('antigravity')) {
+          app = 'Antigravity Workspace';
+          activity = 'AI Pair Programming & Architecture';
+          insight = 'Antigravity Assistant in focus.';
+        } else if (lowProc.includes('code') || lowTitle.includes('visual studio code') || lowTitle.includes('vscode')) {
           app = 'VS Code IDE';
           activity = 'Programming & System Architecture';
           insight = `Active in: ${title.split(' - ')[0] || 'Source Code'}. Focused engineering session.`;
