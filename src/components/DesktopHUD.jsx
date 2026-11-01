@@ -554,64 +554,71 @@ export default function DesktopHUD() {
           return
         }
 
-        // 1. FAST BROWSER DETECTION: Instant title-based lecture recognition
-        if (isBrowser && islandStatus === 'idle') {
-          const isEducationalTitle = (
-            winTitle.includes('youtube') || winTitle.includes('course') || winTitle.includes('phy') ||
-            winTitle.includes('python') || winTitle.includes('lecture') || winTitle.includes('tutorial') ||
-            winTitle.includes('class') || winTitle.includes('khan academy') || winTitle.includes('coursera') ||
-            winTitle.includes('nptel') || winTitle.includes('udemy') || winTitle.includes('mit') ||
-            winTitle.includes('math') || winTitle.includes('science') || winTitle.includes('engineering')
-          )
-          if (isEducationalTitle) {
-            let cleanTopic = rawWinTitle
-              .replace(/\s*-\s*YouTube.*$/i, '')
-              .replace(/\s*-\s*(?:Microsoft Edge|Google Chrome|Brave|Firefox).*$/i, '')
-              .replace(/\s*-\s*Personal.*$/i, '')
-              .trim()
-
-            if (!cleanTopic || cleanTopic.length < 3 || cleanTopic.toLowerCase() === 'youtube') {
-              cleanTopic = winTitle.includes('phy') ? 'Physics & Engineering Science' : 'Computer Science Lecture'
-            }
-
-            let detectedTopic = cleanTopic
-            if (winTitle.includes('phy') && !cleanTopic.toLowerCase().includes('physics') && !cleanTopic.toLowerCase().includes('phy')) {
-              detectedTopic = `Physics: ${cleanTopic}`
-            }
-
-            triggerIslandPromptRef.current?.({
-              type: 'note',
-              title: 'Educational Lecture Spotted on Screen',
-              subtitle: detectedTopic.slice(0, 42),
-              question: 'Should Acharya synthesize revision notes?',
-              topic: detectedTopic,
-              data: rawWinTitle || detectedTopic
-            })
-            return
-          }
-        }
-
         // Multimodal Vision Sensor - Window Cropped OCR
         const visionResult = await electron.invoke('recognize-screen-vision')
 
         if (visionResult && visionResult.success && visionResult.text) {
           const rawText = visionResult.text.trim()
           const lowText = rawText.toLowerCase()
+          const lines = visionResult.lines || []
           if (visionResult.windowProcess) setVisionTarget(visionResult.windowProcess)
 
-          // 2. Multimodal OCR Browser Fallback (if window title was generic)
+          // 1. PURE SCREEN VISION: In Browser, detect genuine educational lecture (NOT home feeds)
           if (isBrowser && islandStatus === 'idle') {
-            const isEducationalOcr = (
-              lowText.includes('youtube') || lowText.includes('subscribe') || lowText.includes('python') ||
-              lowText.includes('physics') || lowText.includes('course') || lowText.includes('tutorial') ||
-              lowText.includes('lecture') || lowText.includes('views') || lowText.includes('class') || lowText.includes('phy')
+            // Guard against home feeds or recommendation grids (e.g. YouTube homepage with gaming, shorts, etc.)
+            const isHomeFeed = (
+              (lowText.includes('shorts') && lowText.includes('subscriptions') && lowText.includes('home')) ||
+              (lowText.includes('trending') && lowText.includes('music') && lowText.includes('gaming')) ||
+              (lowText.includes('gta') && lowText.includes('mixes'))
             )
-            if (isEducationalOcr) {
-              let detectedTopic = 'Physics & Science Architecture'
-              if (lowText.includes('python')) detectedTopic = 'Python Programming & Architecture'
-              else if (lowText.includes('deadlock') || lowText.includes('operating')) detectedTopic = 'Operating Systems: Deadlock & Concurrency'
-              else if (lowText.includes('network')) detectedTopic = 'Computer Networks & Transport Protocols'
-              else if (lowText.includes('dbms') || lowText.includes('sql')) detectedTopic = 'Database Systems & SQL'
+
+            // Lecture Watch Page / Educational Stream Invariants:
+            // A genuine lecture has video player cues (views, subscribe, duration, timestamp) + academic concepts
+            const hasVideoWatchIndicator = (
+              lowText.includes('subscribe') || lowText.includes('views') || lowText.includes('share') ||
+              lowText.includes('download') || lowText.includes('save') || lowText.includes('transcript') ||
+              /\b\d{1,2}:\d{2}\b/.test(lowText) || winTitle.includes(' - youtube') || winTitle.includes('watch')
+            )
+
+            const academicKeywords = [
+              // Physics & Engineering
+              'electrostatics', 'coulomb', 'electric field', 'potential', 'physics', 'quantum',
+              'mechanics', 'thermodynamics', 'kinematics', 'newton', 'circuit', 'maxwell', 'derivation',
+              // Computer Science & Coding
+              'python', 'algorithm', 'syntax', 'recursion', 'compiler', 'operating system',
+              'deadlock', 'concurrency', 'data structure', 'binary tree', 'linked list', 'database',
+              'sql query', 'sorting', 'big o', 'complexity', 'dynamic programming', 'pointer',
+              // Math & Core Sciences
+              'calculus', 'derivative', 'integral', 'matrix', 'linear algebra', 'vector', 'probability',
+              // Lecture & Academic Identifiers
+              'lecture', 'full course', 'tutorial for beginners', 'yalecourses', 'mit opencourseware',
+              'nptel', 'freecodecamp', 'chapter', 'syllabus', 'prof.'
+            ]
+
+            const matchedAcademicConcept = academicKeywords.find(kw => lowText.includes(kw) || winTitle.includes(kw))
+
+            if (!isHomeFeed && hasVideoWatchIndicator && matchedAcademicConcept) {
+              // Extract the exact lecture topic directly from visible screen lines or title
+              let detectedTopic = ''
+              for (const line of lines) {
+                const lowLine = line.toLowerCase()
+                if (academicKeywords.some(kw => lowLine.includes(kw)) && line.length > 5 && line.length < 80) {
+                  detectedTopic = line.replace(/^[0-9]+[.\-)]\s*/, '').trim()
+                  break
+                }
+              }
+
+              if (!detectedTopic) {
+                detectedTopic = rawWinTitle
+                  .replace(/\s*-\s*YouTube.*$/i, '')
+                  .replace(/\s*-\s*(?:Microsoft Edge|Google Chrome|Brave|Firefox).*$/i, '')
+                  .replace(/\s*-\s*Personal.*$/i, '')
+                  .trim()
+              }
+
+              if (!detectedTopic || detectedTopic.length < 3 || detectedTopic.toLowerCase() === 'youtube') {
+                detectedTopic = matchedAcademicConcept.charAt(0).toUpperCase() + matchedAcademicConcept.slice(1) + ' Lecture'
+              }
 
               triggerIslandPromptRef.current?.({
                 type: 'note',
@@ -619,13 +626,13 @@ export default function DesktopHUD() {
                 subtitle: detectedTopic.slice(0, 42),
                 question: 'Should Acharya synthesize revision notes?',
                 topic: detectedTopic,
-                data: winInfo.windowTitle || detectedTopic
+                data: detectedTopic
               })
               return
             }
           }
 
-          // 2. In Code Editor: Sentry for runtime errors or syntax bugs
+          // 2. PURE SCREEN VISION: In Code Editor, read student code & detect errors
           if (isCodeEditor) {
             const contentHash = rawText.replace(/\s+/g, ' ').slice(0, 200)
             if (contentHash === lastSeenHash) return
@@ -659,9 +666,8 @@ export default function DesktopHUD() {
                   onEnd: () => setIsSpeaking(false)
                 })
               }
-            } else if (aiRes && !aiRes.isError && activeCodeIssue) {
+            } else if (aiRes && !aiRes.isError) {
               dismissActiveCodeIssue()
-              playCyberChime('affirm')
             }
           }
         }
