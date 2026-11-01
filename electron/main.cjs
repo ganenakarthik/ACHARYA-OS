@@ -456,20 +456,28 @@ function createWindow() {
   });
 
   /* ══════════════════════════════════════════════════════════
-     REAL LIVE DESKTOP SCREEN CAPTURE & VISION
+     REAL LIVE DESKTOP SCREEN CAPTURE & VISION (100% Native Win32)
      ══════════════════════════════════════════════════════════ */
   ipcMain.handle('capture-desktop-screen', async () => {
     try {
-      const sources = await desktopCapturer.getSources({
-        types: ['screen'],
-        thumbnailSize: { width: 1280, height: 720 }
+      const { execFile } = require('child_process');
+      const captureScript = path.join(__dirname, 'native-capture.ps1');
+      const tmpPath = path.join(os.tmpdir(), `acharya_snap_${Date.now()}.png`);
+
+      const capResult = await new Promise((resolve) => {
+        execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', captureScript, '-ImagePath', tmpPath],
+          { windowsHide: true, timeout: 6000 }, (err, stdout) => {
+            try { resolve(JSON.parse((stdout || '').trim())); } catch { resolve({ success: false }); }
+          });
       });
-      if (sources && sources.length > 0) {
-        const thumb = sources[0].thumbnail;
-        const dataUrl = thumb.toDataURL();
-        return { success: true, image: dataUrl, name: sources[0].name };
+
+      if (capResult && capResult.success && fs.existsSync(tmpPath)) {
+        const imgBuffer = fs.readFileSync(tmpPath);
+        const dataUrl = `data:image/png;base64,${imgBuffer.toString('base64')}`;
+        try { fs.unlinkSync(tmpPath); } catch (_) {}
+        return { success: true, image: dataUrl, name: 'Primary Desktop' };
       }
-      return { success: false, error: 'No screen capture sources found' };
+      return { success: false, error: capResult?.error || 'Failed to capture native desktop screen' };
     } catch (e) {
       console.warn('capture-desktop-screen error:', e);
       return { success: false, error: e.message };
@@ -485,84 +493,62 @@ function createWindow() {
     try {
       const { execFile } = require('child_process');
 
-      // Step 1: Get the foreground editor window bounds
+      // Step 1: Query foreground window bounds & identity
       const boundsScript = path.join(__dirname, 'get-window-bounds.ps1');
       const boundsJson = await new Promise((res) => {
         execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', boundsScript],
-          { windowsHide: true }, (err, stdout) => {
+          { windowsHide: true, timeout: 4000 }, (err, stdout) => {
             try { res(JSON.parse((stdout || '').trim())); } catch { res({ Found: false }); }
           });
       });
 
-      // Step 2: Capture screen with fallback and safe dimensions
-      let sources = await desktopCapturer.getSources({
-        types: ['screen'],
-        thumbnailSize: { width: 1280, height: 720 }
-      });
-      if (!sources || sources.length === 0) {
-        await new Promise(r => setTimeout(r, 120));
-        sources = await desktopCapturer.getSources({
-          types: ['screen'],
-          thumbnailSize: { width: 1280, height: 720 }
+      // If foreground is Antigravity or Desktop, skip immediately (strict exclusion)
+      if (!boundsJson.Found) {
+        return {
+          success: false,
+          reason: 'Excluded or inactive window',
+          windowTitle: boundsJson.Title || '',
+          windowProcess: boundsJson.Process || ''
+        };
+      }
+
+      const windowTitle = boundsJson.Title || '';
+      const windowProcess = boundsJson.Process || '';
+      const captureLeft = boundsJson.Left || 0;
+      const captureTop = boundsJson.Top || 0;
+      const captureWidth = boundsJson.Width || 0;
+      const captureHeight = boundsJson.Height || 0;
+
+      // Step 2: Native GDI capture of the active window rect
+      const captureScript = path.join(__dirname, 'native-capture.ps1');
+      const tmpPath = path.join(os.tmpdir(), `acharya_ocr_${Date.now()}.png`);
+
+      const capResult = await new Promise((res) => {
+        execFile('powershell', [
+          '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', captureScript,
+          '-ImagePath', tmpPath,
+          '-Left', String(captureLeft),
+          '-Top', String(captureTop),
+          '-Width', String(captureWidth),
+          '-Height', String(captureHeight)
+        ], { windowsHide: true, timeout: 6000 }, (err, stdout) => {
+          try { res(JSON.parse((stdout || '').trim())); } catch { res({ success: false }); }
         });
-      }
-      if (!sources || sources.length === 0) return { success: false, error: 'No screen source' };
+      });
 
-      const thumb = sources[0].thumbnail;
-      const screenW = thumb.getSize().width;
-      const screenH = thumb.getSize().height;
-      const imgBuffer = thumb.toPNG();
-      const fullTmp = path.join(os.tmpdir(), `acharya_full_${Date.now()}.png`);
-      fs.writeFileSync(fullTmp, imgBuffer);
-
-      // Step 3: Crop to active window region if bounds are valid, else use center 60% of screen
-      let cropTmp = fullTmp;
-      let windowTitle = boundsJson.Title || '';
-      let windowProcess = boundsJson.Process || '';
-
-      if (boundsJson.Found && boundsJson.Width > 100 && boundsJson.Height > 100) {
-        // Scale from physical pixels to capture resolution
-        const scaleX = screenW / (require('electron').screen.getPrimaryDisplay().bounds.width);
-        const scaleY = screenH / (require('electron').screen.getPrimaryDisplay().bounds.height);
-
-        const cropL = Math.max(0, Math.round(boundsJson.Left * scaleX));
-        const cropT = Math.max(0, Math.round(boundsJson.Top * scaleY));
-        const cropW = Math.min(screenW - cropL, Math.round(boundsJson.Width * scaleX));
-        const cropH = Math.min(screenH - cropT, Math.round(boundsJson.Height * scaleY));
-
-        if (cropW > 100 && cropH > 100) {
-          const cropTmpPath = path.join(os.tmpdir(), `acharya_crop_${Date.now()}.png`);
-          // Use System.Drawing to crop the PNG
-          const cropPs = `
-Add-Type -AssemblyName System.Drawing
-$src = [System.Drawing.Image]::FromFile('${fullTmp.replace(/\\/g, '\\\\')}')
-$rect = New-Object System.Drawing.Rectangle(${cropL}, ${cropT}, ${cropW}, ${cropH})
-$bmp = $src.Clone($rect, $src.PixelFormat)
-$bmp.Save('${cropTmpPath.replace(/\\/g, '\\\\')}', [System.Drawing.Imaging.ImageFormat]::Png)
-$src.Dispose(); $bmp.Dispose()
-Write-Output 'ok'
-`.trim();
-          const cropResult = await new Promise((res) => {
-            execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', cropPs],
-              { windowsHide: true }, (err, stdout) => {
-                res((stdout || '').trim() === 'ok' && fs.existsSync(cropTmpPath) ? cropTmpPath : null);
-              });
-          });
-          if (cropResult) cropTmp = cropResult;
-        }
+      if (!capResult || !capResult.success || !fs.existsSync(tmpPath)) {
+        return { success: false, error: capResult?.error || 'Native window capture failure' };
       }
 
-      // Step 4: Run WinRT OCR on the (possibly cropped) image
+      // Step 3: Run WinRT OCR on the crisp captured PNG
       const ocrScript = path.join(__dirname, 'screen-ocr.ps1');
       return await new Promise((resolve) => {
-        execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ocrScript, '-ImagePath', cropTmp],
-          { windowsHide: true, timeout: 15000 }, (err, stdout) => {
-            // Cleanup temp files
-            try { if (cropTmp !== fullTmp) fs.unlinkSync(cropTmp); } catch (_) {}
-            try { fs.unlinkSync(fullTmp); } catch (_) {}
+        execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ocrScript, '-ImagePath', tmpPath],
+          { windowsHide: true, timeout: 10000 }, (err, stdout) => {
+            try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch (_) {}
             try {
               const res = JSON.parse((stdout || '').trim());
-              resolve({ ...res, windowTitle, windowProcess });
+              resolve({ ...res, windowTitle, windowProcess, bounds: boundsJson });
             } catch (e) {
               resolve({ success: false, error: err ? err.message : 'OCR parse failure' });
             }

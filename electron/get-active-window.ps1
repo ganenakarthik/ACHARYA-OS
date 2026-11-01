@@ -1,35 +1,73 @@
+# Acharya Active Window Inspector — Win32 STA InputDesktop Engine
+# Returns JSON: { Title, Process }
+
 Add-Type @"
   using System;
-  using System.Runtime.InteropServices;
   using System.Text;
-  public class Win32Window {
+  using System.Diagnostics;
+  using System.Runtime.InteropServices;
+  using System.Threading;
+
+  public class Win32ActiveWindow {
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern IntPtr OpenInputDesktop(uint dwFlags, bool fInherit, uint dwDesiredAccess);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool SetThreadDesktop(IntPtr hDesktop);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool CloseDesktop(IntPtr hDesktop);
+
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
+
     [DllImport("user32.dll")]
     public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
+
     [DllImport("user32.dll")]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+    public class ActiveInfo {
+      public string Title;
+      public string Process;
+    }
+
+    public static ActiveInfo GetForegroundInfo() {
+      ActiveInfo info = new ActiveInfo { Title = "", Process = "" };
+
+      Thread t = new Thread(() => {
+        IntPtr hDesk = OpenInputDesktop(0, false, 0x01FF);
+        if (hDesk == IntPtr.Zero) return;
+        SetThreadDesktop(hDesk);
+
+        IntPtr fg = GetForegroundWindow();
+        if (fg != IntPtr.Zero) {
+          StringBuilder sb = new StringBuilder(256);
+          GetWindowText(fg, sb, 256);
+          info.Title = sb.ToString().Trim();
+
+          uint pid = 0;
+          GetWindowThreadProcessId(fg, out pid);
+          try {
+            var p = Process.GetProcessById((int)pid);
+            if (p != null) info.Process = p.ProcessName.ToLower();
+          } catch {}
+        }
+
+        CloseDesktop(hDesk);
+      });
+
+      t.SetApartmentState(ApartmentState.STA);
+      t.Start();
+      t.Join();
+      return info;
+    }
   }
 "@ -ErrorAction SilentlyContinue
 
-$hwnd = [Win32Window]::GetForegroundWindow()
-$title = ""
-$pName = ""
-
-if ($hwnd -ne [IntPtr]::Zero) {
-  $sb = New-Object System.Text.StringBuilder 512
-  [Win32Window]::GetWindowText($hwnd, $sb, 512) | Out-Null
-  $title = $sb.ToString().Trim()
-  
-  $pidOut = 0
-  [Win32Window]::GetWindowThreadProcessId($hwnd, [ref]$pidOut) | Out-Null
-  if ($pidOut -gt 0) {
-    try {
-      $p = Get-Process -Id $pidOut -ErrorAction SilentlyContinue
-      if ($p) { $pName = $p.ProcessName }
-    } catch {}
-  }
-}
+$info = [Win32ActiveWindow]::GetForegroundInfo()
+$title = $info.Title
+$pName = $info.Process
 
 $lowP = $pName.ToLower()
 $lowT = $title.ToLower()

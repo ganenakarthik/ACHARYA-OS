@@ -304,6 +304,29 @@ export default function DesktopHUD() {
           if (saveRes && saveRes.filename) savedFile = saveRes.filename
         }
 
+        if (notes && notes.topic) {
+          setMemoryRadarTopics(prev => {
+            const filtered = prev.filter(t => t.topic !== notes.topic)
+            const updated = [
+              {
+                id: `mem-${Date.now()}`,
+                topic: notes.topic,
+                category: notes.academicSubject || 'Core Science',
+                lastStudied: 'Just now',
+                daysAgo: 0,
+                stability: 5.0,
+                retention: 100,
+                status: 'STABLE INVARIANT',
+                statusColor: '#00ff9d',
+                summary: notes.executiveSummary || 'Learned core invariants and viva answers.'
+              },
+              ...filtered
+            ]
+            try { localStorage.setItem('acharya_memory_radar', JSON.stringify(updated)) } catch (_) {}
+            return updated
+          })
+        }
+
         setIslandStatus('success')
         setIslandFeedback(`✓ Saved to Desktop: ${savedFile}`)
         playCyberChime('success')
@@ -330,56 +353,62 @@ export default function DesktopHUD() {
   })
 
   // Feature #3: Ebbinghaus Memory Decay Radar State
-  const [memoryRadarTopics, setMemoryRadarTopics] = useState([
-    {
-      id: 'mem-1',
-      topic: 'Operating Systems: Deadlock & Coffman Invariants',
-      category: 'Core Systems',
-      lastStudied: 'Today',
-      daysAgo: 0.1,
-      stability: 4.8,
-      retention: 96,
-      status: 'STABLE INVARIANT',
-      statusColor: '#00ff9d',
-      summary: 'Breaking any of Coffman 4 conditions (Mutual Exclusion, Hold & Wait, No Preemption, Circular Wait) mathematically prevents deadlocks.'
-    },
-    {
-      id: 'mem-2',
-      topic: 'Dijkstra Banker Algorithm & Safe Sequence Proof',
-      category: 'Concurrency Control',
-      lastStudied: '3 days ago',
-      daysAgo: 3.1,
-      stability: 2.8,
-      retention: 53,
-      status: 'DECAYING — REVISION DUE',
-      statusColor: '#ffb800',
-      summary: 'Dynamic avoidance checking Need <= Available. Guarantees state transition sequence exists without deadlock.'
-    },
-    {
-      id: 'mem-3',
-      topic: 'Virtual Memory Paging & TLB Thrashing',
-      category: 'Memory Systems',
-      lastStudied: '6 days ago',
-      daysAgo: 6.0,
-      stability: 2.1,
-      retention: 36,
-      status: 'CRITICAL DECAY — IMMINENT RISK',
-      statusColor: '#ff4d6d',
-      summary: 'Page fault frequency exceeding page replacement bandwidth causing CPU utilization to collapse to near zero.'
-    },
-    {
-      id: 'mem-4',
-      topic: 'Cyber Security: Merkle Trees & SHA-256 Chaining',
-      category: 'Cryptography & Data Integrity',
-      lastStudied: '1 day ago',
-      daysAgo: 1.0,
-      stability: 5.0,
-      retention: 89,
-      status: 'SECURE / REINFORCED',
-      statusColor: '#00f0ff',
-      summary: 'Cryptographic hash trees enabling efficient and secure verification of large distributed data structures.'
-    }
-  ])
+  const [memoryRadarTopics, setMemoryRadarTopics] = useState(() => {
+    try {
+      const saved = localStorage.getItem('acharya_memory_radar')
+      if (saved) return JSON.parse(saved)
+    } catch (_) {}
+    return [
+      {
+        id: 'mem-1',
+        topic: 'Operating Systems: Deadlock & Coffman Invariants',
+        category: 'Core Systems',
+        lastStudied: 'Today',
+        daysAgo: 0.1,
+        stability: 4.8,
+        retention: 96,
+        status: 'STABLE INVARIANT',
+        statusColor: '#00ff9d',
+        summary: 'Breaking any of Coffman 4 conditions (Mutual Exclusion, Hold & Wait, No Preemption, Circular Wait) mathematically prevents deadlocks.'
+      },
+      {
+        id: 'mem-2',
+        topic: 'Dijkstra Banker Algorithm & Safe Sequence Proof',
+        category: 'Concurrency Control',
+        lastStudied: '3 days ago',
+        daysAgo: 3.1,
+        stability: 2.8,
+        retention: 53,
+        status: 'DECAYING — REVISION DUE',
+        statusColor: '#ffb800',
+        summary: 'Dynamic avoidance checking Need <= Available. Guarantees state transition sequence exists without deadlock.'
+      },
+      {
+        id: 'mem-3',
+        topic: 'Virtual Memory Paging & TLB Thrashing',
+        category: 'Memory Systems',
+        lastStudied: '6 days ago',
+        daysAgo: 6.0,
+        stability: 2.1,
+        retention: 36,
+        status: 'CRITICAL DECAY — IMMINENT RISK',
+        statusColor: '#ff4d6d',
+        summary: 'Page fault frequency exceeding page replacement bandwidth causing CPU utilization to collapse to near zero.'
+      },
+      {
+        id: 'mem-4',
+        topic: 'Cyber Security: Merkle Trees & SHA-256 Chaining',
+        category: 'Cryptography & Data Integrity',
+        lastStudied: '1 day ago',
+        daysAgo: 1.0,
+        stability: 5.0,
+        retention: 89,
+        status: 'SECURE / REINFORCED',
+        statusColor: '#00f0ff',
+        summary: 'Cryptographic hash trees enabling efficient and secure verification of large distributed data structures.'
+      }
+    ]
+  })
 
   const handleExportRevisionCheatSheet = async () => {
     showToast('Exporting Memory Revision Cheat Sheet to Desktop...', '⚡')
@@ -575,60 +604,76 @@ export default function DesktopHUD() {
             const isHomeFeed = (
               (lowText.includes('shorts') && lowText.includes('subscriptions') && lowText.includes('home')) ||
               (lowText.includes('trending') && lowText.includes('gaming')) ||
-              (lowText.includes('gta') && lowText.includes('mixes'))
+              (lowText.includes('gta') && lowText.includes('mixes')) ||
+              (rawWinTitle.toLowerCase() === 'youtube') ||
+              (rawWinTitle.toLowerCase() === 'home - youtube') ||
+              (rawWinTitle.toLowerCase() === 'subscriptions - youtube') ||
+              (rawWinTitle.toLowerCase() === 'trending - youtube')
             )
 
-            const academicKeywords = [
-              // Physics & Engineering
-              'mechanics', 'newtonian', 'electrostatics', 'coulomb', 'electric field', 'potential',
-              'physics', 'quantum', 'thermodynamics', 'kinematics', 'newton', 'circuit', 'maxwell',
-              'derivation', 'dynamics', 'force', 'velocity', 'gravity', 'momentum', 'optics', 'waves',
-              // Computer Science & Coding
-              'python', 'algorithm', 'syntax', 'recursion', 'compiler', 'operating system',
-              'deadlock', 'concurrency', 'data structure', 'binary tree', 'linked list', 'database',
-              'sql query', 'sorting', 'big o', 'complexity', 'dynamic programming', 'pointer',
-              'javascript', 'java', 'c++', 'backend', 'frontend', 'machine learning', 'ai',
-              // Math & Core Sciences
-              'calculus', 'derivative', 'integral', 'matrix', 'linear algebra', 'vector', 'probability',
-              // Lecture & Academic Identifiers
-              'lecture', 'full course', 'tutorial for beginners', 'yalecourses', 'mit opencourseware',
-              'nptel', 'freecodecamp', 'course introduction', 'chapter', 'syllabus', 'prof.'
+            // Clean active video title from window header
+            const cleanTitle = rawWinTitle
+              .replace(/\s*-\s*YouTube.*$/i, '')
+              .replace(/\s*-\s*(?:Microsoft\s*Edge|Google\s*Chrome|Brave|Mozilla\s*Firefox).*$/i, '')
+              .replace(/\s*-\s*Personal.*$/i, '')
+              .replace(/^[0-9]+[.\-)]\s*/, '')
+              .trim()
+
+            const isVideoWatchPage = !isHomeFeed && cleanTitle.length >= 4 && (
+              rawWinTitle.toLowerCase().includes('youtube') ||
+              rawWinTitle.toLowerCase().includes('coursera') ||
+              rawWinTitle.toLowerCase().includes('nptel') ||
+              rawWinTitle.toLowerCase().includes('khan') ||
+              rawWinTitle.toLowerCase().includes('edx') ||
+              rawWinTitle.toLowerCase().includes('udemy') ||
+              rawWinTitle.toLowerCase().includes('mit') ||
+              rawWinTitle.toLowerCase().includes('lecture') ||
+              rawWinTitle.toLowerCase().includes('class')
+            )
+
+            // Universal Academic Signal detection across STEM, Humanities, Medicine, CS, Math, Physics, etc.
+            const academicSignals = [
+              'lecture', 'course', 'tutorial', 'class', 'introduction to', 'chapter', 'syllabus', 'prof',
+              'physics', 'mechanics', 'quantum', 'thermodynamics', 'chemistry', 'biology', 'calculus', 'algebra',
+              'algorithm', 'python', 'java', 'c++', 'code', 'database', 'system', 'network', 'machine learning',
+              'deep learning', 'data structure', 'operating system', 'compiler', 'engineering', 'economics', 'history',
+              'formula', 'derivation', 'proof', 'theorem', 'part 1', 'part 2', 'full course', 'study with me', 'crash course'
             ]
 
-            const matchedAcademicConcept = academicKeywords.find(kw => lowText.includes(kw) || winTitle.includes(kw))
+            const hasAcademicSignal = academicSignals.some(sig => 
+              cleanTitle.toLowerCase().includes(sig) || lowText.includes(sig)
+            )
 
-            if (!isHomeFeed && matchedAcademicConcept) {
-              // Extract the exact lecture topic directly from visible screen lines or title
-              let detectedTopic = ''
+            if (isVideoWatchPage && hasAcademicSignal) {
+              // Extract the most prominent academic topic line from OCR text or window title
+              let detectedTopic = cleanTitle
               for (const line of lines) {
                 const lowLine = line.toLowerCase()
-                if (academicKeywords.some(kw => lowLine.includes(kw)) && line.length > 5 && line.length < 80) {
-                  detectedTopic = line.replace(/^[0-9]+[.\-)]\s*/, '').trim()
-                  break
+                if (academicSignals.some(sig => lowLine.includes(sig)) && line.length > 5 && line.length < 80) {
+                  const cleaned = line.replace(/^[0-9]+[.\-)]\s*/, '').trim()
+                  if (cleaned.length > 5 && !cleaned.toLowerCase().includes('youtube')) {
+                    detectedTopic = cleaned
+                    break
+                  }
                 }
               }
 
-              if (!detectedTopic) {
-                detectedTopic = rawWinTitle
-                  .replace(/\s*-\s*YouTube.*$/i, '')
-                  .replace(/\s*-\s*(?:Microsoft Edge|Google Chrome|Brave|Firefox).*$/i, '')
-                  .replace(/\s*-\s*Personal.*$/i, '')
-                  .trim()
-              }
-
               if (!detectedTopic || detectedTopic.length < 3 || detectedTopic.toLowerCase().includes('youtube')) {
-                detectedTopic = matchedAcademicConcept.charAt(0).toUpperCase() + matchedAcademicConcept.slice(1) + ' Lecture'
+                detectedTopic = cleanTitle || 'Academic Lecture'
               }
 
-              triggerIslandPromptRef.current?.({
-                type: 'note',
-                title: 'Educational Lecture Spotted on Screen',
-                subtitle: detectedTopic.slice(0, 42),
-                question: 'Should Acharya synthesize revision notes?',
-                topic: detectedTopic,
-                data: detectedTopic
-              })
-              return
+              if (lastSeenHash !== detectedTopic) {
+                lastSeenHash = detectedTopic
+                triggerIslandPromptRef.current?.({
+                  type: 'note',
+                  title: 'Educational Lecture Spotted on Screen',
+                  subtitle: detectedTopic.slice(0, 42),
+                  question: 'Should Acharya synthesize revision notes?',
+                  topic: detectedTopic,
+                  data: detectedTopic
+                })
+                return
+              }
             }
           }
 
