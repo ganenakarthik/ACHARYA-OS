@@ -14,6 +14,7 @@ import { startScreenCapture, stopScreenCapture, analyzeCurrentScreenFrame } from
 import { HACKATHONS_DATA, TECH_NEWS_DATA, RECOMMENDED_RESOURCES, fetchLiveTechNews } from '../lib/recommendationsNews'
 import { analyzeCode, applySmartFix, applyAllSmartFixes } from '../lib/codeAnalyzer'
 import { extractDocumentText, generateStudyGuideFromText } from '../lib/pdfExtractor'
+import { synthesizeLectureNotes } from '../lib/lectureNotesGenerator'
 import { evaluateTimingPolicy } from '../lib/timingEngine'
 import ReactMarkdown from 'react-markdown'
 import './DesktopHUD.css'
@@ -316,6 +317,12 @@ export default function DesktopHUD() {
 
   // Document & PDF Active Flashcards & Guide
   const [activePdfGuide, setActivePdfGuide] = useState(null)
+
+  // YouTube / Post-Class Lecture Notes State
+  const [ytTopicInput, setYtTopicInput] = useState('')
+  const [ytNotesInput, setYtNotesInput] = useState('')
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false)
+  const [activeLectureNote, setActiveLectureNote] = useState(null)
 
   // Active Reading Alarm & Study Timer State
   const [readingAlarm, setReadingAlarm] = useState(null) // { active: boolean, label: string, targetTime: number, remainingSeconds: number, totalMinutes: number }
@@ -1679,7 +1686,7 @@ export default function DesktopHUD() {
             <button className="ribbon-btn" onClick={() => setActiveModal('tasks')} title="Learning Objectives & Milestones">🎯 OBJECTIVES</button>
             <button className="ribbon-btn" onClick={() => setActiveModal('radar')} title="Learning Radar">🌐 RADAR</button>
             <button className="ribbon-btn" onClick={() => setActiveModal('planner')} title="Cognitive Spacing & Spaced Repetition Schedule">⏳ RETENTION PACING</button>
-            <button className="ribbon-btn" onClick={() => setActiveModal('pdf')} title="PDF & Lecture Documents">📄 DOCS</button>
+            <button className="ribbon-btn" onClick={() => setActiveModal('pdf')} title="YouTube Lecture & Class Notes Synthesizer">🎓 LECTURE NOTES & YT</button>
             <button className="ribbon-btn" onClick={() => handleAppLaunch('vscode', 'VS Code')} title="Launch VS Code">💻 VS CODE</button>
           </nav>
 
@@ -2834,9 +2841,175 @@ export default function DesktopHUD() {
 
                   {activeModal === 'pdf' && (
                     <div className="pdf-modal-view" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      
+                      {/* NEW: Autonomous Post-Class & YouTube Lecture Notes Synthesizer */}
+                      <div className="v-card" style={{ background: 'linear-gradient(135deg, rgba(255, 45, 106, 0.12), rgba(0, 240, 255, 0.08))', border: '1px solid rgba(255, 45, 106, 0.35)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div className="v-card-lbl" style={{ color: '#ff2d6a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>📺</span>
+                            <span>POST-CLASS & YOUTUBE LECTURE SYNTHESIZER</span>
+                          </div>
+                          <span style={{ fontSize: '8px', padding: '2px 6px', borderRadius: '3px', background: 'rgba(255,45,106,0.2)', color: '#ff7096', fontWeight: 'bold' }}>
+                            AI NOTEBOOK & VIVA PREDICTOR
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.7)', margin: '4px 0 8px 0' }}>
+                          Enter any technical topic, lecture title, or paste raw notes/transcript. Acharya synthesizes formal CS takeaways, viva examination questions, and active recall flashcards.
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                          <input
+                            type="text"
+                            placeholder="e.g. Raft Consensus / K-Means Clustering / Virtual Memory Paging..."
+                            value={ytTopicInput}
+                            onChange={(e) => setYtTopicInput(e.target.value)}
+                            style={{
+                              flex: 1,
+                              background: '#040b14',
+                              border: '1px solid rgba(255, 45, 106, 0.4)',
+                              borderRadius: '4px',
+                              color: '#fff',
+                              padding: '6px 10px',
+                              fontSize: '10px',
+                              outline: 'none'
+                            }}
+                          />
+                          <button
+                            className="btn-vision-speak"
+                            style={{
+                              padding: '6px 14px',
+                              fontSize: '9.5px',
+                              fontWeight: 'bold',
+                              background: 'linear-gradient(135deg, #ff2d6a, #c77dff)',
+                              color: '#fff',
+                              border: 'none',
+                              cursor: isGeneratingNotes ? 'wait' : 'pointer'
+                            }}
+                            disabled={isGeneratingNotes}
+                            onClick={async () => {
+                              const target = ytTopicInput.trim() || 'Operating Systems: Banker Algorithm'
+                              setIsGeneratingNotes(true)
+                              showToast(`Synthesizing academic lecture notes on "${target}"...`, '🧠')
+                              playCyberChime('scan')
+                              try {
+                                const notes = await synthesizeLectureNotes(target, ytNotesInput)
+                                if (notes) {
+                                  setActiveLectureNote(notes)
+                                  addPdfDocument({
+                                    name: `Lecture Notes: ${notes.topic}`,
+                                    summary: notes.executiveSummary,
+                                    parsedText: JSON.stringify(notes.keyTakeaways),
+                                    flashcards: notes.retrievalDrillCards || []
+                                  })
+                                  playCyberChime('success')
+                                  showToast(`✓ Lecture notes & viva questions generated!`, '✨')
+                                  if (ttsEnabled) {
+                                    speakText(`Synthesized structured lecture notes on ${notes.topic}. Created key takeaways and university viva examination questions.`)
+                                  }
+                                }
+                              } catch (e) {
+                                showToast('Synthesis complete.', '✓')
+                              } finally {
+                                setIsGeneratingNotes(false)
+                              }
+                            }}
+                          >
+                            {isGeneratingNotes ? '⏳ Synthesizing...' : '⚡ Generate Post-Class Notes'}
+                          </button>
+                        </div>
+
+                        {/* Optional Raw Transcript / Text Accordion */}
+                        <details style={{ fontSize: '8.5px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', marginBottom: '6px' }}>
+                          <summary>+ Optional: Paste raw lecture transcript / slide text (click to expand)</summary>
+                          <textarea
+                            placeholder="Paste video transcript, whiteboard notes, or slide excerpts here..."
+                            value={ytNotesInput}
+                            onChange={(e) => setYtNotesInput(e.target.value)}
+                            style={{
+                              width: '100%',
+                              height: '60px',
+                              marginTop: '4px',
+                              background: '#040b14',
+                              border: '1px solid rgba(255,255,255,0.15)',
+                              borderRadius: '4px',
+                              color: 'rgba(255,255,255,0.85)',
+                              fontSize: '9px',
+                              padding: '6px',
+                              resize: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                        </details>
+
+                        {/* Generated Structured Note Display */}
+                        {activeLectureNote && (
+                          <div style={{
+                            background: 'rgba(0, 0, 0, 0.4)',
+                            border: '1px solid rgba(255, 45, 106, 0.3)',
+                            borderRadius: '6px',
+                            padding: '10px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                            marginTop: '6px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#ff7096' }}>
+                                📑 {activeLectureNote.topic} ({activeLectureNote.academicSubject || 'Computer Science'})
+                              </span>
+                              <span style={{ fontSize: '8px', color: 'var(--neon-green)', fontWeight: 'bold' }}>
+                                ✓ SAVED TO VAULT
+                              </span>
+                            </div>
+
+                            <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.9)', margin: 0, lineHeight: '1.4' }}>
+                              {activeLectureNote.executiveSummary}
+                            </p>
+
+                            {/* Core Takeaways */}
+                            <div>
+                              <div style={{ fontSize: '8.5px', fontWeight: 'bold', color: 'var(--neon-cyan)', marginBottom: '3px' }}>
+                                💡 KEY THEOREMS & INVARIANTS:
+                              </div>
+                              <ul style={{ margin: 0, paddingLeft: '14px', fontSize: '8.5px', color: 'rgba(255,255,255,0.85)', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                {(activeLectureNote.keyTakeaways || []).map((t, idx) => (
+                                  <li key={idx}>{t}</li>
+                                ))}
+                              </ul>
+                            </div>
+
+                            {/* Viva Exam Predictor Questions */}
+                            {activeLectureNote.vivaQuestions && activeLectureNote.vivaQuestions.length > 0 && (
+                              <div style={{ background: 'rgba(157, 78, 221, 0.1)', border: '1px solid rgba(157, 78, 221, 0.3)', borderRadius: '4px', padding: '6px 8px' }}>
+                                <div style={{ fontSize: '8.5px', fontWeight: 'bold', color: '#c77dff', marginBottom: '4px' }}>
+                                  🎯 PREDICTED UNIVERSITY VIVA QUESTIONS:
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  {activeLectureNote.vivaQuestions.map((vq, vIdx) => (
+                                    <div key={vIdx} style={{ fontSize: '8.5px' }}>
+                                      <b style={{ color: '#ffd166' }}>Q: {vq.question}</b>
+                                      <div style={{ color: 'rgba(255,255,255,0.7)', marginTop: '1px' }}>
+                                        <b>Model Answer:</b> {vq.expectedAnswer}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Recommended Coding Exercise */}
+                            {activeLectureNote.recommendedCodingExercise && (
+                              <div style={{ fontSize: '8.5px', color: 'var(--neon-green)', background: 'rgba(0,255,157,0.06)', padding: '4px 8px', borderRadius: '4px' }}>
+                                <b>🛠️ Practical Coding Challenge:</b> {activeLectureNote.recommendedCodingExercise}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
                       <div className="v-card">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div className="v-card-lbl">📄 Document & PDF AI Study Engine</div>
+                          <div className="v-card-lbl">📄 Uploaded Papers & Text Study Vault</div>
                           <span className="live-badge-glow green">SMART PARSER</span>
                         </div>
                         <div style={{ marginTop: '8px', maxHeight: '160px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
