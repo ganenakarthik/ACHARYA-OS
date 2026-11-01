@@ -335,6 +335,9 @@ function createWindow() {
     });
   });
 
+  let cachedBattery = 100;
+  let lastBatteryFetch = 0;
+
   ipcMain.handle('get-system-telemetry', async () => {
     const totalMem = Math.round(os.totalmem() / (1024 * 1024 * 1024));
     const freeMem  = Math.round(os.freemem() / (1024 * 1024 * 1024));
@@ -342,20 +345,22 @@ function createWindow() {
     const memPct   = Math.round((usedMem / totalMem) * 100);
     const cpuCount = os.cpus().length;
 
-    // Get REAL battery level from Windows WMI
-    const batteryLevel = await new Promise((resolve) => {
+    // Cache battery lookup for 60 seconds (prevents spawning powershell every 2.5s)
+    const now = Date.now();
+    if (now - lastBatteryFetch > 60000) {
+      lastBatteryFetch = now;
       exec('powershell -NoProfile -Command "Get-CimInstance -ClassName Win32_Battery | Select-Object -ExpandProperty EstimatedChargeRemaining"', { windowsHide: true }, (err, stdout) => {
         const level = parseInt((stdout || '').trim());
-        resolve(isNaN(level) ? 100 : level);
+        if (!isNaN(level)) cachedBattery = level;
       });
-    });
+    }
 
     return {
       success: true,
       cpu: `${cpuCount} Cores`,
       ram: `${usedMem}GB / ${totalMem}GB (${memPct}%)`,
       ramPercent: memPct,
-      battery: batteryLevel,
+      battery: cachedBattery,
       uptime: `${Math.round(os.uptime() / 3600)} hrs`,
     };
   });

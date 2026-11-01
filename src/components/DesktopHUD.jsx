@@ -255,6 +255,15 @@ export default function DesktopHUD() {
         isAnalyzing = true
         setVisionScanning(true)
 
+        // Only trigger OCR inspection if window is a developer code editor
+        const winInfo = await electron.invoke('get-active-window-awareness')
+        const activeApp = (winInfo?.focusApp || '').toLowerCase()
+        const isCodeEditor = activeApp.includes('code') || activeApp.includes('notepad') || activeApp.includes('terminal') || activeApp.includes('devenv')
+
+        if (!isCodeEditor) {
+          return
+        }
+
         // 1. Read the ACTIVE EDITOR WINDOW only (window-cropped OCR — zero false positives)
         const visionResult = await electron.invoke('recognize-screen-vision')
 
@@ -300,7 +309,7 @@ export default function DesktopHUD() {
         isAnalyzing = false
         setVisionScanning(false)
       }
-    }, 5000)
+    }, 7000)
 
     return () => clearInterval(visionTimer)
   }, [ttsEnabled, voicePersona, profile, activeCodeIssue])
@@ -520,7 +529,7 @@ export default function DesktopHUD() {
     }
 
     updateStats()
-    const iv = setInterval(updateStats, 2500)
+    const iv = setInterval(updateStats, 8000)
 
     // Launch Autonomous Socratic Mentor Loop
     startAgentLoop({ focusApp: screenPerceptionEnabled ? visionData.focusApp : 'Desktop' })
