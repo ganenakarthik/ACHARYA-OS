@@ -1283,18 +1283,30 @@ Write-Output 'ok'
       clipboard.writeText(textToPaste);
     }
 
-    // 3. Directly paste into the active editor (Notepad or VS Code)
+    // 3. Notify renderer that the fix has been applied to clipboard and disk
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('fix-applied-notice', {
+        success: true,
+        code: textToPaste,
+        line: issue.line
+      });
+    }
+
+    // 4. Attempt direct simulated paste into active editor via PowerShell Win32
     const { exec } = require('child_process');
     const psCmd = `
       Add-Type -AssemblyName System.Windows.Forms;
-      $procs = Get-Process -Name notepad, Code -ErrorAction SilentlyContinue | Sort-Object -Property StartTime -Descending | Select-Object -First 1;
-      if ($procs) {
-        $wshell = New-Object -ComObject WScript.Shell;
-        $wshell.AppActivate($procs.Id);
-        Start-Sleep -Milliseconds 80;
-        [System.Windows.Forms.SendKeys]::SendWait('^a');
-        Start-Sleep -Milliseconds 40;
-        [System.Windows.Forms.SendKeys]::SendWait('^v');
+      $wshell = New-Object -ComObject WScript.Shell;
+      $proc = Get-Process -Name Code, notepad, devenv -ErrorAction SilentlyContinue | Sort-Object -Property StartTime -Descending | Select-Object -First 1;
+      if ($proc) {
+        $act = $wshell.AppActivate($proc.Id);
+        if (-not $act) { $act = $wshell.AppActivate($proc.ProcessName); }
+        if ($act) {
+          Start-Sleep -Milliseconds 120;
+          [System.Windows.Forms.SendKeys]::SendWait('^a');
+          Start-Sleep -Milliseconds 60;
+          [System.Windows.Forms.SendKeys]::SendWait('^v');
+        }
       }
     `;
 
@@ -1306,22 +1318,31 @@ Write-Output 'ok'
   // Get code from active editor (Notepad or VS Code) or clipboard automatically
   ipcMain.handle('get-active-editor-code', async () => {
     return new Promise((resolve) => {
+      // 1. First check if clipboard already has code
+      try {
+        const currentClip = clipboard.readText();
+        if (currentClip && currentClip.trim().length >= 8) {
+          return resolve(currentClip);
+        }
+      } catch (_) {}
+
+      // 2. Otherwise query active editor via SendKeys
       const { exec } = require('child_process');
       const psCmd = `
         Add-Type -AssemblyName System.Windows.Forms;
         $wshell = New-Object -ComObject WScript.Shell;
-        $procs = Get-Process -Name notepad, Code -ErrorAction SilentlyContinue | Sort-Object -Property StartTime -Descending | Select-Object -First 1;
-        $act = $wshell.AppActivate("Notepad");
-        if (-not $act) { $act = $wshell.AppActivate("Visual Studio Code"); }
-        if (-not $act) { $act = $wshell.AppActivate("Code"); }
-        if (-not $act -and $procs) { $act = $wshell.AppActivate($procs.Id); }
-        if ($act) {
-          Start-Sleep -Milliseconds 100;
-          [System.Windows.Forms.SendKeys]::SendWait('^a');
-          Start-Sleep -Milliseconds 60;
-          [System.Windows.Forms.SendKeys]::SendWait('^c');
-          Start-Sleep -Milliseconds 60;
-          [System.Windows.Forms.SendKeys]::SendWait('{RIGHT}');
+        $proc = Get-Process -Name Code, notepad, devenv -ErrorAction SilentlyContinue | Sort-Object -Property StartTime -Descending | Select-Object -First 1;
+        if ($proc) {
+          $act = $wshell.AppActivate($proc.Id);
+          if (-not $act) { $act = $wshell.AppActivate($proc.ProcessName); }
+          if ($act) {
+            Start-Sleep -Milliseconds 120;
+            [System.Windows.Forms.SendKeys]::SendWait('^a');
+            Start-Sleep -Milliseconds 60;
+            [System.Windows.Forms.SendKeys]::SendWait('^c');
+            Start-Sleep -Milliseconds 60;
+            [System.Windows.Forms.SendKeys]::SendWait('{RIGHT}');
+          }
         }
       `;
       exec(`powershell -NoProfile -Command "${psCmd.replace(/\n/g, ' ')}"`, () => {
@@ -1332,7 +1353,7 @@ Write-Output 'ok'
           } catch (_) {
             resolve('');
           }
-        }, 150);
+        }, 180);
       });
     });
   });

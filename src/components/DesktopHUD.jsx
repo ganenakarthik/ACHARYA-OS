@@ -1662,14 +1662,14 @@ export default function DesktopHUD() {
 
           {/* Horizontal Quick-Action Ribbon (Direct Access to Core Capabilities) */}
           <nav className="hud-horizontal-tool-ribbon">
-            <button className="ribbon-btn" onClick={() => setActiveModal('chat')} title="Socratic Dialogue & Q&A Stream">💬 CHAT</button>
+            <button className="ribbon-btn" onClick={() => setActiveModal('chat')} title="Socratic Dialogue & Q&A Stream">💬 SOCRATIC CHAT</button>
             <button className="ribbon-btn" onClick={() => { setActiveModal('workspace'); handleScanWorkspace(); }} title="Workspace & Codebase Intelligence">📁 WORKSPACE</button>
-            <button className="ribbon-btn" onClick={() => setActiveModal('memory')} title="Context-Aware Persistent Memory Across Learning Sessions">🧠 SESSIONS & MEMORY</button>
+            <button className="ribbon-btn" onClick={() => setActiveModal('memory')} title="Context-Aware Persistent Memory Across Learning Sessions">🧠 COGNITIVE SESSIONS</button>
             <button className="ribbon-btn" onClick={() => setActiveModal('code')} title="Live Code AST Analyzer & Smart Fixes">⚡ CODE SENTRY</button>
-            <button className="ribbon-btn" onClick={() => setActiveModal('vision')} title="Screen Perception">👁 VISION</button>
-            <button className="ribbon-btn" onClick={() => setActiveModal('tasks')} title="Task Planner">📋 TASKS</button>
+            <button className="ribbon-btn" onClick={() => setActiveModal('vision')} title="Screen Perception">👁 WIN32 VISION</button>
+            <button className="ribbon-btn" onClick={() => setActiveModal('tasks')} title="Learning Objectives & Milestones">🎯 OBJECTIVES</button>
             <button className="ribbon-btn" onClick={() => setActiveModal('radar')} title="Learning Radar">🌐 RADAR</button>
-            <button className="ribbon-btn" onClick={() => setActiveModal('planner')} title="Study Schedule & Calendar">📅 CALENDAR</button>
+            <button className="ribbon-btn" onClick={() => setActiveModal('planner')} title="Cognitive Spacing & Spaced Repetition Schedule">⏳ RETENTION PACING</button>
             <button className="ribbon-btn" onClick={() => setActiveModal('pdf')} title="PDF & Lecture Documents">📄 DOCS</button>
             <button className="ribbon-btn" onClick={() => handleAppLaunch('vscode', 'VS Code')} title="Launch VS Code">💻 VS CODE</button>
           </nav>
@@ -2760,7 +2760,15 @@ export default function DesktopHUD() {
                   {activeModal === 'planner' && (
                     <div className="planner-modal-view" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       <div className="v-card">
-                        <div className="v-card-lbl">📅 Study Schedule & Autonomous Directives</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div className="v-card-lbl">⏳ Cognitive Spacing & Spaced Repetition (Ebbinghaus Pacing)</div>
+                          <span style={{ fontSize: '8px', color: 'var(--neon-green)', background: 'rgba(0,255,157,0.12)', padding: '2px 6px', borderRadius: '3px', fontWeight: 'bold' }}>
+                            SCIENTIFIC SPACING ACTIVE
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '8.5px', color: 'rgba(255,255,255,0.7)', margin: '4px 0 8px 0' }}>
+                          Unlike basic time reminders, Acharya dynamically schedules review intervals according to retention decay curves to convert working memory into persistent long-term storage.
+                        </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px', maxHeight: '180px', overflowY: 'auto' }}>
                           {(schedule || []).map((sc) => (
                             <div key={sc.id} className="directive-item-row" style={{ justifyContent: 'space-between' }}>

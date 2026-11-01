@@ -142,11 +142,35 @@ async function callNeuralLLM(messages, profile, memories = [], sensory = {}) {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 12000)
 
-  // Safe 32-bit integer seed
-  const safeSeed = Math.floor(Math.random() * 1000000)
-
+  // 1. Try robust JSON POST endpoint first (eliminates URL length limits)
   try {
-    const res = await fetch(`https://text.pollinations.ai/${encodeURIComponent(fullPrompt)}?model=openai-fast&seed=${safeSeed}`, {
+    const postRes = await fetch('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: compactSystem },
+          ...messages.slice(-4).map(m => ({ role: m.role, content: m.content }))
+        ],
+        model: 'openai-fast',
+        seed: Math.floor(Math.random() * 1000000)
+      })
+    })
+
+    if (postRes.ok) {
+      const text = await postRes.text()
+      if (text && text.trim().length > 10 && !text.includes('Free limit reached') && !text.includes("Model isn't on")) {
+        clearTimeout(timeoutId)
+        return text.trim()
+      }
+    }
+  } catch (_) {}
+
+  // 2. Fallback to GET endpoint
+  const safeSeed = Math.floor(Math.random() * 1000000)
+  try {
+    const res = await fetch(`https://text.pollinations.ai/${encodeURIComponent(fullPrompt.slice(0, 1800))}?model=openai-fast&seed=${safeSeed}`, {
       method: 'GET',
       headers: { 'Accept': 'text/plain' },
       signal: controller.signal
@@ -155,7 +179,7 @@ async function callNeuralLLM(messages, profile, memories = [], sensory = {}) {
 
     if (res.ok) {
       const text = await res.text()
-      if (text && text.trim().length > 30 && !text.includes('Free limit reached') && !text.includes('Model isn\'t on')) {
+      if (text && text.trim().length > 20 && !text.includes('Free limit reached') && !text.includes("Model isn't on")) {
         return text.trim()
       }
     }
@@ -707,29 +731,44 @@ You must respond with ONLY a single valid JSON object in the exact following sch
   "fixedFullCode": "the complete corrected code with the fix applied"
 }`
 
-  // 1. Try Live Neural LLM
+  // 1. Try Live Neural LLM (Direct Dedicated Fast Diagnostic Request)
   try {
-    const raw = await callNeuralLLM([{ role: 'user', content: prompt }], profile)
-    if (raw) {
-      const jsonMatch = raw.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0])
-        const lines = code.split('\n')
-        const lineIdx = parsed.line && parsed.line > 0 && parsed.line <= lines.length ? parsed.line - 1 : 0
-        // Track error pattern in persistent memory
-        if (parsed.isError && parsed.errorType && parsed.language) {
-          trackStudentError(parsed.errorType, parsed.language, parsed.projectIntent)
-          const recurringWarning = getRecurringErrorWarning(parsed.language, parsed.errorType)
-          if (recurringWarning && parsed.mentorSpeech) {
-            parsed.mentorSpeech = parsed.mentorSpeech + ' ' + recurringWarning
-            parsed.isRecurring = true
+    const diagController = new AbortController()
+    const diagTimeout = setTimeout(() => diagController.abort(), 9000)
+    const postRes = await fetch('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: diagController.signal,
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: prompt }],
+        model: 'openai-fast',
+        seed: Math.floor(Math.random() * 1000000)
+      })
+    })
+    clearTimeout(diagTimeout)
+
+    if (postRes.ok) {
+      const raw = await postRes.text()
+      if (raw) {
+        const jsonMatch = raw.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0])
+          const lines = code.split('\n')
+          const lineIdx = parsed.line && parsed.line > 0 && parsed.line <= lines.length ? parsed.line - 1 : 0
+          if (parsed.isError && parsed.errorType && parsed.language) {
+            trackStudentError(parsed.errorType, parsed.language, parsed.projectIntent)
+            const recurringWarning = getRecurringErrorWarning(parsed.language, parsed.errorType)
+            if (recurringWarning && parsed.mentorSpeech) {
+              parsed.mentorSpeech = parsed.mentorSpeech + ' ' + recurringWarning
+              parsed.isRecurring = true
+            }
           }
-        }
-        return {
-          ...parsed,
-          codeSnippet: lines[lineIdx] || '',
-          fullCode: code,
-          totalLines: lines.length
+          return {
+            ...parsed,
+            codeSnippet: lines[lineIdx] || '',
+            fullCode: code,
+            totalLines: lines.length
+          }
         }
       }
     }
@@ -771,7 +810,7 @@ You must respond with ONLY a single valid JSON object in the exact following sch
     const trimmed = rawLine.trim()
     if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) continue
 
-    // Python block header missing colon
+    // 1. Python block header missing colon
     if (/^(def|class|if|elif|else|for|while|try|except|finally|with)\b.*[^:]$/.test(trimmed)) {
       if (!rawLine.includes('(') || (rawLine.includes('(') && rawLine.includes(')'))) {
         const fixedLines = [...lines]
@@ -781,7 +820,6 @@ You must respond with ONLY a single valid JSON object in the exact following sch
         const intent = isCalc ? 'Calculator Flow' : 'Program Flow'
         const socraticQuestion = `How does the Python interpreter distinguish between a header declaration and the executable block suite?`
         const errorType = `Missing Colon ':' in '${kw}' statement`
-        // Track in persistent memory
         trackStudentError(errorType, 'Python', intent)
         const recurringWarning = getRecurringErrorWarning('Python', errorType)
         const baseSpeech = `I notice you are writing a ${kw} statement on line ${i + 1}. In Python, how do we signal to the interpreter that a new block of code is beginning? Take a look at the end of line ${i + 1}.`
@@ -803,6 +841,60 @@ You must respond with ONLY a single valid JSON object in the exact following sch
           fullCode: code,
           totalLines: lines.length
         }
+      }
+    }
+
+    // 2. C / C++ / Java / JS Missing Semicolon
+    if (/^(int|float|double|char|long|let|const|var|return|printf|cout|System\.out\.println)\b.*[^;{}]$/.test(trimmed)) {
+      if (!trimmed.endsWith('>') && !trimmed.endsWith(':')) {
+        const fixedLines = [...lines]
+        fixedLines[i] = `${rawLine};`
+        const detectedLang = trimmed.includes('System.out') ? 'Java' : (trimmed.includes('cout') ? 'C++' : (trimmed.includes('printf') ? 'C' : 'C / Java'))
+        const errorType = "Missing Semicolon ';' statement terminator"
+        trackStudentError(errorType, detectedLang, 'Program Flow')
+        const recurringWarning = getRecurringErrorWarning(detectedLang, errorType)
+        const baseSpeech = `Check line ${i + 1}. In ${detectedLang}, statements must be terminated with a semicolon before the compiler can parse subsequent instructions.`
+        const mentorSpeech = recurringWarning ? baseSpeech + ' ' + recurringWarning : baseSpeech
+        return {
+          isError: true,
+          language: detectedLang,
+          projectIntent: 'Statement Termination',
+          line: i + 1,
+          errorType,
+          socraticQuestion: `What token does the ${detectedLang} compiler use to disambiguate statement boundaries in source code?`,
+          conceptualInsight: `Unlike whitespace-sensitive languages, ${detectedLang} requires explicit semicolons to construct AST statement nodes.`,
+          hint: `Add a semicolon ';' to terminate statement on line ${i + 1}.`,
+          mentorSpeech,
+          isRecurring: !!recurringWarning,
+          suggestedFix: `${rawLine};`,
+          fixedFullCode: fixedLines.join('\n'),
+          codeSnippet: rawLine,
+          fullCode: code,
+          totalLines: lines.length
+        }
+      }
+    }
+
+    // 3. Division by Zero Vulnerability (Cyber Security / Reliability Invariant)
+    if (/\/\s*0(?!\.)|\/\s*0\.0\b/.test(trimmed)) {
+      const errorType = "Division by Zero Runtime Crash Risk"
+      trackStudentError(errorType, 'Algorithm', 'Arithmetic Logic')
+      return {
+        isError: true,
+        language: lang || 'Python / C',
+        projectIntent: 'Arithmetic Invariant',
+        line: i + 1,
+        errorType,
+        socraticQuestion: `What algebraic invariant is violated when an arithmetic denominator evaluates to zero?`,
+        conceptualInsight: `Division by zero raises SIGFPE (floating point exception) at the hardware level, crashing the runtime.`,
+        hint: `Guard line ${i + 1} with a conditional check to ensure the denominator is non-zero before dividing.`,
+        mentorSpeech: `Warning: detected potential division by zero on line ${i + 1}. How can we mathematically safeguard this operation?`,
+        isRecurring: false,
+        suggestedFix: `if denominator != 0: ${rawLine}`,
+        fixedFullCode: lines.map((l, idx) => idx === i ? `    if denominator != 0:\n    ${l}` : l).join('\n'),
+        codeSnippet: rawLine,
+        fullCode: code,
+        totalLines: lines.length
       }
     }
   }
