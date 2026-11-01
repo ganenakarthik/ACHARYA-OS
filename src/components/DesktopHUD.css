@@ -2931,14 +2931,15 @@ a {
   border: 1.5px solid rgba(0, 240, 255, 0.45);
 }
 
-/* Idle State: Sleek Compact Capsule */
+/* Idle State: Minimal Sleek Compact Capsule (No Clutter) */
 .dynamic-island-shell.island-idle {
-  width: 380px;
-  height: 42px;
+  width: 176px;
+  height: 30px;
+  border-radius: 9999px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 14px;
+  padding: 0 10px;
   cursor: pointer;
 }
 

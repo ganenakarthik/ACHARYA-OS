@@ -803,15 +803,37 @@ You must respond with ONLY a single valid JSON object in the exact following sch
     }
   } catch (_) {}
 
-  // 3. Fallback: Resilient Structural & Socratic Parser (Guarantees 100% demo success during offline review)
+  // 3. Fallback: Resilient Structural & Socratic Parser
+  // Strict code verification: If the text is plain English notes or non-code, return CLEAN
+  const isActualProgram = (
+    /\b(def\s+\w+\s*\(|class\s+\w+|import\s+\w+|from\s+\w+\s+import|function\s+\w+|public\s+class|#include\s*<)/.test(code) ||
+    /\b(print\s*\(|console\.log\s*\(|System\.out\.println\s*\(|cout\s*<<)/.test(code) ||
+    /(\w+\s*=\s*\[.*\]|\w+\s*=\s*\{.*\}|\w+\s*=\s*\w+\s*\(.*\))/.test(code) ||
+    /Traceback \(most recent call last\):|IndexError:|ZeroDivisionError:|SyntaxError:|TypeError:/.test(code)
+  );
+
+  if (!isActualProgram) {
+    return { isError: false, status: 'CLEAN', message: 'Buffer clean. No syntax flaws.' };
+  }
+
   const lines = code.split('\n')
   for (let i = 0; i < lines.length; i++) {
     const rawLine = lines[i]
     const trimmed = rawLine.trim()
     if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) continue
 
-    // 1. Python block header missing colon
-    if (/^(def|class|if|elif|else|for|while|try|except|finally|with)\b.*[^:]$/.test(trimmed)) {
+    // 1. Python block header missing colon (STRICT: must look like real Python, not an English sentence)
+    const isPythonBlock = (
+      /^def\s+\w+\s*\([^)]*\)\s*[^:]$/.test(trimmed) ||
+      /^class\s+\w+(\s*\([^)]*\))?\s*[^:]$/.test(trimmed) ||
+      /^if\s+.+\b(==|!=|<|>|<=|>=| in | is | not )\b.+[^:]$/.test(trimmed) ||
+      /^elif\s+.+\b(==|!=|<|>|<=|>=| in | is | not )\b.+[^:]$/.test(trimmed) ||
+      /^for\s+\w+(\s*,\s*\w+)*\s+in\s+.+[^:]$/.test(trimmed) ||
+      /^while\s+.+[^:]$/.test(trimmed) ||
+      /^with\s+open\s*\(.+[^:]$/.test(trimmed)
+    );
+
+    if (isPythonBlock) {
       if (!rawLine.includes('(') || (rawLine.includes('(') && rawLine.includes(')'))) {
         const fixedLines = [...lines]
         fixedLines[i] = `${rawLine}:`

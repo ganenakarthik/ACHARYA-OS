@@ -250,7 +250,7 @@ export default function DesktopHUD() {
 
     const electron = getElectron()
     if (electron && electron.send && !isExpanded) {
-      electron.send('resize-island', { width: 380, height: 42 })
+      electron.send('resize-island', { width: 180, height: 34 })
     }
   }, [isExpanded])
 
@@ -942,7 +942,7 @@ export default function DesktopHUD() {
       if (islandStatus !== 'idle') {
         electron.send('resize-island', { width: 560, height: 100 })
       } else {
-        electron.send('collapse-window', { width: 380, height: 42 })
+        electron.send('collapse-window', { width: 180, height: 34 })
       }
     }
   }
@@ -1078,10 +1078,53 @@ export default function DesktopHUD() {
       return
     }
 
-    // 2.0 Autonomous Screen-Vision Note Synthesis ("make notes on my screen", "take notes", "summarize screen")
-    const isScreenNoteIntent = /(?:make\s+notes?|take\s+notes?|create\s+notes?|summarize(?:\s+my)?\s+screen|notes?\s+(?:from|on)(?:\s+my)?\s+screen|screen\s+notes?)/i.test(cleanCmd)
+    // 2.0.0 Capabilities & Feature Overview ("what can this do", "what can you do", "features", "help")
+    const isCapabilitiesQuery = /(?:what\s+can\s+(?:this|you)\s+do|capabilities|features|help\s+me|^help$|what\s+do\s+you\s+do|system\s+overview|how\s+does\s+this\s+work)/i.test(cleanCmd)
+    if (isCapabilitiesQuery) {
+      setIsAiThinking(true)
+      setMood('FLOW')
+      setTimeout(() => {
+        setIsAiThinking(false)
+        const helpReply = `### ⚡ ACHARYA AI OS — CORE AUTONOMOUS CAPABILITIES
+
+**Acharya** is an autonomous desktop AI mentor engineered with Win32 context awareness, WinRT screen OCR, and persistent local memory:
+
+1. **⚡ Dynamic Island (Ambient Notification System)**:
+   • Auto-detects errors on screen → expands prompt: *"Should Acharya resolve it in Notepad?"* → 1-click patches your Notepad window directly!
+   • Auto-detects YouTube courses & lecture videos on screen → expands prompt: *"Should Acharya synthesize revision notes?"* → 1-click generates and saves \`.md\` notes directly to your Desktop.
+
+2. **📸 Real-Time Screen Note Synthesis**:
+   • Type \`make notes on my screen\` or \`make notes on [topic]\`: Acharya OCRs your active window and compiles executive invariants, formulae, and predicted viva Q&As directly into a Markdown file on your Desktop.
+
+3. **👁 AST Code Sentry & Fix**:
+   • Catches \`IndexError\`, \`KeyError\`, \`ZeroDivisionError\`, missing colons, and tracebacks.
+   • Click **⚡ AST Sentry** or type \`check code\` to test any code snippet with 1-click smart fixes.
+
+4. **📅 Autonomous Exam Timetable & MCQs**:
+   • Type \`I have OS exam in 5 days\` to register an autonomous 3-phase study timetable in your Digital Twin.
+   • Type \`take exam\` or \`quiz on python\` to practice dynamic multiple-choice questions.
+
+5. **🧠 Ebbinghaus Memory Decay Radar**:
+   • Tracks retention loss mathematically ($R = e^{-t/S}$) and alerts you when revision is due.`
+
+        addMessage({ role: 'assistant', content: helpReply, timestamp: new Date().toLocaleTimeString() })
+        showToast('Acharya Capabilities Loaded', '⚡')
+        if (ttsEnabled) {
+          speakText('Acharya is an autonomous AI desktop mentor. I can detect errors and patch them in Notepad, synthesize study notes from your screen, schedule your exams, and quiz you on core CS topics.', {
+            persona: voicePersona,
+            onStart: () => setIsSpeaking(true),
+            onEnd: () => setIsSpeaking(false)
+          })
+        }
+      }, 120)
+      return
+    }
+
+    // 2.0.1 Autonomous Screen-Vision Note Synthesis ("make notes on my screen", "take notes", "summarize screen", "notes on python")
+    const isScreenNoteIntent = /(?:make\s+notes?|take\s+notes?|create\s+notes?|write\s+notes?|generate\s+notes?|summarize(?:\s+my)?\s+screen|notes?\s+(?:from|on|of|about|for)(?:\s+my)?\s+screen|screen\s+notes?)/i.test(cleanCmd)
       || /^notes?$/i.test(cleanCmd)
-      || /^(?:make|take|create)\s+notes?\s+on\s+(.+)$/i.test(cleanCmd)
+      || /^(?:make|take|create|write|generate|give\s+me)\s+(?:a\s+)?notes?\s+(?:on|of|about|for)\s+(.+)$/i.test(cleanCmd)
+      || /^notes?\s+(?:on|of|about|for)\s+(.+)$/i.test(cleanCmd)
 
     if (isScreenNoteIntent) {
       setIsAiThinking(true)
@@ -1089,7 +1132,8 @@ export default function DesktopHUD() {
       showToast('Capturing screen context & synthesizing notes...', '📸')
       playCyberChime('scan')
 
-      const explicitTopicMatch = /^(?:make|take|create)\s+notes?\s+on\s+(.+)$/i.exec(cleanCmd)
+      const explicitTopicMatch = /^(?:make|take|create|write|generate|give\s+me)\s+(?:a\s+)?notes?\s+(?:on|of|about|for)\s+(.+)$/i.exec(cleanCmd)
+        || /^notes?\s+(?:on|of|about|for)\s+(.+)$/i.exec(cleanCmd)
       let targetTopic = explicitTopicMatch ? explicitTopicMatch[1].trim() : ''
 
       // Automatically extract topic from query context or active window / screen
@@ -1733,39 +1777,18 @@ export default function DesktopHUD() {
           >
             {islandStatus === 'idle' && (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div className="orb-circle-body" style={{ width: '18px', height: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div className="orb-circle-body" style={{ width: '13px', height: '13px' }}>
                     <div className="orb-inner-core" />
                     <div className="orb-spin-ring ring-primary" />
                   </div>
-                  <span style={{ fontSize: '10px', fontWeight: '900', color: '#00f0ff', letterSpacing: '1px' }}>ACHARYA</span>
-                  <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.4)' }}>·</span>
-                  <span style={{ fontSize: '8.5px', color: '#00ff9d', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span className="event-pulse-dot cyan" style={{ width: '5px', height: '5px', background: '#00ff9d', boxShadow: '0 0 6px #00ff9d' }} />
+                  <span style={{ fontSize: '8.5px', color: '#00ff9d', fontWeight: '800', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span className="event-pulse-dot cyan" style={{ width: '4px', height: '4px', background: '#00ff9d', boxShadow: '0 0 5px #00ff9d' }} />
                     VISION ACTIVE
                   </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleTriggerAiCodeInspection();
-                    }}
-                    style={{
-                      background: 'rgba(0, 240, 255, 0.15)',
-                      border: '1px solid rgba(0, 240, 255, 0.4)',
-                      color: '#00f0ff',
-                      fontSize: '8px',
-                      fontWeight: 'bold',
-                      padding: '2px 7px',
-                      borderRadius: '4px',
-                      cursor: 'pointer'
-                    }}
-                    title="Run Neural AI Inspection on active code in Notepad"
-                  >
-                    ⚡ Check Code
-                  </button>
-                  <span style={{ fontSize: '7.5px', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '7.5px', color: 'rgba(0, 240, 255, 0.7)', fontWeight: 'bold' }}>
                     EXPAND ↗
                   </span>
                 </div>

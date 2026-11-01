@@ -197,8 +197,8 @@ function createWindow() {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const primaryDisplay = screen.getPrimaryDisplay();
     const screenWidth = primaryDisplay.workAreaSize ? primaryDisplay.workAreaSize.width : primaryDisplay.bounds.width;
-    const pillWidth = (bounds && bounds.width) || 400;
-    const pillHeight = (bounds && bounds.height) || 48;
+    const pillWidth = (bounds && bounds.width) || 190;
+    const pillHeight = (bounds && bounds.height) || 36;
     let targetX = (bounds && typeof bounds.x === 'number' && bounds.x > 0) ? Math.round(bounds.x) : Math.round((screenWidth - pillWidth) / 2);
     // Boundary clamp: ensure window never overflows right or left monitor borders
     if (targetX + pillWidth > screenWidth - 10) {
@@ -1501,8 +1501,17 @@ Write-Output 'ok'
           // 2. Zero-Click Error Doctor (Stack Trace / Runtime Error Interception)
           mainWindow.webContents.send('stack-trace-detected', txt.trim());
         } else {
-          // 3. Code Snippet Detection (Hands-Free Code Sentry)
-          mainWindow.webContents.send('clipboard-code-received', txt);
+          // 3. Code Snippet Detection (Hands-Free Code Sentry - Strict code check to avoid false positives on normal text)
+          const isActualCode = (
+            /\b(def|class|function|import|from|const|let|var|public|private|protected|void|return)\s+\w+/.test(txt) ||
+            /\b(console\.log|System\.out\.println|printf|print)\s*\(/.test(txt) ||
+            /\b(if|while|for)\s*\(.+\)\s*\{?/.test(txt) ||
+            /\b(if|while|for)\s+.+:\s*$/m.test(txt) ||
+            /[{};]\s*$/.test(txt)
+          );
+          if (isActualCode) {
+            mainWindow.webContents.send('clipboard-code-received', txt);
+          }
         }
       }
     } catch (_) {}
