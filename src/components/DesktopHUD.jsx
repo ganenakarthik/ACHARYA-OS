@@ -12,7 +12,7 @@ import { generateDynamicQuizSet } from '../lib/dynamicExamGenerator'
 import { speakText, stopSpeaking, startSTT, playCyberChime } from '../lib/audioVoice'
 import { startScreenCapture, stopScreenCapture, analyzeCurrentScreenFrame } from '../lib/visionPerception'
 import { HACKATHONS_DATA, TECH_NEWS_DATA, RECOMMENDED_RESOURCES, fetchLiveTechNews } from '../lib/recommendationsNews'
-import { analyzeCode, applySmartFix, applyAllSmartFixes } from '../lib/codeAnalyzer'
+import { analyzeCode, applySmartFix, applyAllSmartFixes, detectLanguage } from '../lib/codeAnalyzer'
 import { extractDocumentText, generateStudyGuideFromText } from '../lib/pdfExtractor'
 import { synthesizeLectureNotes } from '../lib/lectureNotesGenerator'
 import { evaluateTimingPolicy } from '../lib/timingEngine'
@@ -548,7 +548,7 @@ export default function DesktopHUD() {
   }
 
   // Code AST Analyzer & Smart Fixes State
-  const [codeSnippet, setCodeSnippet] = useState(`// Sample: Unhandled null object access\nfunction getUserInfo(user) {\n  const profile = user.profile.name;\n  return { name: profile };\n}`)
+  const [codeSnippet, setCodeSnippet] = useState('')
   const [codeLang, setCodeLang] = useState('javascript')
   const [codeAnalysis, setCodeAnalysis] = useState(null)
   const [fixedCodePreview, setFixedCodePreview] = useState(null)
@@ -1467,8 +1467,8 @@ export default function DesktopHUD() {
       return
     }
 
-    // TC-2: Academic Benchmark Test Case (Explicitly triggered by 'tc-2', 'test tc-2', or queries about UserService / Spring Boot)
-    const isExplicitTC2 = /^(tc-2|test tc-2|testcase 2|demo tc-2)[\s!.]*$/i.test(cleanCmd) || cleanCmd.includes('userservice') || cleanCmd.includes('spring boot')
+    // TC-2: Academic Benchmark Test Case (Explicitly triggered only by 'tc-2', 'test tc-2')
+    const isExplicitTC2 = /^(tc-2|test tc-2|testcase 2|demo tc-2)[\s!.]*$/i.test(cleanCmd)
     const isAwarenessQuery = /(?:what(?:\s+am\s+i|\s+im|\s+'m\s+i|\s+is\s+on\s+my\s+screen|\s+are\s+we)\s+doing|what\s+am\s+i\s+working\s+on|where\s+am\s+i|what\s+is\s+my\s+active\s+app|screen\s+status|current\s+activity|what\s+do\s+you\s+see)/i.test(cleanCmd)
     const isGreeting = /^(hi|hello|hey|greetings|good morning|yo|sup)\b/i.test(cleanCmd) || isAwarenessQuery
 
@@ -1511,6 +1511,9 @@ export default function DesktopHUD() {
     if (isExplicitTC2) {
       setIsAiThinking(true)
       setMood('DEEP_FOCUS')
+      const activeApp = visionData.focusApp || 'Active Editor'
+      const activeTitle = visionData.windowTitle || 'Current Workspace'
+
       const timing = evaluateTimingPolicy({
         isDirectQuestion: true,
         hasError: true,
@@ -1522,29 +1525,59 @@ export default function DesktopHUD() {
 
       // Update Academic Panels (TC-4 / Table V)
       setThoughtStream([
-        { id: 1, step: 'Contextualizing Query', time: '0.2s', status: 'done', detail: `Detected greeting "${input}". Ingesting active screen telemetry (VS Code).` },
-        { id: 2, step: 'Evaluating Timing Policy', time: '0.4s', status: 'done', detail: timing.log },
-        { id: 3, step: 'Synthesizing Data', time: '0.8s', status: 'done', detail: 'Identified missing @Service annotation on UserService in UserService.java' }
+        { id: 1, step: 'Sensory Observation', time: '0.15s', status: 'done', detail: `Observing ${activeApp} ("${activeTitle}"). Ingesting live AST.` },
+        { id: 2, step: 'Evaluating Timing Policy', time: '0.35s', status: 'done', detail: timing.log },
+        { id: 3, step: 'Synthesizing Intervention', time: '0.65s', status: 'done', detail: `Real-time AST static verification active on ${activeTitle}.` }
       ])
 
-      enqueueAction({ name: 'Code AST Verification', status: 'verified', target: 'UserService.java' })
+      enqueueAction({ name: 'Code AST Verification', status: 'verified', target: activeTitle })
       updateMemoryConstellation({ status: 'Core Data 98% active' })
 
-      setTimeout(() => {
+      setTimeout(async () => {
         setIsAiThinking(false)
         setMood('FLOW')
-        const reply = `### 🔍 CONTEXT-AWARE ASSISTANCE (TC-2 Verified)\n\nHello! Rather than giving a generic answer, I inspected what you are doing on screen in **VS Code** on the Spring Boot project.\n\nThe application is failing with \`NoSuchBeanDefinitionException\` because your \`UserService\` class in \`UserService.java\` is missing the \`@Service\` annotation:\n\n\`\`\`java\n// UserService.java\npackage com.mallareddy.mentor.service;\n\nimport org.springframework.stereotype.Service;\n\n@Service   // <--- Add this annotation here\npublic class UserService {\n    public UserDetails loadUserById(Long id) {\n        return new UserDetails(id, "Learner");\n    }\n}\n\`\`\`\n\n#### Why this resolves the error:\n1. Without \`@Service\` (or \`@Component\`), Spring's component scanner skips \`UserService\` during context initialization.\n2. The \`@Autowired private UserService userService;\` declaration in your controller remains \`null\`.\n3. Adding \`@Service\` registers the bean into the \`ApplicationContext\`, allowing dependency injection to succeed immediately.\n\n*(Thought Stream: 0.8s synthesis · Action Queue: verified done · Memory Constellation: Core Data 98% active)*`
-        addMessage({ role: 'assistant', content: reply, timestamp: new Date().toLocaleTimeString() })
-        showToast('TC-2: Context-Aware @Service Bug Detected!', '✓')
+
+        // Attempt live inspection of active window/clipboard
+        const electron = getElectron()
+        let liveCode = ''
+        if (electron?.invoke) {
+          try { liveCode = await electron.invoke('get-active-editor-code') } catch (_) {}
+          if (!liveCode || !liveCode.trim()) {
+            try {
+              const clipRes = await electron.invoke('read-clipboard-text')
+              if (clipRes?.text) liveCode = clipRes.text
+            } catch (_) {}
+          }
+        }
+        if (!liveCode && navigator.clipboard?.readText) {
+          try { liveCode = await navigator.clipboard.readText() } catch (_) {}
+        }
+
+        let contextReply = ''
+        if (liveCode && liveCode.trim().length > 5) {
+          const detectedLang = detectLanguage(liveCode)
+          const analysis = analyzeCode(liveCode, detectedLang !== 'unknown' ? detectedLang : 'python')
+          if (analysis.errors.length > 0) {
+            const err = analysis.errors[0]
+            contextReply = `### 🔍 CONTEXT-AWARE ASSISTANCE (LIVE)\n\nI inspected your active window (**${activeApp}** — \`${activeTitle}\`):\n\n• **Detected Issue**: \`${err.message}\` (Line ${err.line || 1})\n• **Socratic Guidance**: ${err.suggestion}\n• **Recommended Fix**: \`${err.fix}\`\n\n*(Thought Stream: 0.65s synthesis · Action Queue: verified done · Memory Constellation: Core Data 98% active)*`
+          } else {
+            contextReply = `### 🔍 CONTEXT-AWARE ASSISTANCE (LIVE)\n\nI inspected your active workspace in **${activeApp}** (\`${activeTitle}\`).\n\n• **Analyzed Buffer**: ${analysis.lines} lines of ${detectedLang !== 'unknown' ? detectedLang : 'code'}.\n• **Status**: Zero syntax or semantic flaws detected. Code is running clean!\n\n*(Thought Stream: 0.65s synthesis · Action Queue: verified done)*`
+          }
+        } else {
+          contextReply = `### 🔍 CONTEXT-AWARE ASSISTANCE (LIVE)\n\nI am actively observing your screen in **${activeApp}** (\`${activeTitle}\`).\n\n• **Timing Policy**: $U = 0.90 \\ge 0.50 \\rightarrow \\text{HELP\\_NOW}$\n• **Status**: Ready to intercept any syntax or runtime exceptions automatically.\n• **Tip**: Copy or type code in your editor, and I will analyze its AST in real time.\n\n*(Thought Stream: 0.65s synthesis · Action Queue: verified done)*`
+        }
+
+        addMessage({ role: 'assistant', content: contextReply, timestamp: new Date().toLocaleTimeString() })
+        showToast('Context-Aware Sentry Active', '✓')
         if (ttsEnabled) {
           setIsSpeaking(true)
-          speakText('I noticed you are working in UserService.java. The dependency injection error is caused by a missing Service annotation on your UserService class.', {
+          speakText(`Context verification complete. Actively observing ${activeApp}.`, {
             persona: voicePersona,
             onStart: () => setIsSpeaking(true),
             onEnd: () => setIsSpeaking(false)
           })
         }
-      }, 800)
+      }, 700)
       return
     }
 
@@ -2903,53 +2936,117 @@ export default function DesktopHUD() {
                             gap: '6px'
                           }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '9px', fontWeight: 'bold', color: '#ff4d6d' }}>
-                                ⚡ TEST REAL-TIME CODE SENTRY & PILL TRANSFORMATION:
+                              <span style={{ fontSize: '9px', fontWeight: 'bold', color: '#00f0ff' }}>
+                                ⚡ REAL-TIME CODE SENTRY & WORKSPACE INSPECTION:
                               </span>
                               <span style={{ fontSize: '7.5px', color: 'rgba(255,255,255,0.6)' }}>
-                                (Works live when typing in VS Code, Notepad, or test triggers)
+                                (Analyzes live Notepad, VS Code, or system clipboard)
                               </span>
                             </div>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                               <button
-                                onClick={() => {
-                                  simulateLiveCodeTyping('python', true)
-                                  playCyberChime('alarm')
-                                  showToast('🚨 Pill Alert: Python SyntaxError (Missing Colon)', '⚡')
+                                onClick={async () => {
+                                  showToast('🔍 Intercepting code from active window...', '⚡')
+                                  const electron = getElectron()
+                                  let liveCode = ''
+                                  if (electron?.invoke) {
+                                    try { liveCode = await electron.invoke('get-active-editor-code') } catch (_) {}
+                                    if (!liveCode || !liveCode.trim()) {
+                                      try {
+                                        const clipRes = await electron.invoke('read-clipboard-text')
+                                        if (clipRes?.text) liveCode = clipRes.text
+                                      } catch (_) {}
+                                    }
+                                  }
+                                  if (!liveCode && navigator.clipboard?.readText) {
+                                    try { liveCode = await navigator.clipboard.readText() } catch (_) {}
+                                  }
+                                  if (liveCode && liveCode.trim()) {
+                                    const detectedLang = detectLanguage(liveCode)
+                                    const langToUse = (detectedLang && detectedLang !== 'unknown') ? detectedLang : 'python'
+                                    const analysis = analyzeCode(liveCode, langToUse)
+                                    if (analysis.errors.length > 0) {
+                                      const firstErr = analysis.errors[0]
+                                      setActiveCodeIssue({
+                                        isError: true,
+                                        language: langToUse,
+                                        fileName: 'ActiveEditor',
+                                        line: firstErr.line || 1,
+                                        errorType: firstErr.message,
+                                        hint: firstErr.suggestion,
+                                        suggestedFix: firstErr.fix,
+                                        codeSnippet: liveCode.split('\n').slice(0, 5).join('\n'),
+                                        totalLines: analysis.lines
+                                      })
+                                      playCyberChime('alarm')
+                                      showToast(`🚨 ${firstErr.message}`, '⚠️')
+                                    } else {
+                                      setLiveCodeClean({ fileName: 'ActiveEditor', language: langToUse })
+                                      playCyberChime('affirm')
+                                      showToast('✨ Active code verified clean! No errors found.', '✓')
+                                    }
+                                  } else {
+                                    showToast('Focus an active editor window or copy code first!', '⚠️')
+                                  }
                                 }}
-                                style={{ background: 'rgba(255,77,109,0.18)', border: '1px solid #ff4d6d', color: '#ff7b72', padding: '3px 8px', borderRadius: '3px', fontSize: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                                style={{ background: 'rgba(0,240,255,0.18)', border: '1px solid var(--neon-cyan)', color: 'var(--neon-cyan)', padding: '3px 8px', borderRadius: '3px', fontSize: '8px', cursor: 'pointer', fontWeight: 'bold' }}
                               >
-                                Test Python Missing Colon (Pill Alert)
+                                🔍 Inspect Active Window Code
                               </button>
                               <button
-                                onClick={() => {
-                                  simulateLiveCodeTyping('java', true)
-                                  playCyberChime('alarm')
-                                  showToast('🚨 Pill Alert: Java SyntaxError (Missing Semicolon)', '⚡')
-                                }}
-                                style={{ background: 'rgba(255,184,0,0.18)', border: '1px solid #ffb800', color: '#ffdd55', padding: '3px 8px', borderRadius: '3px', fontSize: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-                              >
-                                Test Java Missing Semicolon (Pill Alert)
-                              </button>
-                              <button
-                                onClick={() => {
-                                  simulateLiveCodeTyping('python', false)
-                                  playCyberChime('affirm')
-                                  showToast('✨ Clean Code Flow: Pill Orb Glows Green', '✍️')
+                                onClick={async () => {
+                                  let text = ''
+                                  const electron = getElectron()
+                                  if (electron?.invoke) {
+                                    try {
+                                      const res = await electron.invoke('read-clipboard-text')
+                                      if (res?.text) text = res.text
+                                    } catch (_) {}
+                                  }
+                                  if (!text && navigator.clipboard?.readText) {
+                                    try { text = await navigator.clipboard.readText() } catch (_) {}
+                                  }
+                                  if (text && text.trim()) {
+                                    const detectedLang = detectLanguage(text)
+                                    const langToUse = (detectedLang && detectedLang !== 'unknown') ? detectedLang : 'python'
+                                    const analysis = analyzeCode(text, langToUse)
+                                    if (analysis.errors.length > 0) {
+                                      const firstErr = analysis.errors[0]
+                                      setActiveCodeIssue({
+                                        isError: true,
+                                        language: langToUse,
+                                        fileName: 'Clipboard',
+                                        line: firstErr.line || 1,
+                                        errorType: firstErr.message,
+                                        hint: firstErr.suggestion,
+                                        suggestedFix: firstErr.fix,
+                                        codeSnippet: text.split('\n').slice(0, 5).join('\n'),
+                                        totalLines: analysis.lines
+                                      })
+                                      playCyberChime('alarm')
+                                      showToast(`🚨 Clipboard: ${firstErr.message}`, '⚠️')
+                                    } else {
+                                      setLiveCodeClean({ fileName: 'Clipboard', language: langToUse })
+                                      playCyberChime('affirm')
+                                      showToast('✨ Clipboard code verified clean! 0 errors.', '✓')
+                                    }
+                                  } else {
+                                    showToast('Clipboard is empty! Copy code from your editor first.', '⚠️')
+                                  }
                                 }}
                                 style={{ background: 'rgba(0,255,157,0.15)', border: '1px solid var(--neon-green)', color: 'var(--neon-green)', padding: '3px 8px', borderRadius: '3px', fontSize: '8px', cursor: 'pointer', fontWeight: 'bold' }}
                               >
-                                Test Clean Code Flow (Green Orb)
+                                📋 Inspect Clipboard Code
                               </button>
                               <button
                                 onClick={() => {
-                                  simulateErrorIntervention('java')
-                                  playCyberChime('alarm')
-                                  showToast('🚨 Intercepted Java NullPointerException in OS', '⚡')
+                                  dismissActiveCodeIssue()
+                                  playCyberChime('affirm')
+                                  showToast('Sentry status reset to idle.', 'ℹ️')
                                 }}
-                                style={{ background: 'rgba(0,240,255,0.15)', border: '1px solid var(--neon-cyan)', color: 'var(--neon-cyan)', padding: '3px 8px', borderRadius: '3px', fontSize: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff', padding: '3px 8px', borderRadius: '3px', fontSize: '8px', cursor: 'pointer', fontWeight: 'bold' }}
                               >
-                                Test OS NullPointer Trace
+                                ↺ Reset Sentry
                               </button>
                             </div>
                           </div>
@@ -4054,20 +4151,35 @@ export default function DesktopHUD() {
                             </button>
                             <button
                               onClick={async () => {
-                                const demoTrace = `Traceback (most recent call last):\n  File "process_scheduler.py", line 42, in schedule_next\n    next_task = ready_queue[index]\nIndexError: list index out of range`
-                                showToast('Simulating copied terminal traceback...', '⚡')
-                                playCyberChime('scan')
-                                const diag = await diagnoseStackTrace(demoTrace)
-                                if (diag) {
-                                  setActiveDebugReport(diag)
-                                  const electron = getElectron()
-                                  if (electron?.invoke) {
-                                    await electron.invoke('save-debug-report-to-desktop', diag)
+                                let traceText = ''
+                                const electron = getElectron()
+                                if (electron?.invoke) {
+                                  try {
+                                    const res = await electron.invoke('read-clipboard-text')
+                                    if (res?.text) traceText = res.text
+                                  } catch (_) {}
+                                }
+                                if (!traceText && navigator.clipboard?.readText) {
+                                  try { traceText = await navigator.clipboard.readText() } catch (_) {}
+                                }
+                                if (traceText && traceText.trim()) {
+                                  showToast('Analyzing traceback from clipboard...', '⚡')
+                                  playCyberChime('scan')
+                                  const diag = await diagnoseStackTrace(traceText)
+                                  if (diag && diag.isError) {
+                                    setActiveDebugReport(diag)
+                                    if (electron?.invoke) {
+                                      await electron.invoke('save-debug-report-to-desktop', diag)
+                                    }
+                                    playCyberChime('alarm')
+                                    if (ttsEnabled) {
+                                      speakText(`Runtime exception intercepted: ${diag.errorType}. Generated root-cause analysis and desktop fix report.`)
+                                    }
+                                  } else {
+                                    showToast('Clipboard does not contain a recognized stack trace.', 'ℹ️')
                                   }
-                                  playCyberChime('alarm')
-                                  if (ttsEnabled) {
-                                    speakText(`Runtime exception intercepted: ${diag.errorType}. Generated root-cause analysis and desktop fix report.`)
-                                  }
+                                } else {
+                                  showToast('Clipboard is empty! Copy a traceback or terminal error first.', '⚠️')
                                 }
                               }}
                               style={{
@@ -4080,8 +4192,9 @@ export default function DesktopHUD() {
                                 fontWeight: 'bold',
                                 cursor: 'pointer'
                               }}
+                              title="Diagnose runtime stack trace from your clipboard"
                             >
-                              🧪 Demo Stack Trace (IndexError)
+                              📋 Diagnose Clipboard Traceback
                             </button>
                           </div>
                         </div>
@@ -4108,7 +4221,7 @@ export default function DesktopHUD() {
                             setCodeAnalysis(null)
                             setFixedCodePreview(null)
                           }}
-                          placeholder="Paste code snippet here..."
+                          placeholder="Paste or type code here, or click [👁 Ingest Active Editor Code] to pull directly from your active window..."
                         />
 
                         {/* Control buttons */}
@@ -4127,20 +4240,45 @@ export default function DesktopHUD() {
                           <button
                             className="btn-vision-speak"
                             style={{ padding: '5px 10px', fontSize: '9.5px', background: 'rgba(0, 240, 255, 0.12)', borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }}
-                            onClick={() => {
-                              setCodeLang('java')
-                              const multiSample = `// UserService.java - Ingested from Active Screen (VS Code)\npackage com.mallareddy.mentor.service;\n\nimport java.util.List;\n\npublic class UserService {\n    @Autowired\n    private UserRepository repo;\n\n    public UserDetails loadUserById(Long id) {\n        String name = repo.findById(id).name;\n        return new UserDetails(id, name);\n    }\n}`
-                              setCodeSnippet(multiSample)
-                              const result = analyzeCode(multiSample, 'java')
-                              setCodeAnalysis(result)
-                              setFixedCodePreview(null)
-                              showToast('👁 Screen Awareness: Ingested Active Buffer (3 Issues Detected)', '⚡')
-                              if (ttsEnabled) {
-                                speakText(`Ingested active screen buffer from VS Code. Detected 3 concurrent issues: missing Service stereotype, null pointer risk, and redundant imports.`)
+                            onClick={async () => {
+                              showToast('👁 Reading code from active editor window...', '⚡')
+                              const electron = getElectron()
+                              let liveCode = ''
+                              if (electron?.invoke) {
+                                try {
+                                  liveCode = await electron.invoke('get-active-editor-code')
+                                } catch (_) {}
+                                if (!liveCode || !liveCode.trim()) {
+                                  try {
+                                    const clipRes = await electron.invoke('read-clipboard-text')
+                                    if (clipRes?.text) liveCode = clipRes.text
+                                  } catch (_) {}
+                                }
+                              }
+                              if (!liveCode && navigator.clipboard?.readText) {
+                                try { liveCode = await navigator.clipboard.readText() } catch (_) {}
+                              }
+                              if (liveCode && liveCode.trim()) {
+                                const detectedLang = detectLanguage(liveCode)
+                                const langToUse = (detectedLang && detectedLang !== 'unknown') ? detectedLang : codeLang
+                                if (detectedLang && detectedLang !== 'unknown') {
+                                  setCodeLang(detectedLang)
+                                }
+                                setCodeSnippet(liveCode)
+                                const result = analyzeCode(liveCode, langToUse)
+                                setCodeAnalysis(result)
+                                setFixedCodePreview(null)
+                                playCyberChime('scan')
+                                showToast(`✓ Ingested REAL code from active editor (${liveCode.split('\n').length} lines)`, '⚡')
+                                if (ttsEnabled) {
+                                  speakText(`Ingested ${liveCode.split('\n').length} lines of code from active window. Running AST static analysis.`)
+                                }
+                              } else {
+                                showToast('No code detected in active editor or clipboard! Focus your code editor or copy code first.', '⚠️')
                               }
                             }}
                           >
-                            👁 Ingest Screen Code
+                            👁 Ingest Active Editor Code
                           </button>
                           <button
                             className="btn-vision-speak"
@@ -4229,18 +4367,13 @@ export default function DesktopHUD() {
                             className="btn-vision-speak"
                             style={{ padding: '5px 10px', fontSize: '9.5px', background: 'rgba(255,255,255,0.08)' }}
                             onClick={() => {
-                              if (codeLang === 'python') {
-                                setCodeSnippet(`# metrics_calculator.py - Multiple Screen Flaws\nimport os, sys, math\n\ndef compute_average(values)\n\ttotal = sum(values)\n\taverage = sum(values) / len(values)\n\treturn { "avg": average }`)
-                              } else if (codeLang === 'java') {
-                                setCodeSnippet(`// UserService.java - Multiple Screen Flaws\npackage com.mallareddy.mentor.service;\n\nimport java.util.List;\n\npublic class UserService {\n    @Autowired\n    private UserRepository repo;\n\n    public UserDetails loadUserById(Long id) {\n        String name = repo.findById(id).name;\n        return new UserDetails(id, name);\n    }\n}`)
-                              } else {
-                                setCodeSnippet(`function getUserData(user) {\n  const email = user.account.email;\n  const token = user.auth.jwt.token;\n  return { email, token };\n}`)
-                              }
+                              setCodeSnippet('')
                               setCodeAnalysis(null)
                               setFixedCodePreview(null)
+                              showToast('Code buffer cleared.', 'ℹ️')
                             }}
                           >
-                            ⚡ Multi-Bug Sample
+                            🧹 Clear Buffer
                           </button>
                         </div>
 

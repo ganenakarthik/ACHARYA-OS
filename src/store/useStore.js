@@ -365,7 +365,7 @@ export const useStore = create(
             line: '42',
             socraticHint: 'Attempted to invoke a method on an uninitialized reference (null). Socratic guidance: Check if user.profile is initialized before accessing .getName().',
             suggestedFix: 'if (user?.getProfile() != null) { ... } // Or Optional.ofNullable(user)',
-            rawSample: 'Exception in thread "main" java.lang.NullPointerException: Cannot invoke "Profile.getName()" because "user.profile" is null at UserService.java:42'
+            rawSample: 'Exception in thread "main" java.lang.NullPointerException: Cannot invoke "Profile.getName()" because "user.profile" is null at App.java:42'
           },
           python: {
             isError: true,
@@ -431,7 +431,7 @@ export const useStore = create(
           java: {
             isError: true,
             language: 'Java',
-            fileName: 'UserService.java',
+            fileName: 'Main.java',
             line: 28,
             errorType: "SyntaxError: Missing Semicolon ';'",
             hint: "Java statements must terminate with a semicolon ';'. Add ';' at the end of line 28.",
@@ -478,21 +478,13 @@ export const useStore = create(
       clearChat: () => set({ chatHistory: [] }),
 
       /* ── Academic Transparency Panels (Section IV & VI, Fig. 3b) ── */
-      thoughtStream: [
-        { id: 1, step: 'Contextualizing Query', time: '0.2s', status: 'done', detail: 'Foreground Window: VS Code · UserService.java' },
-        { id: 2, step: 'Evaluating Timing Policy', time: '0.4s', status: 'done', detail: 'U = clip(0.4·1 + 0.2·1 + 0.2·1 + 0.1·1 - 0.3·0) = 0.90 ≥ 0.50 → HELP_NOW' },
-        { id: 3, step: 'Synthesizing Data', time: '0.8s', status: 'done', detail: 'Missing @Service annotation detected on UserService bean' }
-      ],
+      thoughtStream: [],
       addThoughtStep: (step) => set((s) => ({
         thoughtStream: [...s.thoughtStream.slice(-6), { ...step, id: Date.now(), timestamp: new Date().toLocaleTimeString() }]
       })),
       setThoughtStream: (steps) => set({ thoughtStream: steps }),
 
-      actionQueue: [
-        { id: 'act-1', name: 'Optimize Network', status: 'executing', target: 'Low-latency loop' },
-        { id: 'act-2', name: 'Schedule Sync', status: 'queued', target: 'Planner Directives' },
-        { id: 'act-3', name: 'Code AST Verification', status: 'verified', target: 'UserService.java' }
-      ],
+      actionQueue: [],
       enqueueAction: (action) => set((s) => ({
         actionQueue: [...s.actionQueue, { ...action, id: `act-${Date.now()}`, status: action.status || 'queued' }]
       })),
