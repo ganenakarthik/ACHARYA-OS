@@ -171,23 +171,8 @@ export default function DesktopHUD() {
                 fileName: aiRes.fileName || 'active_editor'
               }
               setActiveCodeIssue(issueData)
-              triggerIslandPromptRef.current?.({
-                type: 'error',
-                title: aiRes.errorType || 'Code Bug Detected',
-                subtitle: `Line ${aiRes.line || 1} in active editor`,
-                question: 'Should Acharya resolve it in Notepad?',
-                data: issueData
-              })
-              playCyberChime('alarm')
-              showToast(`🚨 ${aiRes.errorType} (Line ${aiRes.line})`, '⚠️')
-              if (ttsEnabled && aiRes.mentorSpeech) {
-                setIsSpeaking(true)
-                speakText(aiRes.mentorSpeech, {
-                  persona: voicePersona,
-                  onStart: () => setIsSpeaking(true),
-                  onEnd: () => setIsSpeaking(false)
-                })
-              }
+              // Note: Do not trigger intrusive island prompt from background clipboard reads.
+              // Island prompt is reserved exclusively for real-time Screen Vision OCR and Runtime Exception Interception.
             } else if (aiRes && !aiRes.isError) {
               dismissActiveCodeIssue()
             }

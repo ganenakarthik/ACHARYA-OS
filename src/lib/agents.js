@@ -866,8 +866,9 @@ You must respond with ONLY a single valid JSON object in the exact following sch
       }
     }
 
-    // 2. C / C++ / Java / JS Missing Semicolon
-    if (/^(int|float|double|char|long|let|const|var|return|printf|cout|System\.out\.println)\b.*[^;{}]$/.test(trimmed)) {
+    // 2. C / C++ / Java Missing Semicolon (strictly requires C/Java program markers)
+    const hasCompiledLangMarker = code.includes('System.out') || code.includes('cout') || code.includes('printf') || code.includes('#include') || code.includes('public class')
+    if (hasCompiledLangMarker && /^(int|float|double|char|long|return|printf|cout|System\.out\.println)\b.*[^;{}]$/.test(trimmed)) {
       if (!trimmed.endsWith('>') && !trimmed.endsWith(':')) {
         const fixedLines = [...lines]
         fixedLines[i] = `${rawLine};`

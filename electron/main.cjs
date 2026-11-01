@@ -1482,8 +1482,9 @@ Write-Output 'ok'
 
   // Background OS Sentry (Zero-Click Auto-Detection for Code & YouTube URLs)
   let lastSeenClipText = '';
+  try { lastSeenClipText = (clipboard.readText() || '').trim(); } catch (_) {}
   let clipGracePeriod = true;
-  setTimeout(() => { clipGracePeriod = false; }, 2500);
+  setTimeout(() => { clipGracePeriod = false; }, 3000);
 
   setInterval(() => {
     if (!mainWindow || mainWindow.isDestroyed() || clipGracePeriod) return;
@@ -1509,22 +1510,10 @@ Write-Output 'ok'
         ) {
           // 2. Zero-Click Error Doctor (Stack Trace / Runtime Error Interception)
           mainWindow.webContents.send('stack-trace-detected', txt.trim());
-        } else {
-          // 3. Code Snippet Detection (Hands-Free Code Sentry - Strict code check to avoid false positives on normal text)
-          const isActualCode = (
-            /\b(def|class|function|import|from|const|let|var|public|private|protected|void|return)\s+\w+/.test(txt) ||
-            /\b(console\.log|System\.out\.println|printf|print)\s*\(/.test(txt) ||
-            /\b(if|while|for)\s*\(.+\)\s*\{?/.test(txt) ||
-            /\b(if|while|for)\s+.+:\s*$/m.test(txt) ||
-            /[{};]\s*$/.test(txt)
-          );
-          if (isActualCode) {
-            mainWindow.webContents.send('clipboard-code-received', txt);
-          }
         }
       }
     } catch (_) {}
-  }, 1200);
+  }, 1500);
 
   // Get current clipboard text safely on demand
   ipcMain.handle('get-clipboard-code', async () => {

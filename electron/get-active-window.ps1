@@ -31,11 +31,11 @@ if ($hwnd -ne [IntPtr]::Zero) {
   }
 }
 
-# If foreground is Acharya itself or empty, detect the top developer/browser workspace app
-if ([string]::IsNullOrWhiteSpace($title) -or $pName -eq "electron") {
-  $activeProcs = @("Code", "chrome", "msedge", "brave", "WindowsTerminal", "powershell", "notepad", "devenv")
+# If foreground is Acharya itself, check if a student editor/browser is open behind it
+if ($pName -eq "electron") {
+  $activeProcs = @("Code", "notepad", "msedge", "chrome", "brave", "WindowsTerminal", "devenv")
   foreach ($ap in $activeProcs) {
-    $found = Get-Process -Name $ap -ErrorAction SilentlyContinue | Select-Object -First 1
+    $found = Get-Process -Name $ap -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 -or $_.MainWindowTitle } | Select-Object -First 1
     if ($found) {
       $pName = $found.ProcessName
       $title = if ($found.MainWindowTitle) { $found.MainWindowTitle } else { $found.ProcessName }
