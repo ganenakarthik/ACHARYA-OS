@@ -126,28 +126,8 @@ export default function DesktopHUD() {
         electron.on('clipboard-code-received', async (codeText) => {
           if (!codeText || codeText.trim().length < 8) return
 
-          // Route stack traces directly to Zero-Click Error Doctor
+          // Stack traces are handled exclusively by the stack-trace-detected listener to avoid duplicate voice
           if (isStackTraceOrError(codeText)) {
-            try {
-              setIsDiagnosingError(true)
-              const diag = await diagnoseStackTrace(codeText)
-              if (diag) {
-                setActiveDebugReport(diag)
-                if (electron.invoke) {
-                  const saveRes = await electron.invoke('save-debug-report-to-desktop', diag)
-                  if (saveRes && saveRes.success) {
-                    showToast(`✓ Zero-Click Error Doctor: Saved ${saveRes.filename} to Desktop!`, '📁')
-                  }
-                }
-                playCyberChime('alarm')
-                if (ttsEnabled) {
-                  speakText(`Runtime exception intercepted: ${diag.errorType}. Generated root-cause analysis and desktop fix report.`)
-                }
-              }
-            } catch (_) {}
-            finally {
-              setIsDiagnosingError(false)
-            }
             return
           }
 

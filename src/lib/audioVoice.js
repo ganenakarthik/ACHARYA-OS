@@ -99,9 +99,41 @@ export function playCyberChime(type = 'affirm') {
 
 let currentAudioPlayer = null
 
-/* ── 1. ULTRA-CLARITY STUDIO NEURAL VOICE & SPEECH SYNTHESIS ── */
+export function getBestFemaleVoice() {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null
+  const voices = window.speechSynthesis.getVoices()
+  if (!voices || voices.length === 0) return null
+
+  // 1. Prioritize natural Windows / Chrome female English voices
+  const prioritizedFemale = voices.find(v => 
+    v.lang.startsWith('en') && (
+      /zira/i.test(v.name) ||
+      /jenny/i.test(v.name) ||
+      /aria/i.test(v.name) ||
+      /samantha/i.test(v.name) ||
+      /victoria/i.test(v.name) ||
+      /karen/i.test(v.name) ||
+      /hazel/i.test(v.name) ||
+      /catherine/i.test(v.name) ||
+      /female/i.test(v.name)
+    )
+  )
+
+  if (prioritizedFemale) return prioritizedFemale
+
+  // 2. Filter out explicitly male voices
+  const nonMaleEnglish = voices.find(v => 
+    v.lang.startsWith('en') && !/david|george|mark|richard|oliver|guy|male|james|ravi/i.test(v.name)
+  )
+  if (nonMaleEnglish) return nonMaleEnglish
+
+  // 3. Fallback to any English voice
+  return voices.find(v => v.lang.startsWith('en')) || voices[0]
+}
+
+/* ── 1. ULTRA-CLARITY STUDIO NEURAL VOICE & SPEECH SYNTHESIS (FEMALE) ── */
 export function speakText(text, options = {}) {
-  // Cancel any ongoing speech immediately
+  // Cancel any ongoing speech immediately — completely eliminates dual/overlapping voices
   stopSpeaking()
 
   if (!text || !text.trim()) return
@@ -139,104 +171,54 @@ export function speakText(text, options = {}) {
     }
   }
 
-  if (!clean) return
+  if (!clean || typeof window === 'undefined' || !('speechSynthesis' in window)) return
 
-  const persona = options.persona || 'acharya'
-  const lang = 'en-gb'
-  const neuralUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodeURIComponent(clean)}`
-
-  // 1. Primary High-Definition Neural Studio Audio Stream
   try {
-    const audio = new Audio(neuralUrl)
-    currentAudioPlayer = audio
-    audio.playbackRate = options.rate || 1.15 // Fast, snappy, energetic delivery
-    audio.volume = options.volume !== undefined ? options.volume : 1.0
+    window.speechSynthesis.cancel()
 
-    audio.onplay = () => {
+    const utterance = new SpeechSynthesisUtterance(clean)
+    const femaleVoice = getBestFemaleVoice()
+    if (femaleVoice) {
+      utterance.voice = femaleVoice
+    }
+
+    utterance.pitch = 1.08 // Crisp, bright, articulate female tone
+    utterance.rate = options.rate || 1.04 // Smooth, natural academic pacing
+    utterance.volume = options.volume !== undefined ? options.volume : 1.0
+
+    utterance.onstart = () => {
       isSpeakingActive = true
       if (options.onStart) options.onStart()
     }
 
-    audio.onended = () => {
+    utterance.onend = () => {
       isSpeakingActive = false
-      currentAudioPlayer = null
       if (options.onEnd) options.onEnd()
     }
 
-    audio.onerror = () => {
-      console.warn('Neural audio stream error, engaging offline SAPI fallback.')
-      fallbackWebSpeech(clean, options)
-    }
-
-    const playPromise = audio.play()
-    if (playPromise !== undefined) {
-      playPromise.catch((err) => {
-        console.warn('Audio auto-play notice, engaging offline SAPI fallback:', err)
-        fallbackWebSpeech(clean, options)
-      })
-    }
-  } catch (e) {
-    fallbackWebSpeech(clean, options)
-  }
-}
-
-/* ── Offline SAPI5 Web Speech API Fallback ── */
-function fallbackWebSpeech(cleanText, options = {}) {
-  if (!('speechSynthesis' in window)) return
-
-  const rawSentences = cleanText.match(/[^.!?]+(?:[.!?]+|$)/g) || [cleanText]
-  activeSpeechQueue = rawSentences.map(s => s.trim()).filter(s => s.length > 0)
-  if (activeSpeechQueue.length === 0) return
-
-  isSpeakingActive = true
-  if (options.onStart) options.onStart()
-
-  let currentIndex = 0
-  const persona = options.persona || 'acharya'
-
-  function speakNextChunk() {
-    if (!isSpeakingActive || currentIndex >= activeSpeechQueue.length) {
-      stopSpeaking()
+    utterance.onerror = () => {
+      isSpeakingActive = false
       if (options.onEnd) options.onEnd()
-      return
     }
-
-    const chunk = activeSpeechQueue[currentIndex]
-    currentIndex++
-
-    const utterance = new SpeechSynthesisUtterance(chunk)
-    const voices = window.speechSynthesis.getVoices()
-    let chosenVoice = voices.find(v => v.lang.startsWith('en') && (
-      v.name.includes('Hazel') ||
-      v.name.includes('George') ||
-      v.name.includes('Oliver') ||
-      v.lang === 'en-GB'
-    )) || voices.find(v => v.lang.startsWith('en'))
-    utterance.pitch = 1.02
-    utterance.rate = 1.15
-
-    if (chosenVoice) utterance.voice = chosenVoice
-    utterance.volume = options.volume !== undefined ? options.volume : 1.0
-
-    utterance.onend = () => speakNextChunk()
-    utterance.onerror = () => speakNextChunk()
 
     window.speechSynthesis.speak(utterance)
+  } catch (err) {
+    console.warn('Speech synthesis notice:', err)
   }
-
-  speakNextChunk()
 }
 
 export function stopSpeaking() {
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel()
+    } catch (_) {}
+  }
   if (currentAudioPlayer) {
     try {
       currentAudioPlayer.pause()
       currentAudioPlayer.currentTime = 0
     } catch (_) {}
     currentAudioPlayer = null
-  }
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel()
   }
   isSpeakingActive = false
   activeSpeechQueue = []
