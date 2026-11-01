@@ -682,7 +682,7 @@ export default function DesktopHUD() {
         if (isMounted && data && data.cpu) setTelemetry(data)
 
         if (screenPerceptionEnabled) {
-          const frameData = await analyzeCurrentScreenFrame(profile, true)
+          const frameData = await analyzeCurrentScreenFrame(profile, false)
           if (isMounted && frameData) {
             setVisionData(prev => ({
               ...frameData,
