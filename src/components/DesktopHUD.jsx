@@ -568,36 +568,30 @@ export default function DesktopHUD() {
             // Guard against home feeds or recommendation grids (e.g. YouTube homepage with gaming, shorts, etc.)
             const isHomeFeed = (
               (lowText.includes('shorts') && lowText.includes('subscriptions') && lowText.includes('home')) ||
-              (lowText.includes('trending') && lowText.includes('music') && lowText.includes('gaming')) ||
+              (lowText.includes('trending') && lowText.includes('gaming')) ||
               (lowText.includes('gta') && lowText.includes('mixes'))
-            )
-
-            // Lecture Watch Page / Educational Stream Invariants:
-            // A genuine lecture has video player cues (views, subscribe, duration, timestamp) + academic concepts
-            const hasVideoWatchIndicator = (
-              lowText.includes('subscribe') || lowText.includes('views') || lowText.includes('share') ||
-              lowText.includes('download') || lowText.includes('save') || lowText.includes('transcript') ||
-              /\b\d{1,2}:\d{2}\b/.test(lowText) || winTitle.includes(' - youtube') || winTitle.includes('watch')
             )
 
             const academicKeywords = [
               // Physics & Engineering
-              'electrostatics', 'coulomb', 'electric field', 'potential', 'physics', 'quantum',
-              'mechanics', 'thermodynamics', 'kinematics', 'newton', 'circuit', 'maxwell', 'derivation',
+              'mechanics', 'newtonian', 'electrostatics', 'coulomb', 'electric field', 'potential',
+              'physics', 'quantum', 'thermodynamics', 'kinematics', 'newton', 'circuit', 'maxwell',
+              'derivation', 'dynamics', 'force', 'velocity', 'gravity', 'momentum', 'optics', 'waves',
               // Computer Science & Coding
               'python', 'algorithm', 'syntax', 'recursion', 'compiler', 'operating system',
               'deadlock', 'concurrency', 'data structure', 'binary tree', 'linked list', 'database',
               'sql query', 'sorting', 'big o', 'complexity', 'dynamic programming', 'pointer',
+              'javascript', 'java', 'c++', 'backend', 'frontend', 'machine learning', 'ai',
               // Math & Core Sciences
               'calculus', 'derivative', 'integral', 'matrix', 'linear algebra', 'vector', 'probability',
               // Lecture & Academic Identifiers
               'lecture', 'full course', 'tutorial for beginners', 'yalecourses', 'mit opencourseware',
-              'nptel', 'freecodecamp', 'chapter', 'syllabus', 'prof.'
+              'nptel', 'freecodecamp', 'course introduction', 'chapter', 'syllabus', 'prof.'
             ]
 
             const matchedAcademicConcept = academicKeywords.find(kw => lowText.includes(kw) || winTitle.includes(kw))
 
-            if (!isHomeFeed && hasVideoWatchIndicator && matchedAcademicConcept) {
+            if (!isHomeFeed && matchedAcademicConcept) {
               // Extract the exact lecture topic directly from visible screen lines or title
               let detectedTopic = ''
               for (const line of lines) {
@@ -616,7 +610,7 @@ export default function DesktopHUD() {
                   .trim()
               }
 
-              if (!detectedTopic || detectedTopic.length < 3 || detectedTopic.toLowerCase() === 'youtube') {
+              if (!detectedTopic || detectedTopic.length < 3 || detectedTopic.toLowerCase().includes('youtube')) {
                 detectedTopic = matchedAcademicConcept.charAt(0).toUpperCase() + matchedAcademicConcept.slice(1) + ' Lecture'
               }
 
@@ -676,7 +670,7 @@ export default function DesktopHUD() {
         isAnalyzing = false
         setVisionScanning(false)
       }
-    }, 6000)
+    }, 2500)
 
     return () => clearInterval(visionTimer)
   }, [screenPerceptionEnabled, ttsEnabled, voicePersona, profile, activeCodeIssue])
