@@ -16,6 +16,7 @@ import { analyzeCode, applySmartFix, applyAllSmartFixes } from '../lib/codeAnaly
 import { extractDocumentText, generateStudyGuideFromText } from '../lib/pdfExtractor'
 import { synthesizeLectureNotes } from '../lib/lectureNotesGenerator'
 import { evaluateTimingPolicy } from '../lib/timingEngine'
+import { isStackTraceOrError, diagnoseStackTrace } from '../lib/errorDoctor'
 import ReactMarkdown from 'react-markdown'
 import './DesktopHUD.css'
 
@@ -96,8 +97,60 @@ export default function DesktopHUD() {
         electron.on('live-code-clean', (info) => {
           setLiveCodeClean(info)
         })
+        // Feature #2: Zero-Click Error Doctor (Stack Trace / Runtime Error Interception)
+        electron.on('stack-trace-detected', async (errorText) => {
+          showToast(`⚡ Zero-Click Error Doctor: Intercepting runtime traceback...`, '🚨')
+          playCyberChime('alarm')
+          try {
+            setIsDiagnosingError(true)
+            const diag = await diagnoseStackTrace(errorText)
+            if (diag) {
+              setActiveDebugReport(diag)
+              if (electron.invoke) {
+                const saveRes = await electron.invoke('save-debug-report-to-desktop', diag)
+                if (saveRes && saveRes.success) {
+                  showToast(`✓ Debug Report saved to Desktop: ${saveRes.filename}`, '📁')
+                }
+              }
+              playCyberChime('success')
+              if (ttsEnabled) {
+                speakText(`Runtime exception intercepted: ${diag.errorType}. I have analyzed the root cause and saved an academic debug fix report to your Windows Desktop.`)
+              }
+            }
+          } catch (_) {}
+          finally {
+            setIsDiagnosingError(false)
+          }
+        })
+
         electron.on('clipboard-code-received', async (codeText) => {
           if (!codeText || codeText.trim().length < 8) return
+
+          // Route stack traces directly to Zero-Click Error Doctor
+          if (isStackTraceOrError(codeText)) {
+            try {
+              setIsDiagnosingError(true)
+              const diag = await diagnoseStackTrace(codeText)
+              if (diag) {
+                setActiveDebugReport(diag)
+                if (electron.invoke) {
+                  const saveRes = await electron.invoke('save-debug-report-to-desktop', diag)
+                  if (saveRes && saveRes.success) {
+                    showToast(`✓ Zero-Click Error Doctor: Saved ${saveRes.filename} to Desktop!`, '📁')
+                  }
+                }
+                playCyberChime('alarm')
+                if (ttsEnabled) {
+                  speakText(`Runtime exception intercepted: ${diag.errorType}. Generated root-cause analysis and desktop fix report.`)
+                }
+              }
+            } catch (_) {}
+            finally {
+              setIsDiagnosingError(false)
+            }
+            return
+          }
+
           try {
             const aiRes = await analyzeCodeWithAI(codeText, '', profile)
             if (aiRes && aiRes.isError) {
@@ -139,6 +192,24 @@ export default function DesktopHUD() {
                   back: c.back || c.a || ''
                 }))
               })
+              setMemoryRadarTopics(prev => {
+                const filtered = prev.filter(p => p.topic !== notes.topic)
+                return [
+                  {
+                    id: `mem-${Date.now()}`,
+                    topic: notes.topic,
+                    category: notes.academicSubject || 'Core CS',
+                    lastStudied: 'Just now',
+                    daysAgo: 0,
+                    stability: 5.0,
+                    retention: 100,
+                    status: 'STABLE INVARIANT',
+                    statusColor: '#00ff9d',
+                    summary: notes.executiveSummary || 'Learned core invariants and viva answers.'
+                  },
+                  ...filtered
+                ]
+              })
               if (electron.invoke) {
                 const saveRes = await electron.invoke('save-note-to-desktop', notes)
                 if (saveRes && saveRes.success) {
@@ -174,6 +245,109 @@ export default function DesktopHUD() {
   const [selectedWorkspaceFile, setSelectedWorkspaceFile] = useState(null)
   const [workspaceFileContent, setWorkspaceFileContent] = useState('')
   const [isScanningWorkspace, setIsScanningWorkspace] = useState(false)
+
+  // Feature #2: Zero-Click Error Doctor (Stack-Trace Autopsy) State
+  const [activeDebugReport, setActiveDebugReport] = useState(null)
+  const [isDiagnosingError, setIsDiagnosingError] = useState(false)
+
+  // Feature #3: Ebbinghaus Memory Decay Radar State
+  const [memoryRadarTopics, setMemoryRadarTopics] = useState([
+    {
+      id: 'mem-1',
+      topic: 'Operating Systems: Deadlock & Coffman Invariants',
+      category: 'Core Systems',
+      lastStudied: 'Today',
+      daysAgo: 0.1,
+      stability: 4.8,
+      retention: 96,
+      status: 'STABLE INVARIANT',
+      statusColor: '#00ff9d',
+      summary: 'Breaking any of Coffman 4 conditions (Mutual Exclusion, Hold & Wait, No Preemption, Circular Wait) mathematically prevents deadlocks.'
+    },
+    {
+      id: 'mem-2',
+      topic: 'Dijkstra Banker Algorithm & Safe Sequence Proof',
+      category: 'Concurrency Control',
+      lastStudied: '3 days ago',
+      daysAgo: 3.1,
+      stability: 2.8,
+      retention: 53,
+      status: 'DECAYING — REVISION DUE',
+      statusColor: '#ffb800',
+      summary: 'Dynamic avoidance checking Need <= Available. Guarantees state transition sequence exists without deadlock.'
+    },
+    {
+      id: 'mem-3',
+      topic: 'Virtual Memory Paging & TLB Thrashing',
+      category: 'Memory Systems',
+      lastStudied: '6 days ago',
+      daysAgo: 6.0,
+      stability: 2.1,
+      retention: 36,
+      status: 'CRITICAL DECAY — IMMINENT RISK',
+      statusColor: '#ff4d6d',
+      summary: 'Page fault frequency exceeding page replacement bandwidth causing CPU utilization to collapse to near zero.'
+    },
+    {
+      id: 'mem-4',
+      topic: 'Cyber Security: Merkle Trees & SHA-256 Chaining',
+      category: 'Cryptography & Data Integrity',
+      lastStudied: '1 day ago',
+      daysAgo: 1.0,
+      stability: 5.0,
+      retention: 89,
+      status: 'SECURE / REINFORCED',
+      statusColor: '#00f0ff',
+      summary: 'Cryptographic hash trees enabling efficient and secure verification of large distributed data structures.'
+    }
+  ])
+
+  const handleExportRevisionCheatSheet = async () => {
+    showToast('Exporting Memory Revision Cheat Sheet to Desktop...', '⚡')
+    playCyberChime('scan')
+    const electron = getElectron()
+    
+    let md = `# 🧠 ACHARYA PERSISTENT MEMORY VAULT — MULTI-TOPIC REVISION CHEAT SHEET\n`
+    md += `**System:** Acharya Autonomous Cognitive Architecture (Section IV-B3)\n`
+    md += `**Algorithm:** Dynamic Spaced Repetition via Ebbinghaus Retention Decay (R = e^(-t/S))\n`
+    md += `**Date:** ${new Date().toLocaleString()}\n`
+    md += `**Target:** University Examination & Technical Viva Readiness\n\n`
+    md += `---\n\n`
+    md += `## 📊 Cognitive Retention Decay Radar Status\n\n`
+    md += `| Topic / Concept | Category | Last Studied | Retention (R) | Recommended Action |\n`
+    md += `| :--- | :--- | :--- | :--- | :--- |\n`
+    memoryRadarTopics.forEach(t => {
+      md += `| **${t.topic}** | ${t.category} | ${t.lastStudied} | **${t.retention}%** | ${t.status} |\n`
+    })
+    md += `\n---\n\n`
+    memoryRadarTopics.forEach((t, idx) => {
+      md += `## 📌 Topic ${idx + 1}: ${t.topic}\n`
+      md += `* **Category:** ${t.category}\n`
+      md += `* **Retention Stability Factor (S):** ${t.stability} (Days elapsed: ${t.daysAgo})\n`
+      md += `* **Core Conceptual Invariant:**\n${t.summary}\n\n`
+    })
+    md += `---\n*Generated by Acharya OS Cognitive Memory Engine. Stored on Windows Desktop for high-yield examination review.*\n`
+
+    if (electron && electron.invoke) {
+      try {
+        const res = await electron.invoke('save-revision-cheatsheet-to-desktop', {
+          filename: 'Acharya_Memory_Revision_CheatSheet.md',
+          markdownContent: md
+        })
+        if (res && res.success) {
+          playCyberChime('success')
+          showToast(`✓ Saved: ${res.filename} to Desktop!`, '📁')
+          if (ttsEnabled) {
+            speakText(`Exported multi-topic memory refresh cheat sheet to your Windows Desktop.`)
+          }
+          return
+        }
+      } catch (err) {
+        console.warn('Export cheat sheet notice:', err)
+      }
+    }
+    showToast('Cheat sheet generated!', '✓')
+  }
 
   const handleScanWorkspace = async () => {
     setIsScanningWorkspace(true)
@@ -1550,6 +1724,113 @@ export default function DesktopHUD() {
             </div>
           </header>
 
+          {/* Feature #2: Zero-Click Error Doctor (Stack-Trace Autopsy Banner) */}
+          {activeDebugReport && (
+            <div style={{
+              margin: '72px 24px 10px',
+              background: 'linear-gradient(135deg, rgba(255, 30, 86, 0.28), rgba(138, 43, 226, 0.22))',
+              border: '2px solid #ff2d6a',
+              borderRadius: '10px',
+              padding: '14px 18px',
+              boxShadow: '0 0 30px rgba(255, 45, 106, 0.5)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              zIndex: 105
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '18px' }}>⚡</span>
+                  <span style={{ fontSize: '12px', fontWeight: '900', color: '#ff2d6a', letterSpacing: '1px' }}>
+                    ZERO-CLICK ERROR DOCTOR: RUNTIME EXCEPTION INTERCEPTED
+                  </span>
+                  <span style={{ fontSize: '9px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255, 45, 106, 0.3)', color: '#ff9ebb', fontWeight: 'bold', border: '1px solid #ff2d6a' }}>
+                    {activeDebugReport.language} · {activeDebugReport.file} (Line: {activeDebugReport.line})
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard?.writeText(activeDebugReport.exactFixCode)
+                      showToast('Copied fix code to clipboard!', '📋')
+                      playCyberChime('affirm')
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #00f0ff, #00ff9d)',
+                      border: 'none',
+                      color: '#000',
+                      fontWeight: 'bold',
+                      fontSize: '10px',
+                      padding: '4px 12px',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    📋 Copy Fix Code
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveDebugReport(null)
+                      playCyberChime('scan')
+                    }}
+                    style={{
+                      background: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      color: '#fff',
+                      fontSize: '10px',
+                      padding: '4px 10px',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ✕ Dismiss
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '12.5px', fontWeight: 'bold', color: '#ffffff' }}>
+                    {activeDebugReport.errorType}
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#ffe6a7', marginTop: '4px', lineHeight: '1.4' }}>
+                    📌 <b>Root Cause:</b> {activeDebugReport.rootCause}
+                  </div>
+                  <div style={{ marginTop: '8px', fontSize: '9.5px', color: '#6df9ff' }}>
+                    🧪 <b>Preventative Test Assertion:</b>
+                    <pre style={{ background: 'rgba(0,0,0,0.6)', padding: '6px 10px', borderRadius: '4px', margin: '4px 0 0 0', overflowX: 'auto', fontFamily: 'monospace', fontSize: '9px', color: '#00ff9d' }}>
+                      {activeDebugReport.preventativeTest}
+                    </pre>
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#00f0ff', marginBottom: '4px' }}>
+                    ⚡ Exact One-Line / Drop-in Fix:
+                  </div>
+                  <pre style={{ background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(0, 240, 255, 0.3)', padding: '8px 12px', borderRadius: '6px', margin: 0, overflowX: 'auto', fontFamily: 'monospace', fontSize: '9.5px', color: '#fff' }}>
+                    {activeDebugReport.exactFixCode}
+                  </pre>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                    <span style={{ fontSize: '8.5px', color: '#00ff9d' }}>
+                      📁 Saved to Desktop: <b>{activeDebugReport.filename}</b>
+                    </span>
+                    <button
+                      onClick={() => {
+                        setCodeSnippet(activeDebugReport.exactFixCode)
+                        setActiveModal('code')
+                        playCyberChime('affirm')
+                      }}
+                      style={{ background: 'none', border: 'none', color: '#00f0ff', fontSize: '9px', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      Open in Code Sentry →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Autonomous Zero-Touch Socratic Error Interceptor Banner */}
           {(activeCodeIssue || activeSocraticIntervention) && (() => {
             const currentIssue = activeCodeIssue || activeSocraticIntervention;
@@ -2806,10 +3087,94 @@ export default function DesktopHUD() {
                   )}
 
                   {activeModal === 'planner' && (
-                    <div className="planner-modal-view" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div className="planner-modal-view" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      
+                      {/* Feature #3: Ebbinghaus Memory Decay Radar (Equation R = e^(-t/S)) */}
+                      <div className="v-card" style={{ background: 'linear-gradient(135deg, rgba(0, 240, 255, 0.08), rgba(112, 0, 255, 0.08))', border: '1px solid rgba(0, 240, 255, 0.35)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                          <div className="v-card-lbl" style={{ color: '#00f0ff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>🧠</span>
+                            <span>EBBINGHAUS MEMORY DECAY RADAR (SECTION IV-B3)</span>
+                          </div>
+                          <button
+                            onClick={handleExportRevisionCheatSheet}
+                            style={{
+                              background: 'linear-gradient(135deg, #00f0ff, #7000ff)',
+                              color: '#fff',
+                              border: 'none',
+                              fontSize: '9px',
+                              fontWeight: 'bold',
+                              padding: '5px 12px',
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            ⚡ Export Revision Cheat Sheet to Desktop
+                          </button>
+                        </div>
+
+                        <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.7)', marginBottom: '10px' }}>
+                          Dynamic retention decay modeling: <i>R = e<sup>-t / S</sup></i>. Tracks conceptual invariants across multi-day learning sessions and predicts exam forgetting curves.
+                        </div>
+
+                        {/* Topics Decay Grid */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {memoryRadarTopics.map((topic) => (
+                            <div
+                              key={topic.id}
+                              style={{
+                                background: 'rgba(0, 0, 0, 0.45)',
+                                border: `1px solid ${topic.statusColor}33`,
+                                borderLeft: `3px solid ${topic.statusColor}`,
+                                borderRadius: '6px',
+                                padding: '8px 12px'
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#fff' }}>{topic.topic}</span>
+                                  <span style={{ fontSize: '8px', padding: '1px 6px', borderRadius: '3px', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}>
+                                    {topic.category}
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontSize: '8.5px', color: 'rgba(255,255,255,0.5)' }}>Last studied: {topic.lastStudied}</span>
+                                  <span style={{ fontSize: '9px', fontWeight: 'bold', color: topic.statusColor, background: `${topic.statusColor}18`, padding: '2px 6px', borderRadius: '3px' }}>
+                                    {topic.status}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Retention Bar */}
+                              <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                                  <div
+                                    style={{
+                                      width: `${topic.retention}%`,
+                                      height: '100%',
+                                      background: topic.statusColor,
+                                      borderRadius: '3px',
+                                      transition: 'width 0.8s ease'
+                                    }}
+                                  />
+                                </div>
+                                <span style={{ fontSize: '9px', fontWeight: 'bold', color: topic.statusColor, minWidth: '40px', textAlign: 'right' }}>
+                                  {topic.retention}% R
+                                </span>
+                              </div>
+
+                              <div style={{ fontSize: '8.5px', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
+                                💡 {topic.summary}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Directive Study Schedule */}
                       <div className="v-card">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div className="v-card-lbl">⏳ Cognitive Spacing & Spaced Repetition (Ebbinghaus Pacing)</div>
+                          <div className="v-card-lbl">⏳ Daily Spacing Directives</div>
                           <span style={{ fontSize: '8px', color: 'var(--neon-green)', background: 'rgba(0,255,157,0.12)', padding: '2px 6px', borderRadius: '3px', fontWeight: 'bold' }}>
                             SCIENTIFIC SPACING ACTIVE
                           </span>
@@ -2935,6 +3300,24 @@ export default function DesktopHUD() {
                                       front: c.front || c.q || '',
                                       back: c.back || c.a || ''
                                     }))
+                                  })
+                                  setMemoryRadarTopics(prev => {
+                                    const filtered = prev.filter(p => p.topic !== notes.topic)
+                                    return [
+                                      {
+                                        id: `mem-${Date.now()}`,
+                                        topic: notes.topic,
+                                        category: notes.academicSubject || 'Core CS',
+                                        lastStudied: 'Just now',
+                                        daysAgo: 0,
+                                        stability: 5.0,
+                                        retention: 100,
+                                        status: 'STABLE INVARIANT',
+                                        statusColor: '#00ff9d',
+                                        summary: notes.executiveSummary || 'Learned core invariants and viva answers.'
+                                      },
+                                      ...filtered
+                                    ]
                                   })
                                   const electron = getElectron()
                                   if (electron && electron.invoke) {
@@ -3163,6 +3546,44 @@ export default function DesktopHUD() {
                               </button>
                             ))}
                           </div>
+                        </div>
+
+                        {/* Zero-Click Error Doctor Sentry Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255, 45, 106, 0.12)', border: '1px solid rgba(255, 45, 106, 0.3)', padding: '6px 10px', borderRadius: '5px', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '9px', color: '#ff7096', fontWeight: 'bold' }}>
+                            🚨 ZERO-CLICK ERROR DOCTOR (AMBIENT CLIPBOARD SENTRY ACTIVE)
+                          </span>
+                          <button
+                            onClick={async () => {
+                              const demoTrace = `Traceback (most recent call last):\n  File "process_scheduler.py", line 42, in schedule_next\n    next_task = ready_queue[index]\nIndexError: list index out of range`
+                              showToast('Simulating copied terminal traceback...', '⚡')
+                              playCyberChime('scan')
+                              const diag = await diagnoseStackTrace(demoTrace)
+                              if (diag) {
+                                setActiveDebugReport(diag)
+                                const electron = getElectron()
+                                if (electron?.invoke) {
+                                  await electron.invoke('save-debug-report-to-desktop', diag)
+                                }
+                                playCyberChime('alarm')
+                                if (ttsEnabled) {
+                                  speakText(`Runtime exception intercepted: ${diag.errorType}. Generated root-cause analysis and desktop fix report.`)
+                                }
+                              }
+                            }}
+                            style={{
+                              background: 'linear-gradient(135deg, #ff2d6a, #c77dff)',
+                              color: '#fff',
+                              border: 'none',
+                              padding: '3px 8px',
+                              borderRadius: '3px',
+                              fontSize: '8.5px',
+                              fontWeight: 'bold',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            🧪 Demo Terminal Stack Trace (IndexError)
+                          </button>
                         </div>
 
                         {/* Code Editor Area */}

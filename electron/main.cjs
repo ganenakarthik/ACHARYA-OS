@@ -1433,8 +1433,22 @@ ${noteData.recommendedCodingExercise || 'Implement a test case verifying this in
         // 1. YouTube Video / Lecture Link Detection (Hands-Free Post-Class Notes)
         if (txt.includes('youtube.com/watch') || txt.includes('youtu.be/')) {
           mainWindow.webContents.send('youtube-url-detected', txt.trim());
+        } else if (
+          txt.includes('Traceback (most recent call last)') ||
+          /Exception in thread/i.test(txt) ||
+          /NullPointerException/i.test(txt) ||
+          /IndexError:/i.test(txt) ||
+          /Segmentation fault/i.test(txt) ||
+          /ZeroDivisionError:/i.test(txt) ||
+          /ReferenceError:/i.test(txt) ||
+          /TypeError:\s*Cannot read/i.test(txt) ||
+          /KeyError:/i.test(txt) ||
+          /fatal error:.*No such file/i.test(txt)
+        ) {
+          // 2. Zero-Click Error Doctor (Stack Trace / Runtime Error Interception)
+          mainWindow.webContents.send('stack-trace-detected', txt.trim());
         } else {
-          // 2. Code Snippet Detection (Hands-Free Code Sentry)
+          // 3. Code Snippet Detection (Hands-Free Code Sentry)
           mainWindow.webContents.send('clipboard-code-received', txt);
         }
       }
@@ -1558,6 +1572,92 @@ ${noteData.recommendedCodingExercise || 'Implement a test case verifying this in
       };
     } catch (e) {
       console.error('save-note-to-desktop error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  // Save Zero-Click Error Doctor report directly to Windows Desktop
+  ipcMain.handle('save-debug-report-to-desktop', async (event, payload) => {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const os = require('os');
+
+      if (!payload || !payload.markdownReport) {
+        return { success: false, error: 'No report content provided' };
+      }
+
+      const filename = payload.filename || 'Acharya_Debug_Report.md';
+      const primaryDesktop = app.getPath('desktop');
+      const fallbackDesktop = path.join(os.homedir(), 'Desktop');
+      const oneDriveDesktop = path.join(os.homedir(), 'OneDrive', 'Desktop');
+
+      const targetDirs = new Set([primaryDesktop, fallbackDesktop, oneDriveDesktop]);
+      const savedPaths = [];
+
+      targetDirs.forEach((dir) => {
+        try {
+          if (fs.existsSync(dir)) {
+            const dest = path.join(dir, filename);
+            fs.writeFileSync(dest, payload.markdownReport, 'utf8');
+            savedPaths.push(dest);
+          }
+        } catch (err) {
+          console.error(`Failed to write to ${dir}:`, err);
+        }
+      });
+
+      return {
+        success: savedPaths.length > 0,
+        filename,
+        savedPaths,
+        primaryPath: savedPaths[0] || path.join(primaryDesktop, filename)
+      };
+    } catch (e) {
+      console.error('save-debug-report-to-desktop error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  // Save Ebbinghaus Memory Revision Cheat Sheet directly to Windows Desktop
+  ipcMain.handle('save-revision-cheatsheet-to-desktop', async (event, payload) => {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const os = require('os');
+
+      if (!payload || !payload.markdownContent) {
+        return { success: false, error: 'No content provided' };
+      }
+
+      const filename = payload.filename || 'Acharya_Memory_Revision_CheatSheet.md';
+      const primaryDesktop = app.getPath('desktop');
+      const fallbackDesktop = path.join(os.homedir(), 'Desktop');
+      const oneDriveDesktop = path.join(os.homedir(), 'OneDrive', 'Desktop');
+
+      const targetDirs = new Set([primaryDesktop, fallbackDesktop, oneDriveDesktop]);
+      const savedPaths = [];
+
+      targetDirs.forEach((dir) => {
+        try {
+          if (fs.existsSync(dir)) {
+            const dest = path.join(dir, filename);
+            fs.writeFileSync(dest, payload.markdownContent, 'utf8');
+            savedPaths.push(dest);
+          }
+        } catch (err) {
+          console.error(`Failed to write to ${dir}:`, err);
+        }
+      });
+
+      return {
+        success: savedPaths.length > 0,
+        filename,
+        savedPaths,
+        primaryPath: savedPaths[0] || path.join(primaryDesktop, filename)
+      };
+    } catch (e) {
+      console.error('save-revision-cheatsheet-to-desktop error:', e);
       return { success: false, error: e.message };
     }
   });
