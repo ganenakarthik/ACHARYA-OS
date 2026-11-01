@@ -259,7 +259,9 @@ export function detectLanguage(code) {
 
 /* ── Main analysis function ── */
 export function analyzeCode(code) {
-  if (!code || code.trim().length < 5) return { errors: [], language: 'unknown', summary: 'No code to analyze.' }
+  if (!code || typeof code !== 'string' || code.trim().length < 5) {
+    return { errors: [], language: 'unknown', lines: 0, summary: 'No code to analyze.' }
+  }
 
   const lang = detectLanguage(code)
   const errors = []
@@ -345,7 +347,7 @@ export function executeCode(code, lang) {
 
 /* ── Smart Automated Code Fixer ── */
 export function applySmartFix(code, error) {
-  if (!code) return code
+  if (!code || typeof code !== 'string') return ''
   let fixed = code
 
   // 1. Java / Spring Boot @Service injection
