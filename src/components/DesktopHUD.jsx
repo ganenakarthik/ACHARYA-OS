@@ -194,6 +194,10 @@ export default function DesktopHUD() {
                 const saveRes = await electron.invoke('save-note-to-desktop', notes)
                 if (saveRes && saveRes.success) {
                   showToast(`✓ Saved note file to Desktop: ${saveRes.filename}`, '📁')
+                  setActiveGeneratedNote({
+                    ...notes,
+                    filename: saveRes.filename
+                  })
                 }
               }
               playCyberChime('success')
@@ -229,6 +233,7 @@ export default function DesktopHUD() {
   // Feature #2: Zero-Click Error Doctor (Stack-Trace Autopsy) State
   const [activeDebugReport, setActiveDebugReport] = useState(null)
   const [isDiagnosingError, setIsDiagnosingError] = useState(false)
+  const [activeGeneratedNote, setActiveGeneratedNote] = useState(null)
 
   // Feature #3: Ebbinghaus Memory Decay Radar State
   const [memoryRadarTopics, setMemoryRadarTopics] = useState([
@@ -936,20 +941,34 @@ export default function DesktopHUD() {
       const explicitTopicMatch = /^(?:make|take|create)\s+notes?\s+on\s+(.+)$/i.exec(cleanCmd)
       let targetTopic = explicitTopicMatch ? explicitTopicMatch[1].trim() : ''
 
-      // Automatically extract topic from active window / screen if not explicitly typed
+      // Automatically extract topic from query context or active window / screen
+      const lowInput = input.toLowerCase()
       if (!targetTopic) {
-        let activeWin = visionData.windowTitle || 'Operating Systems: Deadlock'
-        let cleaned = activeWin
-          .replace(/\s*-\s*(?:Google Chrome|Microsoft Edge|Brave|YouTube|Visual Studio Code|VS Code|Notepad)$/i, '')
-          .replace(/^(?:https?:\/\/)?(?:www\.)?[^\/]+\/?/i, '')
-          .trim()
-        
-        if (cleaned.length < 4 || cleaned === 'Active Desktop Workspace') {
-          cleaned = visionData.focusApp && visionData.focusApp !== 'Desktop / Workspace'
-            ? `${visionData.focusApp} Architecture & Concepts`
-            : 'Operating Systems & Distributed Architecture'
+        if (lowInput.includes('pyt') || lowInput.includes('python')) {
+          targetTopic = 'Python Programming & Core Architecture'
+        } else if (lowInput.includes('java') || lowInput.includes('spring')) {
+          targetTopic = 'Java & Spring Boot Enterprise Architecture'
+        } else if (lowInput.includes('deadlock') || lowInput.includes('os') || lowInput.includes('operating')) {
+          targetTopic = 'Operating Systems: Deadlock & Concurrency'
+        } else if (lowInput.includes('crypto') || lowInput.includes('rsa') || lowInput.includes('security')) {
+          targetTopic = 'Cryptography & Public Key Invariants'
+        } else if (lowInput.includes('network') || lowInput.includes('tcp') || lowInput.includes('udp')) {
+          targetTopic = 'Computer Networks & Transport Protocols'
+        } else if (lowInput.includes('dbms') || lowInput.includes('sql') || lowInput.includes('b-tree')) {
+          targetTopic = 'Database Systems & B-Tree Indexing'
+        } else {
+          let activeWin = visionData.windowTitle || ''
+          let cleaned = activeWin
+            .replace(/\s*-\s*(?:Google Chrome|Microsoft Edge|Brave|YouTube|Visual Studio Code|VS Code|Notepad)$/i, '')
+            .replace(/^(?:https?:\/\/)?(?:www\.)?[^\/]+\/?/i, '')
+            .trim()
+          
+          if (cleaned.length >= 4 && cleaned !== 'Active Desktop Workspace' && cleaned !== 'msedge') {
+            targetTopic = cleaned
+          } else {
+            targetTopic = 'Python Programming & Architecture'
+          }
         }
-        targetTopic = cleaned
       }
 
       setThoughtStream([
@@ -962,7 +981,6 @@ export default function DesktopHUD() {
         const notes = await synthesizeLectureNotes(targetTopic)
         if (notes) {
           setActiveLectureNote(notes)
-          setActiveModal('pdf')
           
           const electron = getElectron()
           let savedFile = `Acharya_${targetTopic.replace(/[^a-zA-Z0-9_-]/g, '_')}.md`
@@ -972,6 +990,13 @@ export default function DesktopHUD() {
               savedFile = saveRes.filename
             }
           }
+
+          // Open active generated note modal right in front of the student
+          setActiveGeneratedNote({
+            ...notes,
+            filename: savedFile,
+            topic: targetTopic
+          })
 
           setIsAiThinking(false)
           setMood('STRATEGIC')
@@ -1975,6 +2000,155 @@ export default function DesktopHUD() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </>
+          )}
+
+          {/* Hands-Free Screen & Lecture Note Viewer Modal */}
+          {activeGeneratedNote && (
+            <>
+              <div
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  background: 'rgba(3, 6, 12, 0.8)',
+                  backdropFilter: 'blur(8px)',
+                  zIndex: 9998
+                }}
+                onClick={() => setActiveGeneratedNote(null)}
+              />
+
+              <div style={{
+                position: 'fixed',
+                top: '55px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 'min(920px, calc(100vw - 48px))',
+                maxHeight: 'calc(100vh - 85px)',
+                background: '#070a14',
+                border: '1.5px solid #00f0ff',
+                borderRadius: '12px',
+                padding: '18px 22px',
+                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.98), 0 0 35px rgba(0, 240, 255, 0.35)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                zIndex: 9999,
+                overflowY: 'auto'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '18px' }}>📑</span>
+                    <span style={{ fontSize: '12px', fontWeight: '900', color: '#00f0ff', letterSpacing: '1px' }}>
+                      ACHARYA SCREEN NOTE SYNTHESIS
+                    </span>
+                    <span style={{ fontSize: '9px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(0, 255, 157, 0.15)', color: '#00ff9d', fontWeight: 'bold', border: '1px solid #00ff9d' }}>
+                      📁 Saved: {activeGeneratedNote.filename}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={async () => {
+                        const electron = getElectron()
+                        if (electron && electron.invoke) {
+                          const res = await electron.invoke('open-desktop-file', activeGeneratedNote.filename)
+                          if (res && res.success) {
+                            showToast(`Opened ${activeGeneratedNote.filename} in Windows!`, '📂')
+                          } else {
+                            showToast('File located on Desktop.', '📁')
+                          }
+                        }
+                      }}
+                      style={{
+                        background: 'linear-gradient(135deg, #00f0ff, #00ff9d)',
+                        border: 'none',
+                        color: '#000',
+                        fontWeight: '900',
+                        fontSize: '10px',
+                        padding: '6px 14px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        boxShadow: '0 0 12px rgba(0,255,157,0.4)'
+                      }}
+                    >
+                      📂 Open File in Windows Notepad
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard?.writeText(activeGeneratedNote.markdownDoc || activeGeneratedNote.executiveSummary)
+                        showToast('Copied notes to clipboard!', '📋')
+                        playCyberChime('affirm')
+                      }}
+                      style={{
+                        background: 'rgba(255,255,255,0.08)',
+                        border: '1px solid rgba(255,255,255,0.25)',
+                        color: '#fff',
+                        fontSize: '10px',
+                        padding: '6px 10px',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      📋 Copy Notes
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveGeneratedNote(null)
+                        playCyberChime('scan')
+                      }}
+                      style={{
+                        background: 'rgba(255,255,255,0.08)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        color: '#fff',
+                        fontSize: '10px',
+                        padding: '6px 10px',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#ffffff' }}>
+                  {activeGeneratedNote.topic} ({activeGeneratedNote.academicSubject || 'Core Computer Science'})
+                </div>
+
+                <div style={{ background: 'rgba(0, 240, 255, 0.05)', border: '1px solid rgba(0, 240, 255, 0.2)', borderRadius: '6px', padding: '10px', fontSize: '10.5px', color: '#e0f7ff', lineHeight: '1.5' }}>
+                  📌 <b>Executive Summary:</b> {activeGeneratedNote.executiveSummary}
+                </div>
+
+                {/* Key Theorems / Invariants */}
+                <div style={{ background: '#020408', border: '1px solid rgba(0,255,157,0.2)', borderRadius: '6px', padding: '10px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#00ff9d', marginBottom: '6px' }}>
+                    ⚡ CORE THEOREMS, INVARIANTS & FORMULAS:
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '9.5px', color: '#d0ffd0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {(activeGeneratedNote.keyTakeaways || []).map((t, i) => (
+                      <li key={i}>{t}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Predicted Viva Questions */}
+                {activeGeneratedNote.vivaQuestions && activeGeneratedNote.vivaQuestions.length > 0 && (
+                  <div style={{ background: 'rgba(157, 78, 221, 0.08)', border: '1px solid rgba(157, 78, 221, 0.3)', borderRadius: '6px', padding: '10px' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#c77dff', marginBottom: '6px' }}>
+                      🎯 PREDICTED UNIVERSITY VIVA QUESTIONS & MODEL ANSWERS:
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {activeGeneratedNote.vivaQuestions.map((vq, idx) => (
+                        <div key={idx} style={{ fontSize: '9.5px' }}>
+                          <span style={{ color: '#ffd166', fontWeight: 'bold' }}>Q{idx + 1}: {vq.question}</span>
+                          <div style={{ color: 'rgba(255,255,255,0.8)', marginTop: '2px', paddingLeft: '8px', borderLeft: '2px solid #c77dff' }}>
+                            <b>Answer:</b> {vq.expectedAnswer}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}

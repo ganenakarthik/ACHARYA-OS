@@ -636,6 +636,29 @@ Write-Output 'ok'
       return { success: false, error: e.message };
     }
   });
+
+  // Open physical file directly on Desktop in default Windows editor (e.g. Notepad)
+  ipcMain.handle('open-desktop-file', async (event, filename) => {
+    try {
+      const primaryDesktop = app.getPath('desktop');
+      const oneDriveDesktop = path.join(os.homedir(), 'OneDrive', 'Desktop');
+      const fallbackDesktop = path.join(os.homedir(), 'Desktop');
+      const candidates = [
+        path.join(oneDriveDesktop, filename),
+        path.join(primaryDesktop, filename),
+        path.join(fallbackDesktop, filename)
+      ];
+      for (const p of candidates) {
+        if (fs.existsSync(p)) {
+          await shell.openPath(p);
+          return { success: true, path: p };
+        }
+      }
+      return { success: false, error: 'File not found on desktop' };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  });
   ipcMain.handle('inspect-local-file', async (event, filePath) => {
     try {
       const fs = require('fs');
