@@ -454,7 +454,8 @@ export default function DesktopHUD() {
     let isAnalyzing = false
 
     const visionTimer = setInterval(async () => {
-      if (isAnalyzing) return
+      // Zero CPU overhead when vision perception is disabled
+      if (isAnalyzing || !screenPerceptionEnabled) return
       const electron = getElectron()
       if (!electron || !electron.invoke) return
 
@@ -516,10 +517,10 @@ export default function DesktopHUD() {
         isAnalyzing = false
         setVisionScanning(false)
       }
-    }, 7000)
+    }, 20000)
 
     return () => clearInterval(visionTimer)
-  }, [ttsEnabled, voicePersona, profile, activeCodeIssue])
+  }, [screenPerceptionEnabled, ttsEnabled, voicePersona, profile, activeCodeIssue])
 
   // Document & PDF Active Flashcards & Guide
   const [activePdfGuide, setActivePdfGuide] = useState(null)
@@ -742,7 +743,7 @@ export default function DesktopHUD() {
     }
 
     updateStats()
-    const iv = setInterval(updateStats, 8000)
+    const iv = setInterval(updateStats, 14000)
 
     // Launch Autonomous Socratic Mentor Loop
     startAgentLoop({ focusApp: screenPerceptionEnabled ? visionData.focusApp : 'Desktop' })

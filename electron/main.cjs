@@ -365,7 +365,14 @@ function createWindow() {
     };
   });
 
+  let cachedActiveWindow = null;
+  let lastActiveWindowTime = 0;
+
   ipcMain.handle('get-active-window-awareness', async () => {
+    const now = Date.now();
+    if (cachedActiveWindow && (now - lastActiveWindowTime < 3500)) {
+      return cachedActiveWindow;
+    }
     return new Promise((resolve) => {
       const scriptPath = path.join(__dirname, 'get-active-window.ps1');
       const { execFile } = require('child_process');
@@ -405,14 +412,17 @@ function createWindow() {
           insight = `Focused on: ${title.substring(0, 50)}`;
         }
 
-        resolve({
+        const result = {
           success: true,
           windowTitle: title,
           focusApp: app,
           activity,
           insight,
           timestamp: new Date().toLocaleTimeString()
-        });
+        };
+        cachedActiveWindow = result;
+        lastActiveWindowTime = Date.now();
+        resolve(result);
       });
     });
   });
