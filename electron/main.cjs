@@ -492,6 +492,8 @@ function createWindow() {
         };
       }
 
+      console.log(`[Vision Sensor] Active Target: ${boundsJson.Process} - "${boundsJson.Title}" (${boundsJson.Width}x${boundsJson.Height})`);
+
       const windowTitle = boundsJson.Title || '';
       const windowProcess = boundsJson.Process || '';
       const captureLeft = boundsJson.Left || 0;

@@ -574,32 +574,21 @@ export default function DesktopHUD() {
         isAnalyzing = true
         setVisionScanning(true)
 
-        // Check active foreground application
-        const winInfo = await electron.invoke('get-active-window-awareness')
-        const activeApp = (winInfo?.focusApp || '').toLowerCase()
-        const rawWinTitle = winInfo?.windowTitle || ''
-        const winTitle = rawWinTitle.toLowerCase()
-
-        // 1. ABSOLUTE EXCLUSION: Never scan or trigger inside Antigravity or Windows Desktop
-        if (activeApp.includes('antigravity') || winTitle.includes('antigravity') || activeApp.includes('explorer') || activeApp.includes('desktop')) {
-          return
-        }
-
-        const isCodeEditor = activeApp.includes('notepad') || activeApp.includes('code') || activeApp.includes('terminal') || activeApp.includes('devenv')
-        const isBrowser = activeApp.includes('browser') || activeApp.includes('edge') || activeApp.includes('chrome') || activeApp.includes('brave')
-
-        if (!isCodeEditor && !isBrowser) {
-          return
-        }
-
-        // Multimodal Vision Sensor - Window Cropped OCR
+        // Multimodal Vision Sensor — Direct Native Window-Cropped OCR
         const visionResult = await electron.invoke('recognize-screen-vision')
 
         if (visionResult && visionResult.success && visionResult.text) {
           const rawText = visionResult.text.trim()
           const lowText = rawText.toLowerCase()
           const lines = visionResult.lines || []
-          if (visionResult.windowProcess) setVisionTarget(visionResult.windowProcess)
+          const proc = (visionResult.windowProcess || '').toLowerCase()
+          const rawWinTitle = visionResult.windowTitle || ''
+          const winTitle = rawWinTitle.toLowerCase()
+
+          setVisionTarget(proc || 'Active Window')
+
+          const isCodeEditor = proc.includes('notepad') || proc.includes('code') || proc.includes('terminal') || winTitle.includes('notepad') || winTitle.includes('visual studio code')
+          const isBrowser = proc.includes('edge') || proc.includes('chrome') || proc.includes('brave') || proc.includes('firefox') || winTitle.includes('browser')
 
           // 1. PURE SCREEN VISION: In Browser, detect genuine educational lecture (NOT home feeds)
           if (isBrowser && islandStatus === 'idle') {
