@@ -426,6 +426,10 @@ function createWindow() {
           app = 'System Terminal';
           activity = 'Environment Orchestration & Scripting';
           insight = 'Executing terminal commands and system tasks.';
+        } else if (lowProc.includes('notepad') || lowTitle.includes('notepad')) {
+          app = 'Notepad Editor';
+          activity = 'Source Code & Scripting';
+          insight = 'Writing code in Notepad.';
         } else if (title && title !== 'Active Desktop Workspace') {
           app = proc.toUpperCase() || 'Application';
           activity = 'Active Workspace Task';
@@ -470,7 +474,10 @@ function createWindow() {
 
   // Native Multimodal Screen Vision & OCR Engine — Window-Cropped (Zero Focus-Stealing)
   // Automatically crops to the active editor/Notepad window so only student code is read
+  let isCapturingVision = false;
   ipcMain.handle('recognize-screen-vision', async () => {
+    if (isCapturingVision) return { success: false, error: 'busy' };
+    isCapturingVision = true;
     try {
       const { execFile } = require('child_process');
 
@@ -536,7 +543,7 @@ Write-Output 'ok'
 
       // Step 4: Run WinRT OCR on the (possibly cropped) image
       const ocrScript = path.join(__dirname, 'screen-ocr.ps1');
-      return new Promise((resolve) => {
+      return await new Promise((resolve) => {
         execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ocrScript, '-ImagePath', cropTmp],
           { windowsHide: true, timeout: 15000 }, (err, stdout) => {
             // Cleanup temp files
@@ -552,7 +559,10 @@ Write-Output 'ok'
       });
     } catch (e) {
       return { success: false, error: e.message };
+    } finally {
+      isCapturingVision = false;
     }
+  });
   });
 
   // Expose window bounds for the Pill indicator
