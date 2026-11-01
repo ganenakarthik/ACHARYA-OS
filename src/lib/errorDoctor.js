@@ -132,6 +132,7 @@ Respond ONLY in valid JSON matching this exact structure:
     const res = await fetch('https://text.pollinations.ai/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(3500),
       body: JSON.stringify({
         messages: [{ role: 'user', content: prompt }],
         model: 'openai-fast',
