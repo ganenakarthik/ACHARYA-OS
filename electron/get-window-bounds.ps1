@@ -73,7 +73,7 @@ Add-Type @"
           string lowT = title.ToLower();
 
           // Strict Exclusion: Never evaluate Antigravity, Electron, or Explorer/Desktop
-          if (proc == "electron" || proc.Contains("antigravity") || lowT.Contains("antigravity") || proc == "explorer" || string.IsNullOrWhiteSpace(title)) {
+          if (proc == "electron" || proc.Contains("antigravity") || lowT.Contains("antigravity") || proc == "explorer") {
             result.Title = title;
             result.Process = proc;
             result.Found = false;
@@ -95,7 +95,7 @@ Add-Type @"
                 result.Bottom = r.Bottom;
                 result.Width = r.Right - r.Left;
                 result.Height = r.Bottom - r.Top;
-                result.Title = title;
+                result.Title = string.IsNullOrWhiteSpace(title) ? (proc.Contains("notepad") ? "Notepad" : proc) : title;
                 result.Process = proc;
                 result.Found = true;
               }

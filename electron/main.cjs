@@ -89,24 +89,25 @@ function createWindow() {
   });
 
   const distPath = path.join(__dirname, '../dist/index.html');
-  const startUrl = process.env.ELECTRON_START_URL;
+  const http = require('http');
 
-  console.log('Loading Acharya frontend from:', startUrl || distPath);
+  const checkDev = http.get('http://127.0.0.1:5174', (res) => {
+    console.log('Live Vite dev server active on 5174, loading URL');
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.loadURL('http://127.0.0.1:5174').catch(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.loadFile(distPath);
+      });
+    }
+  });
 
-  if (startUrl) {
-    mainWindow.loadURL(startUrl).catch((err) => {
-      console.warn('Failed loading startUrl, fallback to distPath:', err);
-      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.loadFile(distPath);
-    });
-  } else if (fs.existsSync(distPath)) {
-    mainWindow.loadFile(distPath).catch((err) => {
-      console.error('Failed to load distPath:', err);
-    });
-  } else {
-    mainWindow.loadURL('http://127.0.0.1:5174').catch((err) => {
-      console.error('Failed to load dev server:', err);
-    });
-  }
+  checkDev.on('error', () => {
+    console.log('Vite dev server not detected, loading compiled dist:', distPath);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.loadFile(distPath).catch((err) => {
+        console.error('Failed to load distPath:', err);
+      });
+    }
+  });
 
   // Handle load errors
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {

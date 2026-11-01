@@ -75,9 +75,13 @@ $lowT = $title.ToLower()
 if ($lowP -match "antigravity|electron" -or $lowT -match "antigravity") {
   $title = "Antigravity Workspace"
   $pName = "antigravity"
-} elseif ([string]::IsNullOrWhiteSpace($title) -or $lowP -eq "explorer") {
+} elseif ($lowP -eq "explorer") {
   $title = "Active Desktop Workspace"
   $pName = "explorer"
+} elseif ([string]::IsNullOrWhiteSpace($title)) {
+  if ($lowP -match "notepad") { $title = "Notepad" }
+  elseif ($lowP -match "code") { $title = "Visual Studio Code" }
+  else { $title = $pName }
 }
 
 $result = [PSCustomObject]@{
