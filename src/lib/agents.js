@@ -707,6 +707,196 @@ export async function analyzeCodeWithAI(code, lang = '', profile = {}) {
     return { isError: false, status: 'CLEAN', message: 'Buffer empty. Ready for source code inspection.' }
   }
 
+  const lines = code.split('\n')
+
+  // 1. High-Precision AST & Static Code Invariant Engine (Zero-Latency Local Analysis)
+  // Catch IndexError, ZeroDivisionError, Missing Colons, Missing Semicolons, and Tracebacks instantly
+
+  // Check 1A: Traceback / Runtime Error Output
+  if (code.includes('Traceback (most recent call last)') || /([A-Za-z]+Error):/i.test(code)) {
+    const errMatch = code.match(/([A-Za-z]+Error):\s*(.*)/i)
+    const lineMatch = code.match(/File ".*?", line (\d+)/i)
+    const lineNum = lineMatch ? parseInt(lineMatch[1], 10) : 1
+    const errType = errMatch ? errMatch[1] : 'Runtime Traceback Error'
+    const detail = errMatch ? errMatch[2] : ''
+    const fullErr = errType + (detail ? ': ' + detail : '')
+    trackStudentError(fullErr, 'Python', 'Runtime Debugging')
+    return {
+      isError: true,
+      language: 'Python',
+      projectIntent: 'Runtime Debugging',
+      line: lineNum,
+      errorType: fullErr,
+      socraticQuestion: `The runtime encountered an unhandled ${errType}. What state invariant failed prior to this instruction?`,
+      conceptualInsight: 'Runtime exceptions occur when an operation violates language semantics during execution.',
+      hint: `Inspect the stack frame at line ${lineNum} and add defensive handling.`,
+      mentorSpeech: `An unhandled ${errType} was raised on line ${lineNum}. Let us resolve the root cause.`,
+      suggestedFix: `# Guard against ${errType}`,
+      fixedFullCode: code,
+      codeSnippet: lines[lineNum - 1] || '',
+      fullCode: code,
+      totalLines: lines.length
+    }
+  }
+
+  // Check 1B: Python List Literal Index Out of Bounds (IndexError)
+  const listDefs = {}
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^\s*([a-zA-Z_]\w*)\s*=\s*\[(.*)\]\s*$/)
+    if (m) {
+      const varName = m[1]
+      const rawItems = m[2].trim()
+      const items = rawItems ? rawItems.split(',').map(s => s.trim()) : []
+      listDefs[varName] = { length: items.length, line: i + 1 }
+    }
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i]
+    const match = rawLine.match(/\b([a-zA-Z_]\w*)\[\s*(\d+)\s*\]/)
+    if (match) {
+      const varName = match[1]
+      const idx = parseInt(match[2], 10)
+      if (listDefs[varName]) {
+        const len = listDefs[varName].length
+        if (idx >= len) {
+          const fixedLine = rawLine.replace(
+            new RegExp(`\\b${varName}\\[${idx}\\]`, 'g'),
+            `${varName}[${idx}] if len(${varName}) > ${idx} else None`
+          )
+          const fixedLines = [...lines]
+          fixedLines[i] = fixedLine
+
+          const errorType = `IndexError: list index ${idx} out of range (length ${len})`
+          trackStudentError(errorType, 'Python', 'List Lookup')
+
+          return {
+            isError: true,
+            language: 'Python',
+            projectIntent: 'List Lookup',
+            line: i + 1,
+            errorType,
+            socraticQuestion: `The collection '${varName}' contains ${len} items (indices 0..${len - 1}). What does Python do when index ${idx} is queried?`,
+            conceptualInsight: 'Python lists are zero-indexed and bounded. Subscripting at or beyond len(list) raises an IndexError.',
+            hint: `Guard the index access: check if len(${varName}) > ${idx} before subscripting.`,
+            mentorSpeech: `On line ${i + 1}, ${varName} has only ${len} items, but you are requesting index ${idx}. That will trigger an IndexError.`,
+            suggestedFix: fixedLine,
+            fixedFullCode: fixedLines.join('\n'),
+            codeSnippet: rawLine,
+            fullCode: code,
+            totalLines: lines.length
+          }
+        }
+      }
+    }
+
+    // Off-by-one: arr[len(arr)]
+    const offByOne = rawLine.match(/\b([a-zA-Z_]\w*)\[\s*len\(\1\)\s*\]/)
+    if (offByOne) {
+      const varName = offByOne[1]
+      const fixedLine = rawLine.replace(offByOne[0], `${varName}[-1]`)
+      const fixedLines = [...lines]
+      fixedLines[i] = fixedLine
+      const errorType = `IndexError: ${varName}[len(${varName})] off-by-one error`
+      trackStudentError(errorType, 'Python', 'List Indexing')
+      return {
+        isError: true,
+        language: 'Python',
+        projectIntent: 'List Indexing',
+        line: i + 1,
+        errorType,
+        socraticQuestion: `If a list has length N, its last valid element is at index N-1. What happens at index N?`,
+        conceptualInsight: 'In 0-indexed languages, the maximum index is len - 1. To get the last element in Python, use negative index [-1].',
+        hint: `Use ${varName}[-1] to access the final element safely.`,
+        mentorSpeech: `Classic off by one boundary bug on line ${i + 1}. In Python, use index -1 for the last item.`,
+        suggestedFix: fixedLine,
+        fixedFullCode: fixedLines.join('\n'),
+        codeSnippet: rawLine,
+        fullCode: code,
+        totalLines: lines.length
+      }
+    }
+
+    // Check 1C: Python missing colon
+    const trimmed = rawLine.trim()
+    if (/^(def|class|if|elif|else|for|while|with|try|except|finally)\b.*[^:]$/.test(trimmed)) {
+      if (!trimmed.startsWith('#') && !trimmed.startsWith('//') && !trimmed.endsWith('{')) {
+        const fixedLines = [...lines]
+        fixedLines[i] = rawLine + ':'
+        const kw = trimmed.split(/\s+/)[0]
+        const errorType = `SyntaxError: expected ':' at end of ${kw} statement`
+        trackStudentError(errorType, 'Python', 'Control Flow')
+        return {
+          isError: true,
+          language: 'Python',
+          projectIntent: 'Control Flow',
+          line: i + 1,
+          errorType,
+          socraticQuestion: `How does the Python parser identify the end of a ${kw} header and the start of the block body?`,
+          conceptualInsight: 'Compound statement headers in Python must conclude with a colon token.',
+          hint: `Add a colon ':' at the end of line ${i + 1}.`,
+          mentorSpeech: `Check the end of line ${i + 1}. Your ${kw} statement needs a colon before its body.`,
+          suggestedFix: `${rawLine}:`,
+          fixedFullCode: fixedLines.join('\n'),
+          codeSnippet: rawLine,
+          fullCode: code,
+          totalLines: lines.length
+        }
+      }
+    }
+
+    // Check 1D: Division by zero
+    if (/\/\s*0(?!\.)|\/\s*0\.0\b/.test(trimmed)) {
+      const fixedLines = [...lines]
+      fixedLines[i] = rawLine.replace(/\/\s*0(?!\.)/, '/ (divisor if divisor != 0 else 1)')
+      const errorType = 'ZeroDivisionError: division by zero'
+      trackStudentError(errorType, 'Python / C', 'Arithmetic Safeguard')
+      return {
+        isError: true,
+        language: 'Python / C',
+        projectIntent: 'Arithmetic Safeguard',
+        line: i + 1,
+        errorType,
+        socraticQuestion: 'What numerical invariant is violated when a denominator evaluates to zero?',
+        conceptualInsight: 'Division by zero is undefined in arithmetic and raises a hardware trap or runtime ZeroDivisionError.',
+        hint: 'Guard the divisor to ensure it is non-zero before executing division.',
+        mentorSpeech: `Notice the divisor on line ${i + 1}. Dividing by zero will crash the execution.`,
+        suggestedFix: fixedLines[i],
+        fixedFullCode: fixedLines.join('\n'),
+        codeSnippet: rawLine,
+        fullCode: code,
+        totalLines: lines.length
+      }
+    }
+
+    // Check 1E: Missing semicolon in C / Java
+    const isCompiled = code.includes('System.out') || code.includes('cout') || code.includes('printf') || code.includes('#include') || code.includes('public class')
+    if (isCompiled && /^(int|float|double|char|long|return|printf|cout|System\.out\.println)\b.*[^;{}]$/.test(trimmed)) {
+      const fixedLines = [...lines]
+      fixedLines[i] = rawLine + ';'
+      const detectedLang = trimmed.includes('System.out') ? 'Java' : 'C / C++'
+      const errorType = "Missing Semicolon ';'"
+      trackStudentError(errorType, detectedLang, 'Statement Termination')
+      return {
+        isError: true,
+        language: detectedLang,
+        projectIntent: 'Statement Termination',
+        line: i + 1,
+        errorType,
+        socraticQuestion: 'How does the compiler distinguish individual statements in this language?',
+        conceptualInsight: 'C/C++ and Java compilers require semicolons as explicit statement terminators.',
+        hint: `Add a semicolon ';' at the end of line ${i + 1}.`,
+        mentorSpeech: `Line ${i + 1} is missing a semicolon terminator.`,
+        suggestedFix: `${rawLine};`,
+        fixedFullCode: fixedLines.join('\n'),
+        codeSnippet: rawLine,
+        fullCode: code,
+        totalLines: lines.length
+      }
+    }
+  }
+
+  // 2. Secondary Neural Validation (If local engine found clean code, verify with LLM if available)
   const prompt = `You are Acharya, an expert university computer science professor and autonomous AI mentor.
 Inspect the following source code in any programming language (Python, C, C++, Java, JavaScript, TypeScript, Rust, Go, SQL, HTML, etc.).
 Determine whether it contains ANY syntax errors, logical bugs, missing colons, missing semicolons, unclosed brackets, unhandled exceptions, type errors, or runtime crash risks.
@@ -731,10 +921,9 @@ You must respond with ONLY a single valid JSON object in the exact following sch
   "fixedFullCode": "the complete corrected code with the fix applied"
 }`
 
-  // 1. Try Live Neural LLM (Direct Dedicated Fast Diagnostic Request)
   try {
     const diagController = new AbortController()
-    const diagTimeout = setTimeout(() => diagController.abort(), 9000)
+    const diagTimeout = setTimeout(() => diagController.abort(), 2000)
     const postRes = await fetch('https://text.pollinations.ai/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -749,19 +938,13 @@ You must respond with ONLY a single valid JSON object in the exact following sch
 
     if (postRes.ok) {
       const raw = await postRes.text()
-      if (raw) {
+      if (raw && !raw.includes('Free limit reached') && !raw.includes('Please wait')) {
         const jsonMatch = raw.match(/\{[\s\S]*\}/)
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0])
-          const lines = code.split('\n')
           const lineIdx = parsed.line && parsed.line > 0 && parsed.line <= lines.length ? parsed.line - 1 : 0
           if (parsed.isError && parsed.errorType && parsed.language) {
             trackStudentError(parsed.errorType, parsed.language, parsed.projectIntent)
-            const recurringWarning = getRecurringErrorWarning(parsed.language, parsed.errorType)
-            if (recurringWarning && parsed.mentorSpeech) {
-              parsed.mentorSpeech = parsed.mentorSpeech + ' ' + recurringWarning
-              parsed.isRecurring = true
-            }
           }
           return {
             ...parsed,
@@ -772,162 +955,14 @@ You must respond with ONLY a single valid JSON object in the exact following sch
         }
       }
     }
-  } catch (e) {
-    console.warn('Neural LLM Code Diagnostic notice:', e.message)
-  }
-
-  // 2. Try Ollama if running
-  try {
-    const raw = await callOllama([{ role: 'user', content: prompt }], profile)
-    if (raw) {
-      const jsonMatch = raw.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0])
-        const lines = code.split('\n')
-        const lineIdx = parsed.line && parsed.line > 0 && parsed.line <= lines.length ? parsed.line - 1 : 0
-        if (parsed.isError && parsed.errorType && parsed.language) {
-          trackStudentError(parsed.errorType, parsed.language, parsed.projectIntent)
-          const recurringWarning = getRecurringErrorWarning(parsed.language, parsed.errorType)
-          if (recurringWarning && parsed.mentorSpeech) {
-            parsed.mentorSpeech = parsed.mentorSpeech + ' ' + recurringWarning
-            parsed.isRecurring = true
-          }
-        }
-        return {
-          ...parsed,
-          codeSnippet: lines[lineIdx] || '',
-          fullCode: code,
-          totalLines: lines.length
-        }
-      }
-    }
   } catch (_) {}
 
-  // 3. Fallback: Resilient Structural & Socratic Parser
-  // Strict code verification: If the text is plain English notes or non-code, return CLEAN
-  const isActualProgram = (
-    /\b(def\s+\w+\s*\(|class\s+\w+|import\s+\w+|from\s+\w+\s+import|function\s+\w+|public\s+class|#include\s*<)/.test(code) ||
-    /\b(print\s*\(|console\.log\s*\(|System\.out\.println\s*\(|cout\s*<<)/.test(code) ||
-    /(\w+\s*=\s*\[.*\]|\w+\s*=\s*\{.*\}|\w+\s*=\s*\w+\s*\(.*\))/.test(code) ||
-    /Traceback \(most recent call last\):|IndexError:|ZeroDivisionError:|SyntaxError:|TypeError:/.test(code)
-  );
-
-  if (!isActualProgram) {
-    return { isError: false, status: 'CLEAN', message: 'Buffer clean. No syntax flaws.' };
-  }
-
-  const lines = code.split('\n')
-  for (let i = 0; i < lines.length; i++) {
-    const rawLine = lines[i]
-    const trimmed = rawLine.trim()
-    if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) continue
-
-    // 1. Python block header missing colon (STRICT: must look like real Python, not an English sentence)
-    const isPythonBlock = (
-      /^def\s+\w+\s*\([^)]*\)\s*[^:]$/.test(trimmed) ||
-      /^class\s+\w+(\s*\([^)]*\))?\s*[^:]$/.test(trimmed) ||
-      /^if\s+.+\b(==|!=|<|>|<=|>=| in | is | not )\b.+[^:]$/.test(trimmed) ||
-      /^elif\s+.+\b(==|!=|<|>|<=|>=| in | is | not )\b.+[^:]$/.test(trimmed) ||
-      /^for\s+\w+(\s*,\s*\w+)*\s+in\s+.+[^:]$/.test(trimmed) ||
-      /^while\s+.+[^:]$/.test(trimmed) ||
-      /^with\s+open\s*\(.+[^:]$/.test(trimmed)
-    );
-
-    if (isPythonBlock) {
-      if (!rawLine.includes('(') || (rawLine.includes('(') && rawLine.includes(')'))) {
-        const fixedLines = [...lines]
-        fixedLines[i] = `${rawLine}:`
-        const kw = trimmed.split(/\s+/)[0]
-        const isCalc = code.toLowerCase().includes('add') || code.toLowerCase().includes('calc') || code.toLowerCase().includes('subtract') || code.toLowerCase().includes('divide')
-        const intent = isCalc ? 'Calculator Flow' : 'Program Flow'
-        const socraticQuestion = `How does the Python interpreter distinguish between a header declaration and the executable block suite?`
-        const errorType = `Missing Colon ':' in '${kw}' statement`
-        trackStudentError(errorType, 'Python', intent)
-        const recurringWarning = getRecurringErrorWarning('Python', errorType)
-        const baseSpeech = `I notice you are writing a ${kw} statement on line ${i + 1}. In Python, how do we signal to the interpreter that a new block of code is beginning? Take a look at the end of line ${i + 1}.`
-        const mentorSpeech = recurringWarning ? baseSpeech + ' ' + recurringWarning : baseSpeech
-        return {
-          isError: true,
-          language: 'Python',
-          projectIntent: intent,
-          line: i + 1,
-          errorType,
-          socraticQuestion,
-          conceptualInsight: `In Python grammar, compound statements require a colon to transition into the indented block suite.`,
-          hint: `In Python, '${kw}' block definitions must terminate with a colon ':'. Check line ${i + 1}.`,
-          mentorSpeech,
-          isRecurring: !!recurringWarning,
-          suggestedFix: `${rawLine}:`,
-          fixedFullCode: fixedLines.join('\n'),
-          codeSnippet: rawLine,
-          fullCode: code,
-          totalLines: lines.length
-        }
-      }
-    }
-
-    // 2. C / C++ / Java Missing Semicolon (strictly requires C/Java program markers)
-    const hasCompiledLangMarker = code.includes('System.out') || code.includes('cout') || code.includes('printf') || code.includes('#include') || code.includes('public class')
-    if (hasCompiledLangMarker && /^(int|float|double|char|long|return|printf|cout|System\.out\.println)\b.*[^;{}]$/.test(trimmed)) {
-      if (!trimmed.endsWith('>') && !trimmed.endsWith(':')) {
-        const fixedLines = [...lines]
-        fixedLines[i] = `${rawLine};`
-        const detectedLang = trimmed.includes('System.out') ? 'Java' : (trimmed.includes('cout') ? 'C++' : (trimmed.includes('printf') ? 'C' : 'C / Java'))
-        const errorType = "Missing Semicolon ';' statement terminator"
-        trackStudentError(errorType, detectedLang, 'Program Flow')
-        const recurringWarning = getRecurringErrorWarning(detectedLang, errorType)
-        const baseSpeech = `Check line ${i + 1}. In ${detectedLang}, statements must be terminated with a semicolon before the compiler can parse subsequent instructions.`
-        const mentorSpeech = recurringWarning ? baseSpeech + ' ' + recurringWarning : baseSpeech
-        return {
-          isError: true,
-          language: detectedLang,
-          projectIntent: 'Statement Termination',
-          line: i + 1,
-          errorType,
-          socraticQuestion: `What token does the ${detectedLang} compiler use to disambiguate statement boundaries in source code?`,
-          conceptualInsight: `Unlike whitespace-sensitive languages, ${detectedLang} requires explicit semicolons to construct AST statement nodes.`,
-          hint: `Add a semicolon ';' to terminate statement on line ${i + 1}.`,
-          mentorSpeech,
-          isRecurring: !!recurringWarning,
-          suggestedFix: `${rawLine};`,
-          fixedFullCode: fixedLines.join('\n'),
-          codeSnippet: rawLine,
-          fullCode: code,
-          totalLines: lines.length
-        }
-      }
-    }
-
-    // 3. Division by Zero Vulnerability (Cyber Security / Reliability Invariant)
-    if (/\/\s*0(?!\.)|\/\s*0\.0\b/.test(trimmed)) {
-      const errorType = "Division by Zero Runtime Crash Risk"
-      trackStudentError(errorType, 'Algorithm', 'Arithmetic Logic')
-      return {
-        isError: true,
-        language: lang || 'Python / C',
-        projectIntent: 'Arithmetic Invariant',
-        line: i + 1,
-        errorType,
-        socraticQuestion: `What algebraic invariant is violated when an arithmetic denominator evaluates to zero?`,
-        conceptualInsight: `Division by zero raises SIGFPE (floating point exception) at the hardware level, crashing the runtime.`,
-        hint: `Guard line ${i + 1} with a conditional check to ensure the denominator is non-zero before dividing.`,
-        mentorSpeech: `Warning: detected potential division by zero on line ${i + 1}. How can we mathematically safeguard this operation?`,
-        isRecurring: false,
-        suggestedFix: `if denominator != 0: ${rawLine}`,
-        fixedFullCode: lines.map((l, idx) => idx === i ? `    if denominator != 0:\n    ${l}` : l).join('\n'),
-        codeSnippet: rawLine,
-        fullCode: code,
-        totalLines: lines.length
-      }
-    }
-  }
-
-  // Fallback: Zero defect confirmed
+  // 3. Fallback: Zero defect confirmed
   return {
     isError: false,
-    language: lang || 'Source Code',
+    language: lang || 'Python',
     status: 'CLEAN',
     message: 'Zero syntax or structural defects confirmed.',
-    totalLines: code.split('\n').length
+    totalLines: lines.length
   }
 }

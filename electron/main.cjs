@@ -390,7 +390,7 @@ function createWindow() {
 
   ipcMain.handle('get-active-window-awareness', async () => {
     const now = Date.now();
-    if (cachedActiveWindow && (now - lastActiveWindowTime < 3500)) {
+    if (cachedActiveWindow && (now - lastActiveWindowTime < 400)) {
       return cachedActiveWindow;
     }
     return new Promise((resolve) => {
