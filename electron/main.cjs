@@ -563,7 +563,6 @@ Write-Output 'ok'
       isCapturingVision = false;
     }
   });
-  });
 
   // Expose window bounds for the Pill indicator
   ipcMain.handle('get-window-bounds', async () => {
