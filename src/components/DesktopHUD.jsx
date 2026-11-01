@@ -64,6 +64,11 @@ export default function DesktopHUD() {
   const [activeModal, setActiveModal] = useState(null) // 'chat' | 'settings' | 'tasks' | 'exam' | 'system' | 'radar' | 'vision' | 'planner' | 'pdf' | 'email' | 'memory'
   const [memoryTab, setMemoryTab] = useState('sessions') // 'sessions' | 'retention' | 'security' | 'raw_vault'
 
+  // Dynamic Island Callback Forwarding Refs (Avoid listener stale closures)
+  const triggerIslandPromptRef = useRef(null)
+  const handleDismissIslandRef = useRef(null)
+  const handleIslandActionConfirmRef = useRef(null)
+
   useEffect(() => {
     const electron = getElectron()
     if (electron) {
@@ -75,6 +80,13 @@ export default function DesktopHUD() {
         electron.on('os-runtime-error-detected', (errorData) => {
           if (errorData && errorData.isError) {
             setSocraticIntervention(errorData)
+            triggerIslandPromptRef.current?.({
+              type: 'error',
+              title: errorData.errorType || 'OS Runtime Invariant Fault',
+              subtitle: 'System Workspace Context',
+              question: 'Should Acharya resolve it in Notepad?',
+              data: errorData
+            })
             playCyberChime('alarm')
             showToast(`⚡ Zero-Touch Sentry: Intercepted ${errorData.errorType} in OS`, '⚠️')
           }
@@ -82,6 +94,13 @@ export default function DesktopHUD() {
         electron.on('live-code-issue-detected', (issue) => {
           if (issue && issue.isError) {
             setActiveCodeIssue(issue)
+            triggerIslandPromptRef.current?.({
+              type: 'error',
+              title: issue.errorType || 'Code Bug Detected',
+              subtitle: `Line ${issue.line || 1} in ${issue.fileName || 'Notepad'}`,
+              question: 'Should Acharya resolve it in Notepad?',
+              data: issue
+            })
             playCyberChime('alarm')
             showToast(`🚨 ${issue.errorType} (Line ${issue.line})`, '⚠️')
             if (ttsEnabled && issue.mentorSpeech) {
@@ -112,9 +131,21 @@ export default function DesktopHUD() {
                   showToast(`✓ Debug Report saved to Desktop: ${saveRes.filename}`, '📁')
                 }
               }
+              triggerIslandPromptRef.current?.({
+                type: 'error',
+                title: diag.errorType || 'Runtime Exception Traceback',
+                subtitle: diag.rootCause ? diag.rootCause.slice(0, 40) : 'Notepad Traceback',
+                question: 'Should Acharya resolve it in Notepad?',
+                data: {
+                  ...diag,
+                  fixedFullCode: diag.exactFixCode,
+                  suggestedFix: diag.exactFixCode,
+                  fileName: 'Notepad'
+                }
+              })
               playCyberChime('success')
               if (ttsEnabled) {
-                speakText(`Runtime exception intercepted: ${diag.errorType}. I have analyzed the root cause and saved an academic debug fix report to your Windows Desktop.`)
+                speakText(`Runtime exception intercepted: ${diag.errorType}. I have analyzed the root cause and can patch your Notepad.`)
               }
             }
           } catch (_) {}
@@ -134,10 +165,18 @@ export default function DesktopHUD() {
           try {
             const aiRes = await analyzeCodeWithAI(codeText, '', profile)
             if (aiRes && aiRes.isError) {
-              setActiveCodeIssue({
+              const issueData = {
                 ...aiRes,
                 programDomain: aiRes.projectIntent || aiRes.language || 'Code Flow',
                 fileName: aiRes.fileName || 'active_editor'
+              }
+              setActiveCodeIssue(issueData)
+              triggerIslandPromptRef.current?.({
+                type: 'error',
+                title: aiRes.errorType || 'Code Bug Detected',
+                subtitle: `Line ${aiRes.line || 1} in active editor`,
+                question: 'Should Acharya resolve it in Notepad?',
+                data: issueData
               })
               playCyberChime('alarm')
               showToast(`🚨 ${aiRes.errorType} (Line ${aiRes.line})`, '⚠️')
@@ -157,56 +196,15 @@ export default function DesktopHUD() {
 
         // Hands-Free Auto-Capture for YouTube Lecture URLs
         electron.on('youtube-url-detected', async (ytUrl) => {
-          showToast(`📺 Detected YouTube Lecture URL. Auto-generating notes...`, '⚡')
-          playCyberChime('scan')
-          try {
-            const notes = await synthesizeLectureNotes(ytUrl, `Extracted educational stream: ${ytUrl}`)
-            if (notes) {
-              setActiveLectureNote(notes)
-              addPdfDocument({
-                name: `YouTube Lecture: ${notes.topic}`,
-                summary: notes.executiveSummary,
-                parsedText: JSON.stringify(notes.keyTakeaways),
-                flashcards: (notes.retrievalDrillCards || []).map(c => ({
-                  front: c.front || c.q || '',
-                  back: c.back || c.a || ''
-                }))
-              })
-              setMemoryRadarTopics(prev => {
-                const filtered = prev.filter(p => p.topic !== notes.topic)
-                return [
-                  {
-                    id: `mem-${Date.now()}`,
-                    topic: notes.topic,
-                    category: notes.academicSubject || 'Core CS',
-                    lastStudied: 'Just now',
-                    daysAgo: 0,
-                    stability: 5.0,
-                    retention: 100,
-                    status: 'STABLE INVARIANT',
-                    statusColor: '#00ff9d',
-                    summary: notes.executiveSummary || 'Learned core invariants and viva answers.'
-                  },
-                  ...filtered
-                ]
-              })
-              if (electron.invoke) {
-                const saveRes = await electron.invoke('save-note-to-desktop', notes)
-                if (saveRes && saveRes.success) {
-                  showToast(`✓ Saved note file to Desktop: ${saveRes.filename}`, '📁')
-                  setActiveGeneratedNote({
-                    ...notes,
-                    filename: saveRes.filename
-                  })
-                }
-              }
-              playCyberChime('success')
-              showToast(`✓ Hands-Free: Generated notes for ${notes.topic}!`, '✨')
-              if (ttsEnabled) {
-                speakText(`I noticed you copied a YouTube lecture on ${notes.topic}. I have automatically synthesized your study notes, predicted viva questions, and saved a Markdown document to your Desktop.`)
-              }
-            }
-          } catch (_) {}
+          showToast(`📺 Detected YouTube Lecture URL: ${ytUrl.slice(0, 36)}...`, '⚡')
+          triggerIslandPromptRef.current?.({
+            type: 'note',
+            title: 'YouTube Lecture Detected',
+            subtitle: ytUrl.slice(0, 48),
+            question: 'Should Acharya synthesize revision notes?',
+            topic: 'Python Programming',
+            data: ytUrl
+          })
         })
       }
       // Guarantee fullscreen display bounds on startup
@@ -234,6 +232,117 @@ export default function DesktopHUD() {
   const [activeDebugReport, setActiveDebugReport] = useState(null)
   const [isDiagnosingError, setIsDiagnosingError] = useState(false)
   const [activeGeneratedNote, setActiveGeneratedNote] = useState(null)
+
+  // ══════════════════════════════════════════════════════════
+  // DYNAMIC ISLAND NOTIFICATION & ACTION SYSTEM (iOS Island)
+  // ══════════════════════════════════════════════════════════
+  const [islandPrompt, setIslandPrompt] = useState(null)
+  const [islandStatus, setIslandStatus] = useState('idle') // 'idle' | 'prompt' | 'working' | 'success'
+  const [islandFeedback, setIslandFeedback] = useState('')
+  const islandTimeoutRef = useRef(null)
+
+  const handleDismissIsland = useCallback(() => {
+    if (islandTimeoutRef.current) clearTimeout(islandTimeoutRef.current)
+    setIslandStatus('idle')
+    setIslandPrompt(null)
+    setIslandFeedback('')
+    playCyberChime('scan')
+
+    const electron = getElectron()
+    if (electron && electron.send && !isExpanded) {
+      electron.send('resize-island', { width: 380, height: 42 })
+    }
+  }, [isExpanded])
+
+  const triggerIslandPrompt = useCallback((prompt) => {
+    if (islandTimeoutRef.current) clearTimeout(islandTimeoutRef.current)
+    setIslandPrompt(prompt)
+    setIslandStatus('prompt')
+    setIslandFeedback('')
+    playCyberChime(prompt.type === 'error' ? 'alarm' : 'scan')
+
+    const electron = getElectron()
+    if (electron && electron.send) {
+      electron.send('resize-island', { width: 560, height: 100 })
+    }
+
+    islandTimeoutRef.current = setTimeout(() => {
+      handleDismissIsland()
+    }, 15000)
+  }, [handleDismissIsland])
+
+  const handleIslandActionConfirm = useCallback(async () => {
+    if (!islandPrompt) return
+    if (islandTimeoutRef.current) clearTimeout(islandTimeoutRef.current)
+
+    if (islandPrompt.type === 'error') {
+      setIslandStatus('working')
+      setIslandFeedback('⚡ Resolving error directly in Notepad...')
+      playCyberChime('scan')
+
+      try {
+        const electron = getElectron()
+        if (electron && electron.invoke) {
+          await electron.invoke('apply-direct-fix', islandPrompt.data)
+        } else if (islandPrompt.data?.fixedFullCode) {
+          navigator.clipboard?.writeText(islandPrompt.data.fixedFullCode)
+        }
+        setIslandStatus('success')
+        setIslandFeedback('✓ Error Resolved in Notepad!')
+        playCyberChime('affirm')
+        if (activeCodeIssue) dismissActiveCodeIssue()
+        if (ttsEnabled) {
+          speakText('I have corrected the code error directly in Notepad.')
+        }
+      } catch (err) {
+        setIslandStatus('success')
+        setIslandFeedback('✓ Code fix applied!')
+      }
+
+      islandTimeoutRef.current = setTimeout(() => {
+        handleDismissIsland()
+      }, 1500)
+
+    } else if (islandPrompt.type === 'note') {
+      setIslandStatus('working')
+      setIslandFeedback('⏳ Synthesizing study notes & cheat sheet...')
+      playCyberChime('scan')
+
+      try {
+        const topic = islandPrompt.topic || 'Python Programming'
+        const notes = await synthesizeLectureNotes(topic, islandPrompt.subtitle || topic)
+        const electron = getElectron()
+        let savedFile = `Acharya_${topic.replace(/[^a-zA-Z0-9_-]/g, '_')}.md`
+
+        if (electron && electron.invoke) {
+          const saveRes = await electron.invoke('save-note-to-desktop', notes)
+          if (saveRes && saveRes.filename) savedFile = saveRes.filename
+        }
+
+        setIslandStatus('success')
+        setIslandFeedback(`✓ Saved to Desktop: ${savedFile}`)
+        playCyberChime('success')
+
+        if (ttsEnabled) {
+          speakText(`I have synthesized revision notes for ${notes.topic || topic} and saved them directly to your Desktop.`)
+        }
+      } catch (err) {
+        setIslandStatus('success')
+        setIslandFeedback('✓ Revision notes generated!')
+      }
+
+      islandTimeoutRef.current = setTimeout(() => {
+        handleDismissIsland()
+      }, 1800)
+    }
+  }, [islandPrompt, activeCodeIssue, ttsEnabled, handleDismissIsland])
+
+  // Synchronize ref handles for ambient event listeners
+  useEffect(() => {
+    triggerIslandPromptRef.current = triggerIslandPrompt
+    handleDismissIslandRef.current = handleDismissIsland
+    handleIslandActionConfirmRef.current = handleIslandActionConfirm
+  })
 
   // Feature #3: Ebbinghaus Memory Decay Radar State
   const [memoryRadarTopics, setMemoryRadarTopics] = useState([
@@ -448,10 +557,26 @@ export default function DesktopHUD() {
         isAnalyzing = true
         setVisionScanning(true)
 
-        // Only trigger OCR inspection if window is a developer code editor
+        // Only trigger OCR inspection if window is a developer code editor or educational browser
         const winInfo = await electron.invoke('get-active-window-awareness')
         const activeApp = (winInfo?.focusApp || '').toLowerCase()
+        const winTitle = (winInfo?.windowTitle || '').toLowerCase()
         const isCodeEditor = activeApp.includes('code') || activeApp.includes('notepad') || activeApp.includes('terminal') || activeApp.includes('devenv')
+        const isEducationalBrowser = (activeApp.includes('browser') || activeApp.includes('edge') || activeApp.includes('chrome')) && (winTitle.includes('youtube') || winTitle.includes('course') || winTitle.includes('lecture') || winTitle.includes('tutorial') || winTitle.includes('python') || winTitle.includes('algorithm') || winTitle.includes('class'))
+
+        // Autonomous Lecture Detection on Screen -> Triggers Dynamic Island Prompt
+        if (isEducationalBrowser && islandStatus === 'idle') {
+          const cleanTopic = (winInfo.windowTitle || 'Python Programming').replace(/ - (YouTube|Edge|Google Chrome|Brave)/gi, '').trim()
+          triggerIslandPromptRef.current?.({
+            type: 'note',
+            title: 'Educational Stream Spotted on Screen',
+            subtitle: cleanTopic.slice(0, 42),
+            question: 'Should Acharya synthesize revision notes?',
+            topic: cleanTopic || 'Python Programming',
+            data: winInfo.windowTitle
+          })
+          return
+        }
 
         if (!isCodeEditor) {
           return
@@ -478,10 +603,18 @@ export default function DesktopHUD() {
           const aiRes = await analyzeCodeWithAI(targetCode, '', profile)
 
           if (aiRes && aiRes.isError) {
-            setActiveCodeIssue({
+            const issueData = {
               ...aiRes,
               programDomain: aiRes.projectIntent || aiRes.language || 'Code',
-              fileName: visionResult.windowTitle || 'Screen Vision'
+              fileName: visionResult.windowTitle || 'Notepad'
+            }
+            setActiveCodeIssue(issueData)
+            triggerIslandPromptRef.current?.({
+              type: 'error',
+              title: (aiRes.errorType || 'Syntax / Logic Flaw').slice(0, 36),
+              subtitle: `Line ${aiRes.line || 1} in ${visionResult.windowTitle || 'Notepad'}`,
+              question: 'Should Acharya resolve it in Notepad?',
+              data: issueData
             })
             playCyberChime('alarm')
             if (ttsEnabled && aiRes.mentorSpeech) {
@@ -805,14 +938,32 @@ export default function DesktopHUD() {
     setIsExpanded(false)
     setActiveModal(null)
     const electron = getElectron()
-    if (electron) {
-      electron.send('collapse-window', { x: pillPos.x, y: pillPos.y })
+    if (electron && electron.send) {
+      if (islandStatus !== 'idle') {
+        electron.send('resize-island', { width: 560, height: 100 })
+      } else {
+        electron.send('collapse-window', { width: 380, height: 42 })
+      }
     }
   }
 
-  // Keyboard controls
+  // Keyboard controls & Dynamic Island hotkey confirmations
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Dynamic Island Quick Confirmation / Dismissal Hotkeys
+      if (islandStatus === 'prompt') {
+        if (e.key === 'Enter' || e.key === 'y' || e.key === 'Y') {
+          e.preventDefault()
+          handleIslandActionConfirm()
+          return
+        }
+        if (e.key === 'Escape' || e.key === 'n' || e.key === 'N') {
+          e.preventDefault()
+          handleDismissIsland()
+          return
+        }
+      }
+
       if (e.key === 'Escape') {
         if (activeModal) {
           setActiveModal(null)
@@ -823,7 +974,7 @@ export default function DesktopHUD() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [activeModal, pillPos])
+  }, [activeModal, pillPos, islandStatus, handleIslandActionConfirm, handleDismissIsland])
 
   // App Launcher Handler
   const handleAppLaunch = async (appIdOrUrl, appName) => {
@@ -1564,222 +1715,113 @@ export default function DesktopHUD() {
       )}
 
       {/* ══════════════════════════════════════════════════════
-          COLLAPSED STATE: SLEEK CIRCULAR ORB PILL (TOP RIGHT)
+          COLLAPSED STATE: SLEEK DYNAMIC ISLAND (TOP CENTER)
           ══════════════════════════════════════════════════════ */}
       {!isExpanded && (
         <div 
-          className="small-circular-orb-pill"
-          style={{
-            cursor: 'pointer',
-            userSelect: 'none',
-          }}
-          onClick={(e) => {
-            // Prevent expanding if clicking internal action buttons
-            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
-            handleExpandHUD();
-          }}
-          onDoubleClick={() => handleExpandHUD()}
+          className="dynamic-island-wrapper"
+          style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none' }}
         >
-          <div className="orb-circle-body" style={{
-            boxShadow: activeCodeIssue ? '0 0 25px #ff4d6d, inset 0 0 15px #ff4d6d' : (liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? '0 0 20px #00ff9d' : undefined
-          }}>
-            <div className="orb-inner-core" style={{
-              background: activeCodeIssue ? 'radial-gradient(circle, #ff4d6d 0%, #800020 80%)' : (liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? 'radial-gradient(circle, #00ff9d 0%, #007755 80%)' : undefined
-            }} />
-            <div className="orb-spin-ring ring-primary" style={{
-              borderColor: activeCodeIssue ? '#ff4d6d transparent #ff4d6d transparent' : undefined
-            }} />
-            <div className="orb-spin-ring ring-secondary" style={{
-              borderColor: activeCodeIssue ? '#ff7b72 transparent #ff7b72 transparent' : undefined
-            }} />
-          </div>
-          {/* NORMAL PILL CONTENT (When No Error) */}
-          {!(activeCodeIssue || activeSocraticIntervention) ? (
-            <div className="orb-pill-tag">
-              <div className={`tag-status-dot ${isListening ? 'listening' : ''}`} style={{
-                background: (liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? '#00ff9d' : undefined
-              }} />
-              <span className="tag-text">ACHARYA</span>
-
-              {(liveCodeStatus.isActive && liveCodeStatus.status === 'CLEAN') ? (
-                <span className="pill-event-badge-glow cyan" title={`Clean Code Flow: ${liveCodeStatus.fileName || 'Active File'}`}>
-                  <span className="event-pulse-dot cyan" style={{ background: '#00ff9d', boxShadow: '0 0 8px #00ff9d' }} />
-                  ✍️ {liveCodeStatus.fileName ? liveCodeStatus.fileName.slice(0, 12) : 'Clean Code'}
-                </span>
-              ) : pillEventNotification ? (
-                <span className={`pill-event-badge-glow ${pillEventNotification.type === 'EXAM' ? '' : 'cyan'}`} title={`Event Active: ${pillEventNotification.title}`}>
-                  <span className={`event-pulse-dot ${pillEventNotification.type === 'EXAM' ? '' : 'cyan'}`} />
-                  🔔 {pillEventNotification.title.slice(0, 18)} {pillEventNotification.detail ? `· ${pillEventNotification.detail.slice(0, 12)}` : ''}
-                </span>
-              ) : nearestDeadline ? (
-                <span className="pill-event-badge-glow cyan" title={`Upcoming Event: ${nearestDeadline.title}`}>
-                  <span className="event-pulse-dot cyan" />
-                  📅 {nearestDeadline.title.slice(0, 16)} · {nearestDeadline.days}d
-                </span>
-              ) : (
-                visionScanning ? (
-                  <span className="pill-event-badge-glow cyan" title={visionTarget ? `Acharya observing: ${visionTarget}` : 'Scanning active window...'} style={{ animation: 'pulse 1s infinite' }}>
-                    <span className="event-pulse-dot cyan" style={{ background: '#00f0ff', boxShadow: '0 0 8px #00f0ff' }} />
-                    👁 {visionTarget ? visionTarget.slice(0, 12) : 'Observing...'}
+          <div 
+            className={`dynamic-island-shell ${islandStatus === 'idle' ? 'island-idle' : `island-expanded ${islandPrompt?.type === 'error' ? 'theme-error' : 'theme-note'}`}`}
+            onClick={(e) => {
+              if (islandStatus === 'idle') {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+                handleExpandHUD();
+              }
+            }}
+          >
+            {islandStatus === 'idle' && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="orb-circle-body" style={{ width: '18px', height: '18px' }}>
+                    <div className="orb-inner-core" />
+                    <div className="orb-spin-ring ring-primary" />
+                  </div>
+                  <span style={{ fontSize: '10px', fontWeight: '900', color: '#00f0ff', letterSpacing: '1px' }}>ACHARYA</span>
+                  <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.4)' }}>·</span>
+                  <span style={{ fontSize: '8.5px', color: '#00ff9d', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span className="event-pulse-dot cyan" style={{ width: '5px', height: '5px', background: '#00ff9d', boxShadow: '0 0 6px #00ff9d' }} />
+                    VISION ACTIVE
                   </span>
-                ) : (
-                  <span className="tag-model-badge">ONLINE</span>
-                )
-              )}
-
-              {readingAlarm?.active && (
-                <span className="pill-reading-alarm" title="Active Reading Timer">
-                  ⏱ {Math.floor(readingAlarm.remainingSeconds / 60)}:{String(readingAlarm.remainingSeconds % 60).padStart(2, '0')}
-                </span>
-              )}
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleTriggerAiCodeInspection();
-                }}
-                style={{
-                  background: 'rgba(0, 240, 255, 0.15)',
-                  border: '1px solid rgba(0, 240, 255, 0.4)',
-                  color: '#00f0ff',
-                  fontSize: '8px',
-                  fontWeight: 'bold',
-                  padding: '2px 7px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  marginLeft: 'auto'
-                }}
-                title="Run Neural AI Inspection on active code in Notepad or VS Code"
-              >
-                ⚡ AI Check
-              </button>
-            </div>
-          ) : (() => {
-            /* ERROR DETECTED: SHOW DETAILS DIRECTLY INSIDE THE PILL AT THAT PLACE! */
-            const current = activeCodeIssue || activeSocraticIntervention;
-            const lineStr = current.line ? `Line ${current.line}` : 'Alert';
-            const shortErr = (current.errorType || 'Syntax / Logic Flaw').replace(/SyntaxError:\s*/i, '').replace(/Logic Flaw:\s*/i, '');
-            return (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', maxWidth: '320px', overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span style={{ fontSize: '9px', fontWeight: '900', color: '#ff4d6d', letterSpacing: '0.4px', whiteSpace: 'nowrap' }}>
-                      🚨 {current.programDomain ? `${current.programDomain.replace(' Program', '')} · ` : ''}{lineStr}: {shortErr.replace(/^[^:]+:\s*/, '').slice(0, 22)}
-                    </span>
-                    <span style={{ fontSize: '7.5px', padding: '1px 4px', borderRadius: '3px', background: 'rgba(255, 77, 109, 0.3)', color: '#ff7b72', border: '1px solid #ff4d6d', fontWeight: 'bold' }}>
-                      {current.language || 'Python'}
-                    </span>
-                    {current.isRecurring && (
-                      <span style={{ fontSize: '7px', padding: '1px 4px', borderRadius: '3px', background: 'rgba(255, 200, 0, 0.25)', color: '#ffd166', border: '1px solid #ffd166', fontWeight: 'bold', whiteSpace: 'nowrap' }} title="You have made this mistake before — Acharya is tracking this cognitive pattern">
-                        🔁 Recurring
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '8px', color: '#ffd166', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={current.socraticQuestion || current.hint}>
-                    💡 {(current.socraticQuestion || current.hint || current.socraticHint || 'Check syntax invariant').slice(0, 56)}...
-                  </div>
                 </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto' }}>
-                  <button
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      const electron = getElectron();
-                      if (electron && electron.invoke) {
-                        await electron.invoke('apply-direct-fix', current);
-                        showToast(`✓ Fixed Line ${current.line || ''} directly in editor!`, '⚡');
-                        playCyberChime('affirm');
-                        if (activeCodeIssue) dismissActiveCodeIssue();
-                        if (activeSocraticIntervention) dismissSocraticIntervention();
-                      } else {
-                        if (current.fixedFullCode || current.suggestedFix) {
-                          navigator.clipboard?.writeText(current.fixedFullCode || current.suggestedFix);
-                          showToast('✓ Fixed code copied to clipboard!', '📋');
-                          playCyberChime('affirm');
-                          if (activeCodeIssue) dismissActiveCodeIssue();
-                          if (activeSocraticIntervention) dismissSocraticIntervention();
-                        }
-                      }
-                    }}
-                    style={{
-                      background: 'linear-gradient(135deg, #00f0ff, #00ff9d)',
-                      border: 'none',
-                      color: '#000',
-                      fontWeight: '900',
-                      fontSize: '8.5px',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      boxShadow: '0 0 10px rgba(0, 240, 255, 0.4)'
-                    }}
-                    title="Directly apply fix in Notepad / VS Code"
-                  >
-                    ⚡ Fix
-                  </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (activeCodeIssue) dismissActiveCodeIssue();
-                      if (activeSocraticIntervention) dismissSocraticIntervention();
-                      playCyberChime('scan');
+                      handleTriggerAiCodeInspection();
                     }}
                     style={{
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: '1px solid rgba(255, 255, 255, 0.25)',
-                      color: '#ffffff',
+                      background: 'rgba(0, 240, 255, 0.15)',
+                      border: '1px solid rgba(0, 240, 255, 0.4)',
+                      color: '#00f0ff',
+                      fontSize: '8px',
                       fontWeight: 'bold',
-                      fontSize: '8.5px',
-                      padding: '4px 7px',
+                      padding: '2px 7px',
                       borderRadius: '4px',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap'
+                      cursor: 'pointer'
                     }}
-                    title="Dismiss alert"
+                    title="Run Neural AI Inspection on active code in Notepad"
                   >
-                    ✕ Ignore
+                    ⚡ Check Code
                   </button>
+                  <span style={{ fontSize: '7.5px', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold' }}>
+                    EXPAND ↗
+                  </span>
                 </div>
-              </div>
-            );
-          })()}
+              </>
+            )}
 
-          {/* Floating Popout Notification Toast attached to Pill */}
-          {pillEventNotification && !pillEventNotification.isDismissedToast && (
-            <div 
-              className="pill-event-popout-toast"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleExpandHUD()
-                if (pillEventNotification.type === 'EXAM') setActiveModal('exam')
-                else if (pillEventNotification.type === 'SCHEDULE') setActiveModal('planner')
-                else setActiveModal('tasks')
-              }}
-              title="Click to view event details in HUD"
-            >
-              <span className="pept-icon">🔔</span>
-              <div className="pept-content">
-                <div className="pept-header">
-                  <span className="pept-type">{pillEventNotification.type} CREATED</span>
-                  <span className="pept-pulse-tag">ACTIVE IN PILL</span>
+            {islandStatus === 'prompt' && (
+              <>
+                <div className="island-header-row">
+                  <div className="island-header-left">
+                    <span className={`island-tag-badge ${islandPrompt?.type === 'error' ? 'badge-error' : 'badge-note'}`}>
+                      {islandPrompt?.type === 'error' ? '🚨 ERROR DETECTED' : '📚 LECTURE DETECTED'}
+                    </span>
+                    <span className="island-context-title" title={islandPrompt?.title}>
+                      {islandPrompt?.title} {islandPrompt?.subtitle ? `· ${islandPrompt.subtitle}` : ''}
+                    </span>
+                  </div>
+                  <button className="island-close-btn" onClick={handleDismissIsland} title="Dismiss">✕</button>
                 </div>
-                <div className="pept-title">{pillEventNotification.title}</div>
-                {pillEventNotification.detail && (
-                  <div className="pept-detail">{pillEventNotification.detail}</div>
-                )}
+
+                <div className="island-bottom-row">
+                  <div className="island-prompt-question">
+                    {islandPrompt?.question || 'Should Acharya proceed?'}
+                  </div>
+                  <div className="island-action-group">
+                    <button 
+                      className={`island-btn-yes ${islandPrompt?.type === 'error' ? 'btn-error-fix' : 'btn-note-make'}`}
+                      onClick={handleIslandActionConfirm}
+                    >
+                      {islandPrompt?.type === 'error' ? '⚡ Yes, Fix It' : '📸 Yes, Make Notes'}
+                    </button>
+                    <button 
+                      className="island-btn-no" 
+                      onClick={handleDismissIsland}
+                    >
+                      ✕ No
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {islandStatus === 'working' && (
+              <div className="island-status-feedback-row">
+                <span className="island-pulse-dot" />
+                <span className="island-status-feedback-text">{islandFeedback}</span>
               </div>
-              <button 
-                className="pept-close-btn"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setPillEventNotification(prev => prev ? { ...prev, isDismissedToast: true } : null)
-                }}
-                title="Dismiss popout banner"
-              >
-                ✕
-              </button>
-            </div>
-          )}
+            )}
+
+            {islandStatus === 'success' && (
+              <div className="island-status-feedback-row">
+                <span style={{ fontSize: '16px', color: '#00ff9d', fontWeight: 'bold' }}>✓</span>
+                <span className="island-status-feedback-text success-text">{islandFeedback}</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -2153,107 +2195,62 @@ export default function DesktopHUD() {
             </>
           )}
 
-          {/* Autonomous Zero-Touch Socratic Error Interceptor Banner */}
-          {(activeCodeIssue || activeSocraticIntervention) && (() => {
-            const currentIssue = activeCodeIssue || activeSocraticIntervention;
-            return (
-              <>
-                <div
-                  style={{
-                    position: 'fixed',
-                    inset: 0,
-                    background: 'rgba(3, 6, 12, 0.75)',
-                    backdropFilter: 'blur(8px)',
-                    zIndex: 9996
-                  }}
-                  onClick={() => {
-                    if (activeCodeIssue) dismissActiveCodeIssue()
-                    if (activeSocraticIntervention) dismissSocraticIntervention()
-                  }}
-                />
-                <div style={{
-                  position: 'fixed',
-                  top: '72px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: 'min(880px, calc(100vw - 48px))',
-                  background: '#070a14',
-                  border: '1.5px solid #ff4d6d',
-                  borderRadius: '10px',
-                  padding: '12px 18px',
-                  boxShadow: '0 20px 50px rgba(0, 0, 0, 0.95), 0 0 30px rgba(255, 77, 109, 0.45)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '12px',
-                  zIndex: 9997
-                }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '14px' }}>🚨</span>
-                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#ff4d6d', letterSpacing: '0.8px' }}>
-                        ZERO-TOUCH SENTRY: {currentIssue.fileName ? `${currentIssue.fileName} · ` : ''}{currentIssue.language} DETECTED IN WORKSPACE
-                      </span>
-                      <span style={{ fontSize: '8px', padding: '1px 6px', borderRadius: '3px', background: 'rgba(255, 77, 109, 0.25)', color: '#ff7b72', border: '1px solid #ff4d6d', fontWeight: 'bold' }}>
-                        LINE {currentIssue.line || 'ACTIVE'}
-                      </span>
+          {/* Dynamic Island Prompt in HUD Mode (Zero Messy Dimming Overlays) */}
+          {islandStatus !== 'idle' && (
+            <div className="dynamic-island-wrapper">
+              <div className={`dynamic-island-shell island-expanded ${islandPrompt?.type === 'error' ? 'theme-error' : 'theme-note'}`}>
+                {islandStatus === 'prompt' && (
+                  <>
+                    <div className="island-header-row">
+                      <div className="island-header-left">
+                        <span className={`island-tag-badge ${islandPrompt?.type === 'error' ? 'badge-error' : 'badge-note'}`}>
+                          {islandPrompt?.type === 'error' ? '🚨 ERROR DETECTED' : '📚 LECTURE DETECTED'}
+                        </span>
+                        <span className="island-context-title" title={islandPrompt?.title}>
+                          {islandPrompt?.title} {islandPrompt?.subtitle ? `· ${islandPrompt.subtitle}` : ''}
+                        </span>
+                      </div>
+                      <button className="island-close-btn" onClick={handleDismissIsland} title="Dismiss">✕</button>
                     </div>
-                    <div style={{ fontSize: '11.5px', fontWeight: 'bold', color: '#ffffff', marginTop: '3px' }}>
-                      {currentIssue.errorType}
+
+                    <div className="island-bottom-row">
+                      <div className="island-prompt-question">
+                        {islandPrompt?.question || 'Should Acharya proceed?'}
+                      </div>
+                      <div className="island-action-group">
+                        <button 
+                          className={`island-btn-yes ${islandPrompt?.type === 'error' ? 'btn-error-fix' : 'btn-note-make'}`}
+                          onClick={handleIslandActionConfirm}
+                        >
+                          {islandPrompt?.type === 'error' ? '⚡ Yes, Fix It' : '📸 Yes, Make Notes'}
+                        </button>
+                        <button 
+                          className="island-btn-no" 
+                          onClick={handleDismissIsland}
+                        >
+                          ✕ No
+                        </button>
+                      </div>
                     </div>
-                    <div style={{ fontSize: '9.5px', color: '#ffe6a7', marginTop: '3px', lineHeight: '1.3' }}>
-                      💡 <b>Socratic Guidance:</b> {currentIssue.hint || currentIssue.socraticHint}
-                    </div>
-                    <div style={{ fontSize: '8.5px', color: '#6df9ff', fontFamily: 'monospace', background: '#020408', padding: '4px 8px', borderRadius: '4px', marginTop: '4px' }}>
-                      Suggested Fix: {currentIssue.suggestedFix}
-                    </div>
+                  </>
+                )}
+
+                {islandStatus === 'working' && (
+                  <div className="island-status-feedback-row">
+                    <span className="island-pulse-dot" />
+                    <span className="island-status-feedback-text">{islandFeedback}</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <button
-                      onClick={() => {
-                        setCodeSnippet(currentIssue.suggestedFix || currentIssue.codeSnippet || currentIssue.rawSample || '')
-                        setActiveModal('code')
-                        if (activeCodeIssue) dismissActiveCodeIssue()
-                        if (activeSocraticIntervention) dismissSocraticIntervention()
-                        playCyberChime('affirm')
-                      }}
-                      style={{
-                        background: 'linear-gradient(135deg, #00f0ff, #00ff9d)',
-                        border: 'none',
-                        color: '#000',
-                        fontWeight: '900',
-                        fontSize: '10px',
-                        padding: '6px 14px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      ⚡ Open in AST Sentry
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (activeCodeIssue) dismissActiveCodeIssue()
-                        if (activeSocraticIntervention) dismissSocraticIntervention()
-                        playCyberChime('scan')
-                      }}
-                      style={{
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        color: '#fff',
-                        fontSize: '9px',
-                        padding: '3px 8px',
-                        borderRadius: '3px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      ✕ Dismiss
-                    </button>
+                )}
+
+                {islandStatus === 'success' && (
+                  <div className="island-status-feedback-row">
+                    <span style={{ fontSize: '16px', color: '#00ff9d', fontWeight: 'bold' }}>✓</span>
+                    <span className="island-status-feedback-text success-text">{islandFeedback}</span>
                   </div>
-                </div>
-              </>
-            );
-          })()}
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Center 3D Gyro Orb Stage & Acharya Neural Core */}
           <div className="hud-center-stage-container">

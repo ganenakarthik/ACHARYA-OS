@@ -197,15 +197,15 @@ function createWindow() {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const primaryDisplay = screen.getPrimaryDisplay();
     const screenWidth = primaryDisplay.workAreaSize ? primaryDisplay.workAreaSize.width : primaryDisplay.bounds.width;
-    const pillWidth = 540;
-    const pillHeight = 64; // Comfortably hosts the inline Pill error sentry and action buttons
-    let targetX = (bounds && typeof bounds.x === 'number' && bounds.x > 0) ? Math.round(bounds.x) : (screenWidth - pillWidth - 24);
+    const pillWidth = (bounds && bounds.width) || 400;
+    const pillHeight = (bounds && bounds.height) || 48;
+    let targetX = (bounds && typeof bounds.x === 'number' && bounds.x > 0) ? Math.round(bounds.x) : Math.round((screenWidth - pillWidth) / 2);
     // Boundary clamp: ensure window never overflows right or left monitor borders
     if (targetX + pillWidth > screenWidth - 10) {
       targetX = screenWidth - pillWidth - 24;
     }
     if (targetX < 10) targetX = 10;
-    const targetY = (bounds && typeof bounds.y === 'number' && bounds.y > 0) ? Math.round(bounds.y) : 16;
+    const targetY = (bounds && typeof bounds.y === 'number' && bounds.y > 0) ? Math.round(bounds.y) : 12;
     mainWindow.setResizable(true);
     mainWindow.setBounds({
       x: targetX,
@@ -213,7 +213,27 @@ function createWindow() {
       width: pillWidth,
       height: pillHeight,
     });
-    mainWindow.setAlwaysOnTop(true);
+    mainWindow.setAlwaysOnTop(true, 'screen-saver');
+    mainWindow.moveTop();
+    mainWindow.setIgnoreMouseEvents(false);
+  });
+
+  // Dynamic Island Resize IPC (Switches between compact idle capsule and expanded action prompt)
+  ipcMain.on('resize-island', (event, { width, height }) => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const screenWidth = primaryDisplay.workAreaSize ? primaryDisplay.workAreaSize.width : primaryDisplay.bounds.width;
+    const targetW = width || 580;
+    const targetH = height || 112;
+    const targetX = Math.round((screenWidth - targetW) / 2);
+    mainWindow.setResizable(true);
+    mainWindow.setBounds({
+      x: targetX,
+      y: 12,
+      width: targetW,
+      height: targetH,
+    });
+    mainWindow.setAlwaysOnTop(true, 'screen-saver');
     mainWindow.moveTop();
     mainWindow.setIgnoreMouseEvents(false);
   });
@@ -1398,25 +1418,12 @@ Write-Output 'ok'
       });
     }
 
-    // 4. Attempt direct simulated paste into active editor via PowerShell Win32
-    const { exec } = require('child_process');
-    const psCmd = `
-      Add-Type -AssemblyName System.Windows.Forms;
-      $wshell = New-Object -ComObject WScript.Shell;
-      $proc = Get-Process -Name Code, notepad, devenv -ErrorAction SilentlyContinue | Sort-Object -Property StartTime -Descending | Select-Object -First 1;
-      if ($proc) {
-        $act = $wshell.AppActivate($proc.Id);
-        if (-not $act) { $act = $wshell.AppActivate($proc.ProcessName); }
-        if ($act) {
-          Start-Sleep -Milliseconds 120;
-          [System.Windows.Forms.SendKeys]::SendWait('^a');
-          Start-Sleep -Milliseconds 60;
-          [System.Windows.Forms.SendKeys]::SendWait('^v');
-        }
-      }
-    `;
-
-    exec(`powershell -NoProfile -Command "${psCmd.replace(/\n/g, ' ')}"`, () => {});
+    // 4. Attempt direct simulated paste into active editor via Win32 UI Switch
+    const { execFile } = require('child_process');
+    const fixScript = path.join(__dirname, 'apply-editor-fix.ps1');
+    execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', fixScript], { windowsHide: true }, (err, stdout) => {
+      console.log('apply-editor-fix result:', (stdout || '').trim());
+    });
 
     return { success: true };
   });
