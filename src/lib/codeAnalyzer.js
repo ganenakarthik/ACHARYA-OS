@@ -103,6 +103,46 @@ const ERROR_PATTERNS = [
   },
   {
     lang: 'python',
+    pattern: /IndexError(?::\s*list\s+index\s+out\s+of\s+range)?/i,
+    type: 'error',
+    message: 'IndexError: Array or List index out of bounds — index exceeds collection length.',
+    suggestion: 'Add an index bounds guard before lookup: if 0 <= target_index < len(data): value = data[target_index] else: fallback.',
+    fix: 'Index bounds boundary guard: if 0 <= index < len(arr):',
+    confidence: 99,
+    docs: 'https://docs.python.org/3/library/exceptions.html#IndexError'
+  },
+  {
+    lang: 'python',
+    pattern: /KeyError(?::\s*.+)?/i,
+    type: 'error',
+    message: 'KeyError: Dictionary key not found in mapping.',
+    suggestion: 'Use dict.get(key, default) instead of direct bracket subscripting dict[key].',
+    fix: 'dict.get(key, default_fallback)',
+    confidence: 98,
+    docs: 'https://docs.python.org/3/library/exceptions.html#KeyError'
+  },
+  {
+    lang: 'python',
+    pattern: /ZeroDivisionError(?::\s*division\s+by\s+zero)?/i,
+    type: 'error',
+    message: 'ZeroDivisionError: Division or modulo operation with zero denominator.',
+    suggestion: 'Ensure denominator != 0 before arithmetic or return safe identity fallback.',
+    fix: 'if denominator != 0: return num / den else: return 0',
+    confidence: 99,
+    docs: 'https://docs.python.org/3/library/exceptions.html#ZeroDivisionError'
+  },
+  {
+    lang: 'python',
+    pattern: /Traceback \(most recent call last\)/i,
+    type: 'error',
+    message: 'Runtime Traceback Intercepted: Uncaught exception in execution call stack.',
+    suggestion: 'Inspect the innermost call frame at the bottom of the traceback to resolve the root cause exception.',
+    fix: 'Wrap failing execution block in try-except with preventative assertion',
+    confidence: 97,
+    docs: 'https://docs.python.org/3/tutorial/errors.html'
+  },
+  {
+    lang: 'python',
     pattern: /ImportError|ModuleNotFoundError/i,
     type: 'error',
     message: 'ModuleNotFoundError — required Python package is not installed.',
@@ -403,6 +443,23 @@ export function applySmartFix(code, error) {
   // 7. Java Null pointer dereference fix
   if (/nullpointer|null dereference|optional/i.test(error?.message || '') && fixed.includes('.findById(')) {
     fixed = fixed.replace(/\.findById\(([^)]+)\)\.name/g, '.findById($1).map(u -> u.name).orElse("Learner")')
+    return fixed
+  }
+
+  // 8. Python IndexError bounds guard
+  if (/indexerror|index out of range|bounds/i.test(error?.message || '') || (typeof code === 'string' && code.includes('IndexError'))) {
+    if (code.includes('Traceback') || code.includes('IndexError:')) {
+      return `# Drop-in Preventative Fix for IndexError:
+# Guard lookup with collection length boundary check:
+if 0 <= target_index < len(data):
+    value = data[target_index]
+else:
+    value = None  # Safe boundary fallback
+
+# Preventative Test Assertion:
+assert len(data) > target_index, "Array index boundary check failed"`
+    }
+    fixed = fixed.replace(/(\w+)\[([^\]]+)\]/g, '($1[$2] if 0 <= ($2) < len($1) else None)')
     return fixed
   }
 
