@@ -43,13 +43,17 @@ if (!gotTheLock) {
 
 function createWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
-  const { x, y, width, height } = primaryDisplay.bounds;
+  const screenWidth = primaryDisplay.workAreaSize ? primaryDisplay.workAreaSize.width : primaryDisplay.bounds.width;
+  const initialWidth = 180;
+  const initialHeight = 34;
+  const initialX = Math.round((screenWidth - initialWidth) / 2);
+  const initialY = 12;
 
   mainWindow = new BrowserWindow({
-    width,
-    height,
-    x,
-    y,
+    width: initialWidth,
+    height: initialHeight,
+    x: initialX,
+    y: initialY,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -67,46 +71,22 @@ function createWindow() {
     },
   });
 
-  const enforceFullscreen = () => {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    const disp = screen.getPrimaryDisplay();
-    mainWindow.setBounds({
-      x: disp.bounds.x,
-      y: disp.bounds.y,
-      width: disp.bounds.width,
-      height: disp.bounds.height,
-    });
-  };
-
   mainWindow.show();
   mainWindow.setAlwaysOnTop(true, 'screen-saver');
   mainWindow.moveTop();
-  mainWindow.focus();
 
   mainWindow.once('ready-to-show', () => {
-    enforceFullscreen();
     mainWindow.show();
     mainWindow.setAlwaysOnTop(true, 'screen-saver');
     mainWindow.moveTop();
-    mainWindow.focus();
     mainWindow.setIgnoreMouseEvents(false);
   });
 
   mainWindow.webContents.on('did-finish-load', () => {
-    enforceFullscreen();
     mainWindow.show();
     mainWindow.setAlwaysOnTop(true, 'screen-saver');
     mainWindow.moveTop();
-    mainWindow.focus();
   });
-
-  setTimeout(() => {
-    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
-      enforceFullscreen();
-      mainWindow.show();
-      mainWindow.focus();
-    }
-  }, 400);
 
   const distPath = path.join(__dirname, '../dist/index.html');
   const startUrl = process.env.ELECTRON_START_URL;

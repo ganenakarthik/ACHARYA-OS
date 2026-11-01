@@ -59,8 +59,8 @@ export default function DesktopHUD() {
     memoryConstellation, updateMemoryConstellation, systemStatus, setSystemStatus,
   } = useStore()
 
-  // HUD state - Expanded by default on startup for immediate desktop presence
-  const [isExpanded, setIsExpanded] = useState(true)
+  // HUD state - Sleek Dynamic Island Pill by default on startup
+  const [isExpanded, setIsExpanded] = useState(false)
   const [activeModal, setActiveModal] = useState(null) // 'chat' | 'settings' | 'tasks' | 'exam' | 'system' | 'radar' | 'vision' | 'planner' | 'pdf' | 'email' | 'memory'
   const [memoryTab, setMemoryTab] = useState('sessions') // 'sessions' | 'retention' | 'security' | 'raw_vault'
 
@@ -72,6 +72,9 @@ export default function DesktopHUD() {
   useEffect(() => {
     const electron = getElectron()
     if (electron) {
+      if (electron.send && !isExpanded) {
+        electron.send('collapse-window', { width: 180, height: 34 })
+      }
       if (electron.on) {
         electron.on('force-expand', () => {
           setIsExpanded(true)
